@@ -1,0 +1,103 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:Template name="StockWindow" src="../StockWindow/StockWindow.uxml" />
+    <Style src="GameScreen.uss" />
+    <ui:VisualElement name="game-screen" class="game-screen">
+
+        <!-- 위: 하루 · 단계 · 빚 -->
+        <ui:VisualElement class="top-bar">
+            <ui:Label name="day-label" text="1일차" class="top-day" />
+            <ui:Label name="phase-label" text="뉴스 탐색" class="top-phase" />
+            <ui:VisualElement class="top-spacer" />
+            <ui:Label text="빚" class="caption" />
+            <ui:Label name="debt-label" text="$10,000.00" class="top-value top-debt" />
+            <ui:Label name="rate-label" text="이자 5% · 7일차" class="caption top-gap" />
+            <ui:Label name="loan-count-label" text="추가 대출 3회 남음" class="caption top-gap" />
+            <ui:Label text="순자산" class="caption" />
+            <ui:Label name="networth-label" text="$0.00" class="top-value" />
+        </ui:VisualElement>
+
+        <!-- 가운데: 주식 창 + 오른쪽 패널 -->
+        <ui:VisualElement class="main-row">
+            <ui:Instance template="StockWindow" class="stock-window-host" />
+
+            <ui:VisualElement class="side-panel">
+                <ui:VisualElement class="side-card side-card--grow">
+                    <ui:Label text="오늘의 뉴스" class="side-title" />
+                    <ui:VisualElement name="news-list" />
+                    <ui:Label text="받은 힌트 · 사용 중인 효과" class="side-title side-title--gap" />
+                    <ui:ScrollView name="hint-list" class="hint-list" />
+                </ui:VisualElement>
+
+                <!-- 주인공 반신 캠: 그림은 CharacterSettings, 그림이 없으면 글자 얼굴 -->
+                <ui:VisualElement class="side-card character-cam">
+                    <ui:VisualElement name="portrait" class="portrait" />
+                    <ui:Label name="face-label" text="(-_-)" class="face" />
+                    <ui:Label name="mood-label" text="보합 · 오늘 +0.00%" class="mood" />
+                    <ui:Label name="outfit-label" text="평범 · 깔끔한 셔츠" class="caption" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- 아래: 보유 아이템 -->
+        <ui:VisualElement class="item-bar">
+            <ui:Label text="아이템" class="item-bar-title" />
+            <ui:VisualElement name="item-bar-list" class="item-bar-list" />
+            <ui:Label name="item-bar-hint" class="caption item-bar-hint" />
+        </ui:VisualElement>
+
+        <!-- 단계별 창 -->
+        <ui:VisualElement name="news-overlay" class="overlay">
+            <ui:VisualElement class="modal">
+                <ui:Label name="news-overlay-title" text="1일차 아침 뉴스" class="modal-title" />
+                <ui:VisualElement name="news-overlay-list" class="modal-body" />
+                <ui:Label text="뉴스는 정확하지만 폭이 작아요. 아이템 힌트는 틀릴 수 있어요." class="caption" />
+                <ui:Button name="news-confirm-button" text="아이템 사용 · 예약하러 가기" class="modal-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="picker-overlay" class="overlay">
+            <ui:VisualElement class="modal">
+                <ui:Label name="picker-title" text="종목 선택" class="modal-title" />
+                <ui:VisualElement name="picker-list" class="picker-list" />
+                <ui:Button name="picker-cancel-button" text="취소" class="modal-button modal-button--sub" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="settlement-overlay" class="overlay">
+            <ui:VisualElement class="modal">
+                <ui:Label name="settlement-title" text="1일차 장 결과" class="modal-title" />
+                <ui:Label name="settlement-summary" class="modal-body settlement-summary" />
+                <ui:VisualElement class="row repay-row">
+                    <ui:Label text="상환" class="caption" />
+                    <ui:FloatField name="repay-field" value="0" class="repay-field" />
+                    <ui:Button name="repay-button" text="갚기" />
+                    <ui:Button name="repay-all-button" text="현금 전부" />
+                    <ui:Button name="loan-button" text="추가 대출" />
+                </ui:VisualElement>
+                <ui:Label name="settlement-message" class="caption message" />
+                <ui:Button name="to-shop-button" text="상점으로" class="modal-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="shop-overlay" class="overlay">
+            <ui:VisualElement class="modal modal--wide">
+                <ui:VisualElement class="row row--spread">
+                    <ui:Label text="상점 · 내일 쓸 아이템 고르기" class="modal-title" />
+                    <ui:Label name="shop-cash" text="현금 $0.00" class="shop-cash" />
+                </ui:VisualElement>
+                <ui:ScrollView name="shop-list" class="shop-list" />
+                <ui:Label name="shop-message" class="caption message" />
+                <ui:Button name="next-day-button" text="다음 날" class="modal-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="end-overlay" class="overlay">
+            <ui:VisualElement class="modal">
+                <ui:VisualElement name="end-portrait" class="end-portrait" />
+                <ui:Label name="end-title" text="빚 청산!" class="modal-title end-title" />
+                <ui:Label name="end-body" class="modal-body" />
+                <ui:Button name="restart-button" text="다시 하기" class="modal-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

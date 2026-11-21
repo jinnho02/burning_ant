@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/_Project/Scenes/DayLoop.unity
+    guid: aba953a1c9960d844be3e8d8a4a3a554
+  - enabled: 1
     path: Assets/_Project/Scenes/StockWindow.unity
     guid: 480a747071d168c4f8f1bc8fe1eefddc
   m_configObjects: {}

@@ -28,6 +28,7 @@ namespace BurningAnt.UI
         float prevClose = 1f;
         float limit = 0.1f;
         float? averagePrice;
+        int previewCount;
 
         public PriceChartElement()
         {
@@ -45,6 +46,14 @@ namespace BurningAnt.UI
             this.visibleCount = visibleCount;
             this.totalTicks = Mathf.Max(1, totalTicks);
             this.averagePrice = averagePrice;
+            MarkDirtyRepaint();
+        }
+
+        /// <summary>망원경 아이템: 지금까지 그린 점 뒤로 미래 가격을 흐리게 그릴 점 개수. 0이면 없음.</summary>
+        public void SetPreview(int count)
+        {
+            if (previewCount == count) return;
+            previewCount = Mathf.Max(0, count);
             MarkDirtyRepaint();
         }
 
@@ -88,6 +97,19 @@ namespace BurningAnt.UI
             {
                 var point = new Vector2(i * w / totalTicks, Y(path[i], h));
                 if (i == 0) p.MoveTo(point);
+                else p.LineTo(point);
+            }
+            p.Stroke();
+
+            int previewEnd = Mathf.Min(count + previewCount, path.Length);
+            if (previewEnd <= count) return;
+            p.strokeColor = WithAlpha(averageColor, 0.6f);
+            p.lineWidth = 2f;
+            p.BeginPath();
+            for (int i = count - 1; i < previewEnd; i++)
+            {
+                var point = new Vector2(i * w / totalTicks, Y(path[i], h));
+                if (i == count - 1) p.MoveTo(point);
                 else p.LineTo(point);
             }
             p.Stroke();

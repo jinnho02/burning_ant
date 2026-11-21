@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a8d8c16a7fde484ba0b851eeaa5cbd0, type: 3}
+  m_Name: NewsSettings
+  m_EditorClassIdentifier: BurningAnt::BurningAnt.News.NewsSettings
+  minNewsPerDay: 2
+  maxNewsPerDay: 3
+  effectMin: 0.01
+  effectMax: 0.04
+  chainStartChance: 0.3
+  chainStartEffectMin: 0.03
+  chainStartEffectMax: 0.1
+  chainSuccessChance: 0.6
+  chainSuccessEffectMin: 0.05
+  chainSuccessEffectMax: 0.15
+  chainFailEffectMin: 0.08
+  chainFailEffectMax: 0.2
+  goodNews:
+  - "{0}, \uBD84\uAE30 \uC2E4\uC801 \uC608\uC0C1\uCE58 \uC18C\uD3ED \uC0C1\uD68C"
+  - "{0} \uB300\uD45C \"\uC62C\uD574\uB294 \uB2E4\uB974\uB2E4\" \uC778\uD130\uBDF0"
+  - "{0}, \uC2E0\uC81C\uD488 \uC0AC\uC804 \uC608\uC57D \uC21C\uC870"
+  - "\uC678\uAD6D\uC778, {0} \uC870\uC6A9\uD788 \uC21C\uB9E4\uC218"
+  badNews:
+  - "{0}, \uBD84\uAE30 \uC2E4\uC801 \uAE30\uB300\uC5D0 \uC0B4\uC9DD \uBABB \uBBF8\uCCD0"
+  - "{0} \uACF5\uC7A5\uC5D0 \uC791\uC740 \uD654\uC7AC\u2026 \uD53C\uD574\uB294 \uACBD\uBBF8"
+  - "{0} \uC784\uC6D0, \uBCF4\uC720 \uC8FC\uC2DD \uC77C\uBD80 \uB9E4\uB3C4"
+  - "\uC99D\uAD8C\uAC00, {0} \uBAA9\uD45C\uAC00 \uC18C\uD3ED \uD558\uD5A5"
+  chainStartNews:
+  - "[\uC18D\uBCF4] {0}, \uB300\uD615 \uACC4\uC57D \uC131\uC0AC \uC784\uBC15?"
+  - "[\uB2E8\uB3C5] {0}, \uD574\uC678 \uAE30\uC5C5 \uC778\uC218 \uD611\uC0C1 \uC911"
+  chainSuccessNews:
+  - "[\uD655\uC815] {0}, \uACC4\uC57D \uCD5C\uC885 \uC131\uC0AC! \uC2DC\uC7A5 \uD658\uD638"
+  - "[\uD655\uC815] {0}, \uD611\uC0C1 \uD0C0\uACB0 \uBC1C\uD45C"
+  chainFailNews:
+  - "[\uD655\uC815] {0}, \uACC4\uC57D \uACB0\uAD6D \uBB34\uC0B0\u2026 \uC2E4\uB9DD \uB9E4\uBB3C"
+  - "[\uD655\uC815] {0}, \uD611\uC0C1 \uACB0\uB82C \uACF5\uC2DD \uBC1C\uD45C"

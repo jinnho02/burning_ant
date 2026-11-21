@@ -41,6 +41,22 @@ namespace BurningAnt.Market
             this.maxHoldings = maxHoldings;
         }
 
+        /// <summary>대출금 입금, 상환·아이템 구매 출금. 출금은 현금이 모자라면 실패한다.</summary>
+        public void Deposit(float amount)
+        {
+            if (amount <= 0f) return;
+            Cash += amount;
+            Changed?.Invoke();
+        }
+
+        public bool Withdraw(float amount)
+        {
+            if (amount <= 0f || amount > Cash + 0.001f) return false;
+            Cash = Mathf.Max(0f, Cash - amount);
+            Changed?.Invoke();
+            return true;
+        }
+
         public Holding GetHolding(StockState stock) =>
             holdings.TryGetValue(stock, out var h) ? h : default;
 

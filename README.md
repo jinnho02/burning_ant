@@ -86,6 +86,37 @@ StockWindowController (UXML 요소 찾기, 화면 갱신, 버튼 → 주문)
 - 가격은 아직 뉴스와 무관한 무작위입니다 (`PricePathGenerator`의 `shortcut:` 주석 참고).
 - 한글 폰트는 지금 OS 폰트(맑은 고딕)를 빌려 씁니다. 출시 전에 배포 가능한 폰트로 바꿔야 합니다 (`KoreanFont.cs`).
 
+## 하루 루프 데모 (Day Loop)
+
+씬: `Assets/_Project/Scenes/DayLoop.unity` → 열고 Play. 뉴스 → 아이템 사용·장 전 예약 → 60초 장 → 정산(이자·상환·추가 대출) → 상점 → 다음 날이 끝까지 돕니다. 빚을 다 갚으면 승리, 총자산 $100 미만 + 추가 대출 소진이면 파산.
+
+- 가운데 주식 창은 위 Stock Window(`StockWindow.uxml`, `StockWindowController`)를 그대로 끼워 씁니다.
+- **기획서와 다른 점 (팀 합의 변경)**: 상점은 매일 랜덤 4개가 아니라 아이템 9종을 전부 진열하고, 플레이어가 골라 사서 씁니다.
+
+| 바꾸고 싶은 것 | 고칠 곳 |
+|---|---|
+| 화면 배치·색 (위 막대, 뉴스·힌트, 반신 캠, 아이템 막대, 정산·상점 창) | `UI/GameScreen/GameScreen.uxml`, `GameScreen.uss` |
+| 빚·이자·추가 대출·파산 기준 | `Data/LoanSettings.asset` |
+| 뉴스 개수·폭·연쇄 확률, 뉴스 문구 | `Data/NewsSettings.asset` |
+| 아이템 이름·가격·정확도·지속 시간, 상점 진열 | `Data/Items/` 에셋, 씬의 `Game` 오브젝트 → GameLoop → Shop Items |
+| 옷 단계·표정 경계값 | `Data/CharacterSettings.asset` |
+| 단계 진행·아이템 효과·승패 규칙 | `Scripts/Core/GameLoop.cs` |
+| 화면 갱신·버튼 | `Scripts/UI/GameScreenController.cs` |
+
+```
+GameLoop (뉴스 → 아이템 → 장 → 정산 → 상점, 대출·아이템·승패)
+ ├─ NewsGenerator  뉴스·연쇄 뉴스 생성, 뉴스를 반영해 오늘 가격 경로 확정
+ ├─ LoanAccount    빚·이자·추가 대출·상환
+ ├─ Inventory      산 아이템
+ └─ MarketSession  (기존) 장 진행·매매
+GameScreenController (위 막대, 뉴스·힌트, 반신 캠, 아이템 막대, 단계별 창)
+StockWindowController (기존) 가운데 주식 창
+```
+
+- 에디터 메뉴 **BurningAnt > Setup > Day Loop Scene**: 씬과 데이터 에셋을 다시 만듭니다 (이미 있는 에셋은 그대로 둠).
+- 에디터 메뉴 **BurningAnt > Self Check > Day Loop**: 대출·이자·뉴스 로직 점검.
+- 반신 캠은 그림이 나오기 전까지 글자 얼굴로 대신합니다 (`CharacterSettings.MoodFace`의 `shortcut:` 주석).
+
 ## 협업 규칙
 
 - **브랜치**: `main`에는 직접 올리지 않고 작업 브랜치 → Pull Request로 합칩니다.
