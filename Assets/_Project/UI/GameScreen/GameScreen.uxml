@@ -190,5 +190,21 @@
         <ui:VisualElement name="title-overlay" class="title-overlay">
             <ui:Label name="title-start" text="클릭하여 시작하기" class="title-start" />
         </ui:VisualElement>
+
+        <!-- 프롤로그: 그림 2장(Art/Item/prologue_1·2), 한 장에 3컷이 순서대로 하나씩 드러난다 (가림막이 하나씩 걷힘) -->
+        <ui:VisualElement name="prologue-overlay" class="intro-overlay prologue-overlay">
+            <ui:VisualElement name="prologue-stage" class="prologue-stage">
+                <ui:VisualElement name="prologue-cover-0" class="prologue-cover" picking-mode="Ignore" />
+                <ui:VisualElement name="prologue-cover-1" class="prologue-cover" picking-mode="Ignore" />
+                <ui:VisualElement name="prologue-cover-2" class="prologue-cover" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:Label name="prologue-hint" text="클릭하면 다음 컷" class="intro-hint" />
+            <ui:Button name="prologue-skip" text="건너뛰기" class="intro-skip" />
+        </ui:VisualElement>
+
+        <!-- 경고창: 실행하면 가장 먼저 (Art/Item/warning.png) -->
+        <ui:VisualElement name="warning-overlay" class="intro-overlay warning-overlay">
+            <ui:Label name="warning-hint" text="클릭하여 계속" class="intro-hint" />
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

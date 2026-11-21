@@ -427,3 +427,43 @@
 .body--areas .portrait { position: relative; left: auto; right: auto; top: auto; bottom: auto; flex-grow: 1; min-height: 0; margin: 4px 0; }
 .body--areas .mood-box { position: relative; left: auto; right: auto; bottom: auto; flex-shrink: 0; }
 .body--areas .face { position: relative; bottom: auto; right: auto; flex-grow: 1; }
+
+/* ───────── 경고창 · 프롤로그 ───────── */
+.intro-overlay {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    background-color: #000000;
+    display: none;
+}
+.warning-overlay {
+    background-image: url("../../Art/Item/warning.png");
+    -unity-background-scale-mode: scale-to-fit;
+}
+.prologue-overlay { background-color: #0E0B12; overflow: hidden; }
+.prologue-stage { position: absolute; -unity-background-scale-mode: scale-to-fit; }
+.prologue-page--1 { background-image: url("../../Art/Item/prologue_1.png"); }
+.prologue-page--2 { background-image: url("../../Art/Item/prologue_2.png"); }
+.prologue-cover {
+    position: absolute;
+    background-color: #0E0B12;
+    transition-property: opacity;
+    transition-duration: 0.45s;
+}
+.prologue-cover--open { opacity: 0; }
+.intro-hint {
+    position: absolute;
+    left: 0; right: 0; bottom: 18px;
+    -unity-text-align: middle-center;
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+}
+.intro-skip {
+    position: absolute;
+    right: 20px; top: 16px;
+    height: 40px; width: 120px;
+    font-size: 16px;
+    border-width: 0; border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #FFFFFF;
+}

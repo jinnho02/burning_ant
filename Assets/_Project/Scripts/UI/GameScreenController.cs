@@ -24,6 +24,10 @@ namespace BurningAnt.UI
         [SerializeField, Range(0.5f, 4f), Tooltip("주인공 그림 크기 배율 (1 = 오른쪽 아래 영역에 꽉 맞춤). 1보다 크면 영역 밖으로 위·왼쪽으로 커진다")]
         float characterScale = 1f;
 
+        [Header("경고창 · 프롤로그")]
+        [SerializeField, Tooltip("켜면 이미 본 적이 있어도 타이틀 뒤에 프롤로그를 다시 보여준다 (테스트용)")] bool alwaysShowPrologue;
+        [SerializeField, Tooltip("프롤로그 컷이 저절로 넘어가는 시간(초). 0이면 클릭할 때만")] float prologueCutSeconds = 2.5f;
+
         [Header("튜토리얼")]
         [SerializeField, Range(0.5f, 3f), Tooltip("튜토리얼 설명 창과 글자 크기 배율")] float tutorialScale = 2f;
         [SerializeField, Tooltip("비우면 임시 문구(TutorialScript.CreateDefault)를 쓴다")] TutorialScript tutorialScript;
@@ -60,6 +64,12 @@ namespace BurningAnt.UI
         string lastMessage = "";
         float hintTimer;
         VisualElement titleOverlay;
+        VisualElement warningOverlay, prologueOverlay, prologueStage;
+        readonly VisualElement[] prologueCovers = new VisualElement[3];
+        int prologuePage, prologueCut;
+        float prologueTimer, warningShownAt;
+        static bool warningShownThisRun; // 경고창은 실행할 때 한 번만 (다시 하기로 씬을 다시 열면 생략)
+        const string ProloguePrefKey = "BurningAnt.ImagePrologueSeen";
         VisualElement shopStage, shopGrid, shopTooltip;
         Label shopTipName, shopTipTag, shopTipDesc, shopTipPrice, shopTipOwned;
         ItemDefinition hoveredShopItem;
@@ -88,6 +98,7 @@ namespace BurningAnt.UI
             // 뉴스 띠는 차트 바로 위(주식 창 오른쪽 카드 맨 위)에 둔다
             root.Q("detail-panel")?.Insert(0, newsBand);
             BindTitle(root);
+            BindIntro(root);
             tutorial = new TutorialRunner(root, game, tutorialScript != null ? tutorialScript : TutorialScript.CreateDefault(), alwaysShowTutorial, tutorialScale);
             Session.ReservationsChanged += RefreshFlow;
 
@@ -120,7 +131,8 @@ namespace BurningAnt.UI
             if (game.Inventory == null) return;
             BlinkTitle();
             LayoutCharacter(false);
-            tutorial?.Update(titleOverlay != null && titleOverlay.resolvedStyle.display != DisplayStyle.None);
+            UpdateIntro();
+            tutorial?.Update(IntroShowing());
             RefreshStatus();
             HandleItemKeys();
             if (game.Phase == GamePhase.Market)
@@ -251,12 +263,117 @@ namespace BurningAnt.UI
             if (Prologue.PrologueController.AutoplayArg) titleOverlay.schedule.Execute(OnTitleClicked).ExecuteLater(2000); // 시연용
         }
 
+        /// <summary>
+        /// 타이틀 클릭 → (처음 한 번) 그림 프롤로그 → 1일차 뉴스 + 튜토리얼.
+        /// 예전 글자 프롤로그 씬(Prologue.unity)은 그림 프롤로그로 바뀌어 여기서 부르지 않는다.
+        /// </summary>
         void OnTitleClicked()
         {
-            if (!Prologue.PrologueController.HasSeen && Application.CanStreamedLevelBeLoaded(Prologue.PrologueController.SceneName))
-                SceneManager.LoadScene(Prologue.PrologueController.SceneName);
-            else
-                Show(titleOverlay, false);
+            Show(titleOverlay, false);
+            if (alwaysShowPrologue || PlayerPrefs.GetInt(ProloguePrefKey, 0) == 0) StartPrologue();
+        }
+
+        // ───────── 경고창 · 프롤로그 ─────────
+
+        // 프롤로그 그림(1672×941)에서 컷 3개 자리 (left, top, right, bottom 비율). 가림막이 이 자리를 덮었다가 하나씩 걷힌다
+        const float PrologueAspect = 1672f / 941f;
+        static readonly float[][,] PrologueCuts =
+        {
+            new float[,] { { 0f, 0f, 1f, 0.505f }, { 0f, 0.505f, 0.503f, 1f }, { 0.503f, 0.505f, 1f, 1f } },       // 1장: 위 1컷, 아래 2컷
+            new float[,] { { 0f, 0f, 0.484f, 1f }, { 0.484f, 0f, 0.778f, 1f }, { 0.778f, 0f, 1f, 1f } },           // 2장: 세로 3컷
+        };
+
+        void BindIntro(VisualElement root)
+        {
+            warningOverlay = root.Q("warning-overlay");
+            prologueOverlay = root.Q("prologue-overlay");
+            prologueStage = root.Q("prologue-stage");
+            for (int i = 0; i < 3; i++) prologueCovers[i] = root.Q($"prologue-cover-{i}");
+            if (prologueOverlay != null)
+            {
+                prologueOverlay.RegisterCallback<ClickEvent>(_ => AdvancePrologue());
+                prologueOverlay.RegisterCallback<GeometryChangedEvent>(_ => FitToImage(prologueStage, prologueOverlay, PrologueAspect));
+                root.Q<Button>("prologue-skip").clicked += EndPrologue;
+            }
+
+            // 실행하면 경고창이 가장 먼저 (타이틀보다 위)
+            if (warningOverlay != null && !warningShownThisRun && titleOverlay != null && titleOverlay.resolvedStyle.display != DisplayStyle.None)
+            {
+                warningShownThisRun = true;
+                warningShownAt = Time.unscaledTime;
+                Show(warningOverlay, true);
+                warningOverlay.BringToFront();
+                warningOverlay.RegisterCallback<ClickEvent>(_ =>
+                {
+                    if (Time.unscaledTime - warningShownAt < 0.8f) return; // 실수로 바로 넘기지 않게
+                    Show(warningOverlay, false);
+                });
+            }
+        }
+
+        bool IntroShowing() =>
+            new[] { titleOverlay, warningOverlay, prologueOverlay }.Any(o => o != null && o.resolvedStyle.display != DisplayStyle.None);
+
+        void StartPrologue()
+        {
+            if (prologueOverlay == null) return;
+            prologuePage = 0;
+            Show(prologueOverlay, true);
+            prologueOverlay.BringToFront();
+            ShowProloguePage();
+        }
+
+        void ShowProloguePage()
+        {
+            prologueStage.EnableInClassList("prologue-page--1", prologuePage == 0);
+            prologueStage.EnableInClassList("prologue-page--2", prologuePage == 1);
+            var cuts = PrologueCuts[prologuePage];
+            for (int i = 0; i < 3; i++)
+            {
+                var c = prologueCovers[i];
+                c.style.left = Length.Percent(cuts[i, 0] * 100f);
+                c.style.top = Length.Percent(cuts[i, 1] * 100f);
+                c.style.width = Length.Percent((cuts[i, 2] - cuts[i, 0]) * 100f);
+                c.style.height = Length.Percent((cuts[i, 3] - cuts[i, 1]) * 100f);
+                c.RemoveFromClassList("prologue-cover--open");
+            }
+            prologueCut = 0;
+            prologueTimer = 0.4f; // 첫 컷은 바로
+        }
+
+        /// <summary>클릭(또는 시간): 다음 컷을 드러내고, 3컷을 다 보면 다음 장, 마지막 장이 끝나면 게임으로.</summary>
+        void AdvancePrologue()
+        {
+            if (prologueCut < 3)
+            {
+                prologueCovers[prologueCut].AddToClassList("prologue-cover--open");
+                prologueCut++;
+                prologueTimer = prologueCutSeconds;
+                return;
+            }
+            if (prologuePage + 1 < PrologueCuts.Length)
+            {
+                prologuePage++;
+                ShowProloguePage();
+                return;
+            }
+            EndPrologue();
+        }
+
+        void EndPrologue()
+        {
+            PlayerPrefs.SetInt(ProloguePrefKey, 1);
+            PlayerPrefs.Save();
+            Show(prologueOverlay, false);
+        }
+
+        void UpdateIntro()
+        {
+            if (prologueOverlay == null || prologueOverlay.resolvedStyle.display == DisplayStyle.None) return;
+            FitToImage(prologueStage, prologueOverlay, PrologueAspect);
+            if (prologueCutSeconds <= 0f) return;
+            prologueTimer -= Time.unscaledDeltaTime;
+            if (prologueTimer <= 0f) AdvancePrologue();
         }
 
         // 타이틀 그림(1672×941) 안에서의 문구 자리: 제목 아랫변(약 70.7%)과 그래프 윗변(약 78%) 사이
@@ -522,7 +639,7 @@ namespace BurningAnt.UI
         }
 
         bool AnyOverlayOpen() =>
-            (tutorial != null && tutorial.IsShowing) ||
+            (tutorial != null && tutorial.IsShowing) || IntroShowing() ||
             new[] { pickerOverlay, settlementOverlay, shopOverlay, endOverlay, titleOverlay, newsOverlay, emergencyOverlay }.Any(o => o != null && o.resolvedStyle.display == DisplayStyle.Flex);
 
         bool IsTyping() =>
