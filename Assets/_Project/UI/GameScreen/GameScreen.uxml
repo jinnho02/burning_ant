@@ -59,7 +59,7 @@
                 </ui:VisualElement>
 
                 <!-- 주인공: 그림은 CharacterSettings, 그림이 없으면 글자 얼굴 -->
-                <ui:VisualElement class="character-area">
+                <ui:VisualElement name="character-area" class="character-area" picking-mode="Ignore">
                     <ui:VisualElement name="portrait" class="portrait" picking-mode="Ignore" />
                     <ui:Label name="face-label" text="(-_-)" class="face" />
                     <ui:Label name="speech-label" text="오늘은 뭘 살까~?" class="speech" />

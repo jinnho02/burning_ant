@@ -26,8 +26,11 @@ namespace BurningAnt.UI
 
         public bool IsShowing => current != null;
 
-        public TutorialRunner(VisualElement root, GameLoop game, TutorialScript script, bool forceShow)
+        readonly float scale;
+
+        public TutorialRunner(VisualElement root, GameLoop game, TutorialScript script, bool forceShow, float scale = 1f)
         {
+            this.scale = Mathf.Max(0.5f, scale);
             this.root = root;
             this.game = game;
             this.script = script;
@@ -39,7 +42,20 @@ namespace BurningAnt.UI
             textLabel = root.Q<Label>("tutorial-text");
             nextButton = root.Q<Button>("tutorial-next");
             nextButton.clicked += Next;
-            root.Q<Button>("tutorial-skip").clicked += Finish;
+            var skipButton = root.Q<Button>("tutorial-skip");
+            skipButton.clicked += Finish;
+
+            // 크기 배율: 창 폭·안쪽 여백·글자·버튼을 같이 키운다 (USS 값이 1배 기준)
+            box.style.width = 480f * this.scale;
+            box.style.paddingLeft = box.style.paddingRight = 20f * this.scale;
+            box.style.paddingTop = box.style.paddingBottom = 16f * this.scale;
+            stepLabel.style.fontSize = 12f * this.scale;
+            titleLabel.style.fontSize = 20f * this.scale;
+            textLabel.style.fontSize = 16f * this.scale;
+            skipButton.style.fontSize = 13f * this.scale;
+            nextButton.style.fontSize = 16f * this.scale;
+            nextButton.style.width = 110f * this.scale;
+            nextButton.style.height = 38f * this.scale;
 
             active = overlay != null && script != null && (forceShow || PlayerPrefs.GetInt(DoneKey, 0) == 0);
             Hide();
@@ -123,8 +139,9 @@ namespace BurningAnt.UI
                            target.worldBound.width > 1f && target.worldBound.height > 1f && IsShown(target);
 
             float boxW = box.resolvedStyle.width, boxH = box.resolvedStyle.height;
-            if (float.IsNaN(boxW) || boxW <= 0f) boxW = 480f;
-            if (float.IsNaN(boxH) || boxH <= 0f) boxH = 180f;
+            if (float.IsNaN(boxW) || boxW <= 0f) boxW = 480f * scale;
+            if (float.IsNaN(boxH) || boxH <= 0f) boxH = 180f * scale;
+            boxW = Mathf.Min(boxW, area.width - 16f);
 
             if (!visible)
             {
@@ -143,12 +160,25 @@ namespace BurningAnt.UI
             highlight.style.width = r.width + pad * 2f;
             highlight.style.height = r.height + pad * 2f;
 
-            float bx = Mathf.Clamp(x + r.width * 0.5f - boxW * 0.5f, 8f, Mathf.Max(8f, area.width - boxW - 8f));
-            float by = y + r.height + pad + gap;
-            if (by + boxH > area.height - 8f) by = y - pad - gap - boxH;      // 아래 자리가 없으면 위
-            if (by < 8f) by = Mathf.Clamp(y + r.height * 0.5f - boxH * 0.5f, 8f, area.height - boxH - 8f); // 둘 다 없으면 겹쳐서
+            // 자리 고르기: 아래 → 위 → 오른쪽 → 왼쪽. 어느 쪽에도 안 들어가면 강조와 덜 겹치는 화면 위/아래 끝
+            float cx = Mathf.Clamp(x + r.width * 0.5f - boxW * 0.5f, 8f, Mathf.Max(8f, area.width - boxW - 8f));
+            float cy = Mathf.Clamp(y + r.height * 0.5f - boxH * 0.5f, 8f, Mathf.Max(8f, area.height - boxH - 8f));
+            float below = y + r.height + pad + gap, above = y - pad - gap - boxH;
+            float right = x + r.width + pad + gap, left = x - pad - gap - boxW;
+            float bx, by;
+            if (below + boxH <= area.height - 8f) { bx = cx; by = below; }
+            else if (above >= 8f) { bx = cx; by = above; }
+            else if (right + boxW <= area.width - 8f) { bx = right; by = cy; }
+            else if (left >= 8f) { bx = left; by = cy; }
+            else
+            {
+                bx = cx;
+                bool targetInUpperHalf = y + r.height * 0.5f < area.height * 0.5f;
+                by = targetInUpperHalf ? area.height - boxH - 8f : 8f;
+            }
             box.style.left = bx;
-            box.style.top = by;
+            box.style.top = Mathf.Max(8f, by);
+            box.style.width = boxW;
         }
 
         static bool IsShown(VisualElement e)

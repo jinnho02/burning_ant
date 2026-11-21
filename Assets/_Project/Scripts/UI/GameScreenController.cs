@@ -20,7 +20,12 @@ namespace BurningAnt.UI
     {
         [SerializeField] GameLoop game;
 
+        [Header("주인공 그림")]
+        [SerializeField, Range(0.5f, 4f), Tooltip("주인공 그림 크기 배율 (1 = 오른쪽 아래 빈자리에 맞춘 원래 크기)")]
+        float characterScale = 2.5f;
+
         [Header("튜토리얼")]
+        [SerializeField, Range(0.5f, 3f), Tooltip("튜토리얼 설명 창과 글자 크기 배율")] float tutorialScale = 2f;
         [SerializeField, Tooltip("비우면 임시 문구(TutorialScript.CreateDefault)를 쓴다")] TutorialScript tutorialScript;
         [SerializeField, Tooltip("켜면 이미 본 적이 있어도 1일차에 튜토리얼을 다시 띄운다 (테스트용)")] bool alwaysShowTutorial;
 
@@ -50,7 +55,8 @@ namespace BurningAnt.UI
         VisualElement pickerList;
         FloatField repayField;
         PriceChartElement chart;
-        VisualElement portrait, endPortrait;
+        VisualElement portrait, endPortrait, characterArea;
+        float appliedCharacterScale = -1f;
         string lastMessage = "";
         float hintTimer;
         VisualElement titleOverlay;
@@ -77,7 +83,7 @@ namespace BurningAnt.UI
             // 뉴스 띠는 차트 바로 위(주식 창 오른쪽 카드 맨 위)에 둔다
             root.Q("detail-panel")?.Insert(0, newsBand);
             BindTitle(root);
-            tutorial = new TutorialRunner(root, game, tutorialScript != null ? tutorialScript : TutorialScript.CreateDefault(), alwaysShowTutorial);
+            tutorial = new TutorialRunner(root, game, tutorialScript != null ? tutorialScript : TutorialScript.CreateDefault(), alwaysShowTutorial, tutorialScale);
             Session.ReservationsChanged += RefreshFlow;
 
             game.Changed += RefreshAll;
@@ -108,6 +114,7 @@ namespace BurningAnt.UI
         {
             if (game.Inventory == null) return;
             BlinkTitle();
+            LayoutCharacter(false);
             tutorial?.Update(titleOverlay != null && titleOverlay.resolvedStyle.display != DisplayStyle.None);
             RefreshStatus();
             HandleItemKeys();
@@ -142,6 +149,8 @@ namespace BurningAnt.UI
             settlementReport = root.Q<ScrollView>("settlement-report");
 
             portrait = root.Q("portrait");
+            characterArea = root.Q("character-area");
+            characterArea?.RegisterCallback<GeometryChangedEvent>(_ => LayoutCharacter(true));
             faceLabel = root.Q<Label>("face-label");
             speechLabel = root.Q<Label>("speech-label");
             moodLabel = root.Q<Label>("mood-label");
@@ -881,6 +890,37 @@ namespace BurningAnt.UI
                 endTitle.text = "파산…";
                 endBody.text = $"{game.Day}일차에 총자산이 {Format.Money(game.TotalAssets())}로 바닥나고 추가 대출도 다 썼어요.\n남은 빚 {Format.Money(game.Loan.Debt)}";
             }
+        }
+
+        /// <summary>
+        /// 주인공 그림을 characterScale배로 키운다. 화면 오른쪽 아래 끝에 붙이고, 커진 만큼 위·왼쪽으로 뻗는다.
+        /// 그림은 클릭을 받지 않아(picking Ignore) 뒤에 있는 버튼·카드는 그대로 눌린다.
+        /// 기준(1배) 높이 = 오른쪽 열에서 카드들 아래 남은 높이.
+        /// </summary>
+        void LayoutCharacter(bool force)
+        {
+            if (characterArea == null || portrait == null) return;
+            if (!force && Mathf.Approximately(appliedCharacterScale, characterScale)) return;
+            float areaH = characterArea.layout.height, areaW = characterArea.layout.width;
+            if (float.IsNaN(areaH) || areaH <= 0f) return;
+
+            const float baseTopGap = 40f, baseLeftExtra = 120f, rightBleed = 24f;
+            float baseH = Mathf.Max(80f, areaH - baseTopGap);
+            float h = baseH * characterScale;
+            // 위 막대(DAY·단계) 아래까지만: 화면 높이를 넘지 않게
+            var screen = characterArea.panel?.visualTree?.layout ?? new Rect(0, 0, 1920, 1080);
+            float maxH = screen.height - 90f;
+            if (h > maxH) h = maxH;
+            float w = (areaW + baseLeftExtra) * (h / baseH);
+
+            portrait.style.top = StyleKeyword.Auto;
+            portrait.style.left = StyleKeyword.Auto;
+            portrait.style.bottom = 0f;
+            portrait.style.right = -rightBleed;
+            portrait.style.height = h;
+            portrait.style.width = w;
+            portrait.SendToBack(); // 말풍선·표정 라벨이 그림 위에 오도록
+            appliedCharacterScale = characterScale;
         }
 
         static void SetImage(VisualElement element, Texture2D image)
