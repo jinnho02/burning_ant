@@ -20,6 +20,10 @@ namespace BurningAnt.UI
     {
         [SerializeField] GameLoop game;
 
+        [Header("상점")]
+        [SerializeField, Tooltip("상점 칸마다 바닥에 깔 아이템 파우치 그림. 비우면 빈 칸 테두리로 보인다.")]
+        Texture2D shopPouchImage;
+
         [Header("타이틀 '클릭하여 시작하기' 위치 (Play 중에 고쳐도 바로 반영)")]
         [SerializeField, Range(0f, 1f), Tooltip("글자 윗변 높이. 타이틀 그림 높이 대비 비율 (0 = 그림 맨 위, 1 = 맨 아래)")]
         float titleTextTop = 0.77f;
@@ -579,9 +583,18 @@ namespace BurningAnt.UI
                 float top = ShopRows[i / ShopColumns.Length];
                 var item = i < items.Count ? items[i] : null;
 
+                // 칸 = 파우치(바닥) 층, 그 안의 shop-slot-icon = 아이템 그림 층
                 var slot = new VisualElement();
                 slot.AddToClassList("shop-slot");
                 SetPercentRect(slot, left, top, ShopSlotWidth, ShopSlotHeight);
+                if (shopPouchImage != null)
+                {
+                    slot.AddToClassList("shop-slot--pouch");
+                    slot.style.backgroundImage = new StyleBackground(shopPouchImage);
+                }
+                var icon = new VisualElement { pickingMode = PickingMode.Ignore };
+                icon.AddToClassList("shop-slot-icon");
+                slot.Add(icon);
                 shopGrid.Add(slot);
 
                 var name = new Label(item != null ? item.displayName : "");
@@ -597,7 +610,7 @@ namespace BurningAnt.UI
                     continue;
                 }
 
-                if (item.icon != null) slot.style.backgroundImage = new StyleBackground(item.icon);
+                if (item.icon != null) icon.style.backgroundImage = new StyleBackground(item.icon);
                 slot.EnableInClassList("shop-slot--poor", Session.Portfolio.Cash < item.price);
                 int owned = game.Inventory.Count(item);
                 if (owned > 0)
@@ -607,7 +620,8 @@ namespace BurningAnt.UI
                     slot.Add(count);
                 }
 
-                slot.RegisterCallback<PointerEnterEvent>(_ => ShowShopTooltip(item));
+                slot.RegisterCallback<PointerEnterEvent>(e => { ShowShopTooltip(item); MoveShopTooltip(e.position); });
+                slot.RegisterCallback<PointerMoveEvent>(e => MoveShopTooltip(e.position));
                 slot.RegisterCallback<PointerLeaveEvent>(_ => HideShopTooltip(item));
                 slot.RegisterCallback<ClickEvent>(_ => game.Buy(item));
             }
@@ -634,6 +648,24 @@ namespace BurningAnt.UI
             shopTipOwned.text = $"보유 {game.Inventory.Count(item)}개";
             shopTooltip.BringToFront();
             Show(shopTooltip, true);
+        }
+
+        const float TooltipOffset = 18f;
+
+        /// <summary>설명창을 포인터 오른쪽 아래에 두고, 화면 밖으로 나가면 포인터 반대쪽으로 넘긴다.</summary>
+        void MoveShopTooltip(Vector2 pointer)
+        {
+            var area = shopOverlay.worldBound;
+            float w = shopTooltip.resolvedStyle.width, h = shopTooltip.resolvedStyle.height;
+            if (float.IsNaN(w) || w <= 0f) w = 420f;
+            if (float.IsNaN(h) || h <= 0f) h = 160f;
+
+            float x = pointer.x - area.x + TooltipOffset;
+            float y = pointer.y - area.y + TooltipOffset;
+            if (x + w > area.width) x = pointer.x - area.x - TooltipOffset - w;
+            if (y + h > area.height) y = pointer.y - area.y - TooltipOffset - h;
+            shopTooltip.style.left = Mathf.Clamp(x, 0f, Mathf.Max(0f, area.width - w));
+            shopTooltip.style.top = Mathf.Clamp(y, 0f, Mathf.Max(0f, area.height - h));
         }
 
         /// <summary>item이 지금 보이는 설명의 아이템일 때만 닫는다 (칸 사이를 옮겨 다닐 때 깜빡임 방지). null이면 무조건 닫는다.</summary>

@@ -271,6 +271,14 @@
     -unity-background-scale-mode: scale-to-fit;
 }
 .shop-slot:hover { border-color: #F2C14E; background-color: rgba(242, 193, 78, 0.18); }
+/* 파우치 그림이 지정되면: 칸 테두리·바탕 대신 파우치를 깔고 그 위에 아이템 그림 */
+.shop-slot--pouch { border-width: 0; background-color: rgba(0, 0, 0, 0); -unity-background-scale-mode: scale-to-fit; }
+.shop-slot--pouch:hover { background-color: rgba(242, 193, 78, 0.12); }
+.shop-slot-icon {
+    position: absolute;
+    left: 12%; right: 12%; top: 10%; bottom: 14%;
+    -unity-background-scale-mode: scale-to-fit;
+}
 .shop-slot--empty { border-color: rgba(246, 231, 216, 0.35); }
 .shop-slot--poor { opacity: 0.45; }
 .shop-slot-count {
@@ -300,12 +308,11 @@
     background-color: #F2C14E; color: #2A0E16;
 }
 
-/* 설명창: 화면 가운데, 반투명 */
+/* 설명창: 마우스 포인터 옆, 반투명 (위치는 코드에서 포인터를 따라 정한다) */
 .shop-tooltip {
     position: absolute;
-    left: 50%; top: 50%;
-    width: 460px;
-    translate: -50% -50%;
+    left: 0; top: 0;
+    width: 420px;
     padding: 16px 20px;
     border-radius: 12px;
     border-width: 1px;
