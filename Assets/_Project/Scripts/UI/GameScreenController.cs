@@ -218,7 +218,7 @@ namespace BurningAnt.UI
             LayoutTitle(); // 인스펙터에서 값을 바꾸면 바로 보이게
             titleBlinkTimer -= Time.unscaledDeltaTime;
             if (titleBlinkTimer > 0f) return;
-            titleBlinkTimer = 0.6f;
+            titleBlinkTimer = 1.2f; // 깜빡임 주기
             titleStart.ToggleInClassList("title-start--dim");
         }
 

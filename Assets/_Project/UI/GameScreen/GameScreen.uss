@@ -197,6 +197,6 @@
     padding: 0;
     margin: 0;
     transition-property: opacity;
-    transition-duration: 0.4s;
+    transition-duration: 0.8s;
 }
 .title-start--dim { opacity: 0.25; }
