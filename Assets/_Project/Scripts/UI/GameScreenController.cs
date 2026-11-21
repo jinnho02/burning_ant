@@ -20,10 +20,6 @@ namespace BurningAnt.UI
     {
         [SerializeField] GameLoop game;
 
-        [Header("상점")]
-        [SerializeField, Tooltip("상점 칸마다 바닥에 깔 아이템 파우치 그림. 비우면 빈 칸 테두리로 보인다.")]
-        Texture2D shopPouchImage;
-
         [Header("타이틀 '클릭하여 시작하기' 위치 (Play 중에 고쳐도 바로 반영)")]
         [SerializeField, Range(0f, 1f), Tooltip("글자 윗변 높이. 타이틀 그림 높이 대비 비율 (0 = 그림 맨 위, 1 = 맨 아래)")]
         float titleTextTop = 0.77f;
@@ -546,11 +542,28 @@ namespace BurningAnt.UI
                 "\n\n보유 주식은 다음 날로 이어져요. 원하는 만큼 갚을 수 있어요.";
         }
 
-        // 상점 그림(store.png, 1672×941) 기준 칸 자리: 열 4개 왼쪽 끝, 행 2개 위쪽 끝, 칸 크기 (모두 그림 대비 비율)
+        // 상점 그림(store.png, 1672×941)에서 가방 안감 바닥면: 위가 좁고 아래가 넓은 사다리꼴 (그림 대비 비율)
         const float StoreAspect = 1672f / 941f;
-        static readonly float[] ShopColumns = { 0.121f, 0.273f, 0.441f, 0.605f };
-        static readonly float[] ShopRows = { 0.367f, 0.581f };
-        const float ShopSlotWidth = 0.117f, ShopSlotHeight = 0.115f, ShopNameGap = 0.008f, ShopNameHeight = 0.04f;
+        const float FloorTopY = 0.319f, FloorTopLeft = 0.090f, FloorTopRight = 0.772f;
+        const float FloorBottomY = 0.840f, FloorBottomLeft = 0.018f, FloorBottomRight = 0.819f;
+        const float FloorDepthCurve = 1.2f; // 1보다 크면 안쪽(위) 줄이 납작해져 멀어 보인다
+
+        // 바닥면 위 칸 자리 (바닥 기준 u: 왼→오, v: 안쪽→앞쪽, 0~1)
+        static readonly float[] ShopColumnsU = { 0.07f, 0.305f, 0.54f, 0.775f };
+        static readonly float[] ShopRowsV = { 0.12f, 0.55f };
+        const float ShopSlotU = 0.185f, ShopSlotV = 0.27f, ShopNameGap = 0.006f, ShopNameHeight = 0.04f;
+
+        static float FloorY(float v) => Mathf.Lerp(FloorTopY, FloorBottomY, Mathf.Pow(Mathf.Clamp01(v), FloorDepthCurve));
+
+        /// <summary>바닥 좌표(u, v)를 그림 좌표(비율)로. 좌우 끝은 가방 옆선을 따라 기운다.</summary>
+        static Vector2 FloorPoint(float u, float v)
+        {
+            float y = FloorY(v);
+            float t = (y - FloorTopY) / (FloorBottomY - FloorTopY);
+            float left = Mathf.Lerp(FloorTopLeft, FloorBottomLeft, t);
+            float right = Mathf.Lerp(FloorTopRight, FloorBottomRight, t);
+            return new Vector2(Mathf.Lerp(left, right, u), y);
+        }
 
         /// <summary>stage를 container 안에서 scale-and-crop으로 그려진 그림 영역과 같은 위치·크기로 맞춘다.</summary>
         static void FitToImage(VisualElement stage, VisualElement container, float aspect)
@@ -569,43 +582,54 @@ namespace BurningAnt.UI
             stage.style.height = h;
         }
 
-        /// <summary>오늘 진열된 아이템을 2×4 칸에 놓는다. 칸 아래에는 이름만, 설명은 마우스를 올렸을 때 가운데 창에.</summary>
+        /// <summary>오늘 진열된 아이템을 가방 바닥에 눕힌 2×4 칸에 놓는다. 칸 아래에는 이름만, 설명은 마우스 포인터 옆 창에.</summary>
         void RefreshShop()
         {
             shopCash.text = "현금 " + Format.Money(Session.Portfolio.Cash);
             shopGrid.Clear();
 
             var items = game.TodayShop;
-            int slots = ShopColumns.Length * ShopRows.Length;
+            int slots = ShopColumnsU.Length * ShopRowsV.Length;
             for (int i = 0; i < slots; i++)
             {
-                float left = ShopColumns[i % ShopColumns.Length];
-                float top = ShopRows[i / ShopColumns.Length];
+                float u = ShopColumnsU[i % ShopColumnsU.Length];
+                float v = ShopRowsV[i / ShopColumnsU.Length];
                 var item = i < items.Count ? items[i] : null;
 
-                // 칸 = 파우치(바닥) 층, 그 안의 shop-slot-icon = 아이템 그림 층
-                var slot = new VisualElement();
+                // 바닥에 눕힌 사다리꼴 칸: 네 꼭짓점을 그림 좌표로 구하고, 그 바깥 사각형에 요소를 놓는다
+                Vector2 tl = FloorPoint(u, v), tr = FloorPoint(u + ShopSlotU, v);
+                Vector2 br = FloorPoint(u + ShopSlotU, v + ShopSlotV), bl = FloorPoint(u, v + ShopSlotV);
+                float minX = Mathf.Min(tl.x, bl.x), maxX = Mathf.Max(tr.x, br.x);
+                float minY = tl.y, maxY = bl.y, w = maxX - minX, h = maxY - minY;
+                Vector2 Rel(Vector2 pt) => new((pt.x - minX) / w, (pt.y - minY) / h);
+
+                var slot = new ShopSlotElement();
                 slot.AddToClassList("shop-slot");
-                SetPercentRect(slot, left, top, ShopSlotWidth, ShopSlotHeight);
-                if (shopPouchImage != null)
-                {
-                    slot.AddToClassList("shop-slot--pouch");
-                    slot.style.backgroundImage = new StyleBackground(shopPouchImage);
-                }
-                var icon = new VisualElement { pickingMode = PickingMode.Ignore };
-                icon.AddToClassList("shop-slot-icon");
-                slot.Add(icon);
+                SetPercentRect(slot, minX, minY, w, h);
+                slot.SetCorners(Rel(tl), Rel(tr), Rel(br), Rel(bl));
                 shopGrid.Add(slot);
 
+                // 아이템 그림: 사다리꼴 안에 들어가는 가운데 사각형 (읽기 쉽게 눕히지 않는다)
+                float innerLeft = (Mathf.Max(tl.x, bl.x) - minX) / w, innerRight = (Mathf.Min(tr.x, br.x) - minX) / w;
+                var icon = new VisualElement { pickingMode = PickingMode.Ignore };
+                icon.AddToClassList("shop-slot-icon");
+                icon.style.left = Length.Percent((innerLeft + 0.04f) * 100f);
+                icon.style.right = Length.Percent((1f - innerRight + 0.04f) * 100f);
+                slot.Add(icon);
+
+                // 이름: 칸 앞쪽(아래) 변 바로 밑, 그 변 폭만큼
                 var name = new Label(item != null ? item.displayName : "");
                 name.AddToClassList("shop-slot-name");
                 name.pickingMode = PickingMode.Ignore;
-                SetPercentRect(name, left - 0.01f, top + ShopSlotHeight + ShopNameGap, ShopSlotWidth + 0.02f, ShopNameHeight);
+                SetPercentRect(name, bl.x, bl.y + ShopNameGap, br.x - bl.x, ShopNameHeight);
                 shopGrid.Add(name);
 
                 if (item == null)
                 {
-                    slot.AddToClassList("shop-slot--empty"); // 오늘 진열할 아이템이 모자라면 빈 칸
+                    // 오늘 진열할 아이템이 모자라면 빈 칸
+                    slot.AddToClassList("shop-slot--empty");
+                    slot.FillColor = new Color(0f, 0f, 0f, 0f);
+                    slot.BorderColor = new Color(0.96f, 0.9f, 0.85f, 0.3f);
                     slot.pickingMode = PickingMode.Ignore;
                     continue;
                 }

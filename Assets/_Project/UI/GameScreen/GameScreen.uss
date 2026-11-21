@@ -260,27 +260,16 @@
 .shop-title { font-size: 22px; -unity-font-style: bold; color: #F6E7D8; }
 .shop-cash { font-size: 20px; -unity-font-style: bold; color: #F2C14E; }
 
-/* 2×4 칸: 위치는 코드(ShopSlotRect)에서 그림 기준 %로 정한다 */
+/* 2×4 칸: 위치는 코드(FloorPoint)에서 가방 바닥 원근에 맞춰 정한다 */
 .shop-grid { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
-.shop-slot {
-    position: absolute;
-    border-width: 2px;
-    border-color: rgba(242, 193, 78, 0.55);
-    border-radius: 8px;
-    background-color: rgba(15, 4, 8, 0.45);
-    -unity-background-scale-mode: scale-to-fit;
-}
-.shop-slot:hover { border-color: #F2C14E; background-color: rgba(242, 193, 78, 0.18); }
-/* 파우치 그림이 지정되면: 칸 테두리·바탕 대신 파우치를 깔고 그 위에 아이템 그림 */
-.shop-slot--pouch { border-width: 0; background-color: rgba(0, 0, 0, 0); -unity-background-scale-mode: scale-to-fit; }
-.shop-slot--pouch:hover { background-color: rgba(242, 193, 78, 0.12); }
+/* 칸 모양(사다리꼴)·테두리·마우스 올림 색은 ShopSlotElement가 직접 그린다 */
+.shop-slot { position: absolute; }
+.shop-slot--poor { opacity: 0.45; }
 .shop-slot-icon {
     position: absolute;
-    left: 12%; right: 12%; top: 10%; bottom: 14%;
+    top: 12%; bottom: 14%;
     -unity-background-scale-mode: scale-to-fit;
 }
-.shop-slot--empty { border-color: rgba(246, 231, 216, 0.35); }
-.shop-slot--poor { opacity: 0.45; }
 .shop-slot-count {
     position: absolute; right: 4px; bottom: 2px;
     font-size: 13px; color: #F2C14E; -unity-font-style: bold;
@@ -298,7 +287,7 @@
 /* 아래: 안내/메시지와 다음 날 버튼 */
 .shop-footer {
     position: absolute;
-    left: 12.1%; width: 60.1%; top: 75%; height: 6.5%;
+    left: 12.1%; width: 60.1%; top: 77.5%; height: 5.5%;
     flex-direction: row; align-items: center; justify-content: space-between;
 }
 .shop-message { font-size: 15px; color: #E0C9B8; white-space: normal; flex-shrink: 1; }
