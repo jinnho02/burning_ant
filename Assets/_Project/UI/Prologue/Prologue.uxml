@@ -1,0 +1,68 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="Prologue.uss" />
+    <ui:VisualElement name="prologue-root" class="prologue-root">
+
+        <!-- 타이틀: 표지 + 시작 -->
+        <ui:VisualElement name="title-screen" class="title-screen">
+            <ui:VisualElement name="cover" class="cover" />
+            <ui:Label name="press-start" text="PRESS START · 클릭 또는 Enter" class="press-start" />
+            <ui:VisualElement class="title-buttons">
+                <ui:Button name="watch-prologue-button" text="프롤로그 보기" class="title-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- 프롤로그 -->
+        <ui:VisualElement name="story-screen" class="story-screen">
+            <ui:VisualElement class="story-top">
+                <ui:Button name="auto-button" text="AUTO" class="story-button" />
+                <ui:Button name="skip-button" text="건너뛰기 ▶▶" class="story-button" />
+            </ui:VisualElement>
+
+            <!-- 소품 무대 (주인공 왼쪽) -->
+            <ui:VisualElement class="stage">
+                <ui:VisualElement name="prop-loan" class="prop card">
+                    <ui:Label text="개미 대출 · 신용대출 신청" class="prop-title" />
+                    <ui:Label text="희망 대출 금액" class="prop-caption" />
+                    <ui:Label name="loan-amount" text="$0" class="loan-amount" />
+                    <ui:VisualElement class="loan-limit-track"><ui:VisualElement name="loan-limit-fill" class="loan-limit-fill" /></ui:VisualElement>
+                    <ui:Label name="loan-terms" text="한도 100% · 이자 5% / 7일" class="prop-caption" />
+                    <ui:Label name="stamp" text="대출 승인" class="stamp" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="prop-dream" class="prop dream">
+                    <ui:Label name="dream-amount" text="$20,000?!" class="dream-amount" />
+                    <ui:Label text="일주일 뒤의 나 (예상)" class="dream-caption" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="prop-account" class="prop card">
+                    <ui:Label text="내 계좌" class="prop-title" />
+                    <ui:VisualElement class="row row--spread account-row"><ui:Label text="현금" class="prop-caption" /><ui:Label name="account-cash" class="account-value" /></ui:VisualElement>
+                    <ui:VisualElement class="row row--spread account-row"><ui:Label text="빚" class="prop-caption" /><ui:Label name="account-debt" class="account-value account-debt" /></ui:VisualElement>
+                    <ui:VisualElement class="row row--spread account-row account-row--total"><ui:Label text="순자산" class="prop-caption" /><ui:Label name="account-net" text="$0" class="account-net" /></ui:VisualElement>
+                </ui:VisualElement>
+
+                <ui:VisualElement name="prop-login" class="prop card login">
+                    <ui:Label text="개미증권" class="login-logo" />
+                    <ui:Label text="로그인 중…" class="prop-caption" />
+                    <ui:VisualElement class="loan-limit-track"><ui:VisualElement name="login-fill" class="login-fill" /></ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- 주인공: 게임 화면과 같이 화면 바닥에 붙음 -->
+            <ui:VisualElement name="story-portrait" class="story-portrait" picking-mode="Ignore" />
+
+            <!-- 대사창 -->
+            <ui:VisualElement class="dialogue card">
+                <ui:Label name="speaker" text="주인공" class="speaker" />
+                <ui:Label name="line" text="" class="line" />
+                <ui:Label name="footnote" text="" class="footnote" />
+                <ui:Label name="next-mark" text="▼" class="next-mark" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- 끝: DAY 1 -->
+        <ui:VisualElement name="day-splash" class="day-splash">
+            <ui:Label text="DAY 1" class="day-splash-text" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

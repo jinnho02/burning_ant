@@ -1,0 +1,143 @@
+/* 타이틀 + 프롤로그. 색·카드 모양은 GameScreen.uss와 맞춘다. */
+.prologue-root {
+    --pg-page: #ECEAE3;
+    --pg-card: #FFFFFF;
+    --pg-panel: #F1EFE8;
+    --pg-border: #D9D7CE;
+    --pg-text: #2C2C2A;
+    --pg-muted: #6B6A65;
+    --pg-up: #E24B4A;
+    --pg-good: #1D9E75;
+
+    flex-grow: 1;
+    background-color: var(--pg-page);
+    color: var(--pg-text);
+    font-size: 20px;
+}
+
+.row { flex-direction: row; align-items: center; }
+.row--spread { justify-content: space-between; }
+.card { background-color: var(--pg-card); border-width: 1px; border-color: var(--pg-border); border-radius: 16px; }
+
+/* 타이틀 */
+.title-screen { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background-color: #1B1033; }
+.cover { position: absolute; left: 0; right: 0; top: 0; bottom: 0; -unity-background-scale-mode: scale-and-crop; }
+.press-start {
+    position: absolute;
+    left: 0; right: 0; bottom: 70px;
+    -unity-text-align: middle-center;
+    font-size: 30px;
+    -unity-font-style: bold;
+    color: #FFFFFF;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: #7F3A8F;
+    transition-property: opacity;
+    transition-duration: 0.5s;
+}
+.press-start--dim { opacity: 0.25; }
+.title-buttons { position: absolute; right: 28px; bottom: 24px; flex-direction: row; }
+.title-button { height: 40px; padding: 0 16px; border-radius: 10px; font-size: 16px; background-color: rgba(255, 255, 255, 0.85); }
+
+/* 프롤로그 */
+.story-screen { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: none; }
+.story-top { position: absolute; top: 20px; right: 24px; flex-direction: row; }
+.story-button { height: 38px; padding: 0 14px; margin-left: 8px; border-radius: 10px; font-size: 15px; background-color: var(--pg-card); }
+.story-button--on { background-color: var(--pg-up); color: #FFFFFF; }
+
+/* 소품 무대: 주인공 왼쪽, 대사창 위 */
+.stage { position: absolute; left: 60px; right: 560px; top: 80px; bottom: 300px; align-items: center; justify-content: center; }
+.prop {
+    position: absolute;
+    display: none;
+    opacity: 0;
+    translate: 0 30px;
+    transition-property: opacity, translate;
+    transition-duration: 0.35s;
+}
+.prop--on { opacity: 1; translate: 0 0; }
+.prop-title { font-size: 26px; -unity-font-style: bold; margin-bottom: 14px; }
+.prop-caption { font-size: 17px; color: var(--pg-muted); }
+
+.card.prop { width: 560px; padding: 28px 32px; }
+.loan-amount { font-size: 64px; -unity-font-style: bold; color: var(--pg-up); margin: 4px 0 12px 0; }
+.loan-limit-track { height: 12px; border-radius: 6px; background-color: var(--pg-panel); margin-bottom: 10px; }
+.loan-limit-fill { height: 12px; width: 0; border-radius: 6px; background-color: var(--pg-up); }
+.stamp {
+    position: absolute;
+    right: 24px; top: 70px;
+    padding: 8px 18px;
+    border-width: 5px;
+    border-color: var(--pg-up);
+    border-radius: 12px;
+    color: var(--pg-up);
+    font-size: 40px;
+    -unity-font-style: bold;
+    opacity: 0;
+    scale: 2.2 2.2;
+    rotate: -14deg;
+    transition-property: opacity, scale;
+    transition-duration: 0.22s;
+    transition-timing-function: ease-out-back;
+}
+.stamp--on { opacity: 1; scale: 1 1; }
+
+.dream { align-items: center; }
+.dream-amount {
+    font-size: 110px;
+    -unity-font-style: bold;
+    color: #EF9F27;
+    -unity-text-outline-width: 2px;
+    -unity-text-outline-color: #854F0B;
+}
+.dream-caption { font-size: 22px; color: var(--pg-muted); }
+
+.account-row { margin-bottom: 10px; }
+.account-row--total { border-top-width: 1px; border-color: #E4E2DA; padding-top: 12px; margin-top: 4px; }
+.account-value { font-size: 28px; -unity-font-style: bold; }
+.account-debt { color: var(--pg-up); }
+.account-net { font-size: 48px; -unity-font-style: bold; }
+
+.login { align-items: center; }
+.login-logo { font-size: 44px; -unity-font-style: bold; color: var(--pg-up); margin-bottom: 8px; }
+.login .loan-limit-track { width: 100%; margin-top: 12px; }
+.login-fill { height: 12px; width: 0; border-radius: 6px; background-color: var(--pg-good); }
+
+/* 주인공: 오른쪽 아래 바닥에 붙음 */
+.story-portrait {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 560px;
+    height: 720px;
+    -unity-background-scale-mode: scale-to-fit;
+    background-position-y: bottom;
+}
+
+/* 대사창: 주인공 앞에서 끝남 */
+.dialogue { position: absolute; left: 40px; right: 520px; bottom: 32px; min-height: 200px; padding: 22px 30px; }
+.speaker {
+    position: absolute;
+    top: -22px; left: 26px;
+    padding: 6px 18px;
+    border-radius: 10px;
+    background-color: var(--pg-up);
+    color: #FFFFFF;
+    font-size: 18px;
+    -unity-font-style: bold;
+}
+.line { font-size: 26px; white-space: normal; margin-top: 10px; }
+.footnote { font-size: 15px; color: var(--pg-muted); margin-top: 10px; }
+.next-mark { position: absolute; right: 24px; bottom: 14px; font-size: 18px; color: var(--pg-up); }
+
+/* DAY 1 */
+.day-splash {
+    position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+    background-color: #2C2C2A;
+    align-items: center; justify-content: center;
+    display: none;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.6s;
+}
+.day-splash--on { opacity: 1; }
+.day-splash-text { font-size: 96px; -unity-font-style: bold; color: #FFFFFF; letter-spacing: 12px; }

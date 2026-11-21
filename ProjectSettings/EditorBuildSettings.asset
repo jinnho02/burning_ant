@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/_Project/Scenes/Title.unity
+    guid: a4925eb6c6db4554ca9e504117a839c0
+  - enabled: 1
     path: Assets/_Project/Scenes/DayLoop.unity
     guid: aba953a1c9960d844be3e8d8a4a3a554
   - enabled: 1
