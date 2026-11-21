@@ -177,3 +177,27 @@
 
 .end-portrait { height: 360px; -unity-background-scale-mode: scale-to-fit; margin-bottom: 8px; }
 .end-title { font-size: 34px; }
+
+/* 타이틀 화면: 그림은 16:9, 문구는 그림 오른쪽 아래 제목 "(※무리가 아니었다?!)" 바로 밑 */
+.title-overlay {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    background-color: #1B1033;
+    background-image: url("../../Art/UI/title.png");
+    -unity-background-scale-mode: scale-and-crop;
+}
+.title-start {
+    position: absolute;
+    left: 58%;
+    width: 34%;
+    top: 73%;
+    -unity-text-align: middle-center;
+    font-size: 40px;
+    -unity-font-style: bold;
+    color: #FFFFFF;
+    -unity-text-outline-width: 3px;
+    -unity-text-outline-color: #C2185B;
+    transition-property: opacity;
+    transition-duration: 0.4s;
+}
+.title-start--dim { opacity: 0.25; }
