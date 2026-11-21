@@ -248,14 +248,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Market.MarketSession
   settings: {fileID: 11400000, guid: 4db7624f8e1c78f47a1275bddcd5450b, type: 2}
   stocks:
-  - {fileID: 11400000, guid: 36b807d2938cd814bb6fd0e0cfcb72ee, type: 2}
-  - {fileID: 11400000, guid: a3123922b77b4de4ea1550a8fbd8f456, type: 2}
-  - {fileID: 11400000, guid: d53ed7d808c2d524483ed3a902c9d0b6, type: 2}
-  - {fileID: 11400000, guid: 9ada279c7ebdf9841945085c6c78fbae, type: 2}
-  - {fileID: 11400000, guid: 44ea99fcf1453a945bfd77bde2567dae, type: 2}
-  - {fileID: 11400000, guid: 99ceb09234aeb074db3f01021512a1c1, type: 2}
-  - {fileID: 11400000, guid: 3ce5aa7cee5f26e4c8fa50ac1a7c48a3, type: 2}
-  - {fileID: 11400000, guid: eddda523fd5922b40a52f69bb82fe908, type: 2}
+  - {fileID: 11400000, guid: 533bd591be759094caeb45b57ffb4540, type: 2}
+  - {fileID: 11400000, guid: 116d7a1677b775b45813ccd8eab704e7, type: 2}
+  - {fileID: 11400000, guid: 8dae4094a2979ba4a969eabf32fd0e8d, type: 2}
+  - {fileID: 11400000, guid: f38ce13a4dd63f843bffa6013f6ff867, type: 2}
+  - {fileID: 11400000, guid: 27e84df7715ffc6489e06b12a54ea64b, type: 2}
+  - {fileID: 11400000, guid: f764abddade05ca488cb6e4c9b6adaa9, type: 2}
+  - {fileID: 11400000, guid: 1abcc38d016b9b14e97ac4b6c7f8b1b4, type: 2}
+  - {fileID: 11400000, guid: f931e6a786c642b4493adc22fc9c5523, type: 2}
+  - {fileID: 11400000, guid: 14e15251c81eca746b8e4041e9a7b909, type: 2}
+  - {fileID: 11400000, guid: dc69108678a61cf41bb79b2a035aeab3, type: 2}
+  - {fileID: 11400000, guid: 104846ec110d7c04fb31304b040485f9, type: 2}
+  - {fileID: 11400000, guid: 6f010838ba125e74fa858769f995c552, type: 2}
+  - {fileID: 11400000, guid: b62716c31f5ea834893889fe88624046, type: 2}
+  - {fileID: 11400000, guid: 27857733967eb404f87e566035220b11, type: 2}
+  - {fileID: 11400000, guid: dce6b36a028046d468bbaeef77768c99, type: 2}
+  - {fileID: 11400000, guid: ad97e18c1332d40459a508decf30d783, type: 2}
+  - {fileID: 11400000, guid: d76a399a46f74dc42a062e4509a2b041, type: 2}
+  - {fileID: 11400000, guid: 4cb19927dc7f40444910999b1a047fa4, type: 2}
+  - {fileID: 11400000, guid: ca5ee13c387f30d4e8e57fd021c37669, type: 2}
+  - {fileID: 11400000, guid: 98d5d84c788894143bb213192008221a, type: 2}
   seed: 0
 --- !u!114 &780473148
 MonoBehaviour:

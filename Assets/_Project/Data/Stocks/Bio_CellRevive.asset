@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9d868528c6f2b542b427ec9a175009a, type: 3}
+  m_Name: Bio_CellRevive
+  m_EditorClassIdentifier: BurningAnt::BurningAnt.Market.StockDefinition
+  displayName: "\uC140\uBD80\uD65C\uBC14\uC774\uC624"
+  sector: 0
+  concept: "\uC904\uAE30\uC138\uD3EC\xB7\uC7AC\uC0DD\uC758\uD559"
+  startPrice: 32
+  baseRange: 0.34

@@ -17,22 +17,11 @@ namespace BurningAnt.Market
         [Tooltip("손익 배수. 3 = $10 넣으면 $30어치처럼 움직임. 손해가 넣은 돈보다 크면 넘친 만큼 장 마감 때 잔고에서 빠짐")]
         public float leverage = 3f;
 
-        [Header("하루 등락 한도 (전일 종가 대비)")]
-        public float stableLimit = 0.05f;
-        public float normalLimit = 0.12f;
-        public float highRiskLimit = 0.25f;
-
-        [Header("가격 생성 (한도 대비 비율)")]
+        // 종목별 기본 변동률 구간은 StockDefinition.baseRange (10~50%)에 있다.
+        [Header("가격 생성 (종목 기본 구간 대비 비율)")]
         [Range(0f, 1f), Tooltip("시가 갭 최대폭")] public float maxGapRatio = 0.4f;
         [Range(0f, 1f), Tooltip("하루 추세 최대폭")] public float maxTrendRatio = 0.6f;
         [Range(0f, 1f), Tooltip("틱마다 흔들림 크기")] public float noiseRatio = 0.1f;
         [Range(0f, 1f), Tooltip("추세선으로 당기는 힘")] public float pullStrength = 0.08f;
-
-        public float GetDailyLimit(StockType type) => type switch
-        {
-            StockType.Stable => stableLimit,
-            StockType.Normal => normalLimit,
-            _ => highRiskLimit,
-        };
     }
 }

@@ -91,10 +91,10 @@ namespace BurningAnt.UI
         {
             listContainer.Clear();
             listItems.Clear();
-            // 성향별로 묶어 제목을 단다 (업종이 들어오면 업종으로 바꾼다)
-            foreach (var group in session.Stocks.GroupBy(s => s.Definition.type).OrderBy(g => g.Key))
+            // 업종별로 묶어 제목을 단다
+            foreach (var group in session.Stocks.GroupBy(s => s.Definition.sector).OrderBy(g => g.Key))
             {
-                var header = new Label($"{group.Key.ToKorean()} ±{Mathf.RoundToInt(group.First().DailyLimit * 100f)}%");
+                var header = new Label(group.Key.ToKorean());
                 header.AddToClassList("stock-group");
                 listContainer.Add(header);
                 foreach (var stock in group)
@@ -208,7 +208,7 @@ namespace BurningAnt.UI
             float change = price / selected.PrevClose - 1f;
 
             nameLabel.text = selected.Name;
-            typeBadge.text = $"{selected.Definition.type.ToKorean()} ±{Mathf.RoundToInt(selected.DailyLimit * 100f)}% · 손익 {session.Portfolio.Leverage:0}배";
+            typeBadge.text = $"{selected.Definition.sector.ToKorean()} · 평소 ±{Mathf.RoundToInt(selected.DailyLimit * 100f)}% · 손익 {session.Portfolio.Leverage:0}배";
 
             // 단계·일차 표시는 전체 화면 오른쪽 위에서 따로 보여준다. 여기서는 장 중·마감만.
             phaseBadge.style.display = pre ? DisplayStyle.None : DisplayStyle.Flex;

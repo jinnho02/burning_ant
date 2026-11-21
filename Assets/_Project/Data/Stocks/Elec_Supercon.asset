@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9d868528c6f2b542b427ec9a175009a, type: 3}
+  m_Name: Elec_Supercon
+  m_EditorClassIdentifier: BurningAnt::BurningAnt.Market.StockDefinition
+  displayName: "\uCD08\uC804\uB3C4\uD14C\uD06C"
+  sector: 1
+  concept: "\uCD08\uC804\uB3C4\uCCB4 \uC5F0\uAD6C\uAC1C\uBC1C"
+  startPrice: 18
+  baseRange: 0.42

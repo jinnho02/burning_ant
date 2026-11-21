@@ -20,15 +20,31 @@ namespace BurningAnt.Editor
             var loanSettings = ScriptableObject.CreateInstance<LoanSettings>();
             var newsSettings = ScriptableObject.CreateInstance<NewsSettings>();
             var market = ScriptableObject.CreateInstance<MarketSettings>();
-            var defs = new StockDefinition[8];
-            var stocks = new StockState[8];
+            // 업종 5개 × 4종목, 기본 구간 10~50%, 업종마다 기본 기사 템플릿 10개
+            var sectors = (Sector[])Enum.GetValues(typeof(Sector));
+            var defs = new StockDefinition[sectors.Length * 4];
+            var stocks = new StockState[defs.Length];
             for (int i = 0; i < defs.Length; i++)
             {
                 defs[i] = ScriptableObject.CreateInstance<StockDefinition>();
                 defs[i].displayName = "S" + i;
                 defs[i].startPrice = 100f;
-                stocks[i] = new StockState(defs[i], i < 2 ? 0.05f : i < 5 ? 0.12f : 0.25f);
+                defs[i].sector = sectors[i / 4];
+                defs[i].baseRange = 0.1f + 0.1f * (i % 5);
+                stocks[i] = new StockState(defs[i], defs[i].baseRange);
             }
+            var library = sectors.Select(sec =>
+            {
+                var l = ScriptableObject.CreateInstance<SectorNews>();
+                l.sector = sec;
+                l.templates = DefaultNewsData.Templates[sec].Select(t => new NewsTemplate
+                {
+                    initialHeadline = t.initial, successHeadline = t.success, successPercent = t.successPercent,
+                    failureHeadline = t.failure, failurePercent = t.failurePercent,
+                }).ToList();
+                return l;
+            }).ToList();
+            newsSettings.library = library;
 
             try
             {
@@ -42,6 +58,7 @@ namespace BurningAnt.Editor
                 Object.DestroyImmediate(newsSettings);
                 Object.DestroyImmediate(market);
                 foreach (var d in defs) Object.DestroyImmediate(d);
+                foreach (var l in library) Object.DestroyImmediate(l);
             }
         }
 
@@ -76,36 +93,48 @@ namespace BurningAnt.Editor
         static void CheckNews(NewsSettings settings, MarketSettings market, StockState[] stocks)
         {
             var gen = new NewsGenerator(settings, new System.Random(3));
-            bool sawChain = false;
+            int ticks = market.ticksPerDay;
+            bool sawIntraday = false, sawClose = false;
             for (int day = 1; day <= 300; day++)
             {
-                var chainBefore = gen.ActiveChain;
-                var news = gen.GenerateDay(day, stocks);
-                Expect(news.Count >= 2 && news.Count <= 3, "하루 뉴스 2~3개");
+                var news = gen.GenerateDay(day, stocks, ticks);
+                Expect(news.Count == settings.newsPerDay, "하루 뉴스 = 4종목");
                 Expect(news.Select(n => n.Stock).Distinct().Count() == news.Count, "뉴스마다 다른 종목");
+                Expect(news.Select(n => n.Template).Distinct().Count() == news.Count, "같은 날 같은 기사 두 번 안 씀");
 
-                if (chainBefore != null)
+                foreach (var n in news)
                 {
-                    sawChain = true;
-                    var result = news.FirstOrDefault(n => n.Kind is NewsKind.ChainSuccess or NewsKind.ChainFail);
-                    Expect(result != null && result.Stock == chainBefore.Stock, "연쇄 뉴스 결과가 다음 날 발표");
-                    Expect((result.Kind == NewsKind.ChainSuccess) == chainBefore.WillSucceed, "발표 결과 = 미리 정해진 결과");
-                    Expect(chainBefore.WillSucceed ? result.Effect > 0f : result.Effect < 0f, "성공은 상승, 실패는 하락");
+                    Expect(settings.library.First(l => l.sector == n.Stock.Definition.sector).templates.Contains(n.Template), "그 종목 업종의 템플릿");
+                    float percent = (n.Success ? n.Template.successPercent : n.Template.failurePercent) / 100f;
+                    Near(n.Effect * 100f, Mathf.Sign(percent) * (n.Stock.DailyLimit + Mathf.Abs(percent)) * 100f, "결과 = 기본 구간 끝 + 템플릿 %");
+                    Expect(Mathf.Abs(n.Effect) > n.Stock.DailyLimit, "떡상·떡락은 기본 구간보다 큼");
+                    Expect(n.Success ? n.Effect > 0f : n.Effect < 0f, "성공은 상승, 실패는 하락");
+                    if (n.RevealAtClose) { sawClose = true; Expect(n.RevealTick == ticks, "마감 발표는 마지막 틱"); }
+                    else { sawIntraday = true; Expect(n.RevealTick > 0 && n.RevealTick < ticks, "특보는 장 중"); }
                 }
-
-                foreach (var n in news.Where(n => n.Kind == NewsKind.Normal))
-                    Expect(Mathf.Abs(n.Effect) >= 0.01f - 1e-4f && Mathf.Abs(n.Effect) <= 0.04f + 1e-4f, "일반 뉴스 폭 1~4%");
 
                 gen.ApplyToPrices(stocks, news, market);
                 foreach (var s in stocks)
                 {
-                    Expect(s.Path.Length == market.ticksPerDay + 1, "경로 길이");
-                    foreach (var p in s.Path)
-                        Expect(p >= s.LowerLimit - 1e-3f && p <= s.UpperLimit + 1e-3f, "가격이 하루 등락 한도 안");
+                    Expect(s.Path.Length == ticks + 1, "경로 길이");
+                    var n = news.FirstOrDefault(x => x.Stock == s);
+                    int until = n != null ? n.RevealTick - 1 : ticks; // 뉴스 종목은 결과 전까지만 구간 안
+                    for (int i = 0; i <= until; i++)
+                        Expect(s.Path[i] >= s.LowerLimit - 1e-3f && s.Path[i] <= s.UpperLimit + 1e-3f, "평소엔 기본 구간 안 (전날 종가 기준)");
+                    if (n != null) Near(s.Path[n.RevealTick] / s.PrevClose - 1f, n.Effect, "결과 시점에 템플릿 값으로 고정");
                     s.CloseDay();
                 }
             }
-            Expect(sawChain, "300일 동안 연쇄 뉴스가 한 번은 나옴");
+            Expect(sawIntraday && sawClose, "특보와 마감 발표가 둘 다 나옴");
+
+            // 예지: 뉴스 없던 종목에 템플릿을 하나 꺼내 경로를 그 값으로 고정
+            var day1 = gen.GenerateDay(301, stocks, ticks);
+            gen.ApplyToPrices(stocks, day1, market);
+            var quiet = stocks.First(s => day1.All(n => n.Stock != s));
+            var seen = gen.CreateForesight(quiet, market);
+            Expect(seen != null && seen.Foreseen && seen.Kind == NewsKind.Foresight, "예지 템플릿 생성");
+            Expect(!day1.Any(n => n.Template == seen.Template), "예지 템플릿도 오늘 뉴스와 겹치지 않음");
+            Near(quiet.Path[seen.RevealTick] / quiet.PrevClose - 1f, seen.Effect, "예지한 값으로 경로 고정");
         }
 
         static void Expect(bool condition, string what)

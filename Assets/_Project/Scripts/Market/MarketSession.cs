@@ -46,7 +46,7 @@ namespace BurningAnt.Market
         {
             rng = seed == 0 ? new System.Random() : new System.Random(seed);
             foreach (var def in stocks)
-                stockStates.Add(new StockState(def, settings.GetDailyLimit(def.type)));
+                stockStates.Add(new StockState(def, def.baseRange));
             Portfolio = new Portfolio(settings.startingCash, settings.feeRate, settings.maxHoldings, settings.leverage);
             PrepareDay();
         }

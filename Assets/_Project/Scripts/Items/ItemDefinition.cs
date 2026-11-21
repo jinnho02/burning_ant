@@ -33,7 +33,7 @@ namespace BurningAnt.Items
         [Tooltip("상점 칸에 보일 그림. 비우면 빈 칸으로 보인다.")] public Texture2D icon;
 
         [Header("정보 아이템")]
-        [Range(0f, 1f), Tooltip("힌트가 맞을 확률")] public float accuracy = 0.75f;
+        [Range(0f, 1f), Tooltip("(지금은 안 씀: 정보 아이템은 예지라서 틀리지 않음)")] public float accuracy = 0.75f;
 
         [Header("장 시간용 아이템")]
         [Tooltip("손절·익절: 평단 대비 이 비율에 닿으면 자동 매도 (0.05 = 5%)")] public float triggerRate = 0.05f;

@@ -85,7 +85,7 @@
             <ui:VisualElement class="news-paper">
                 <ui:Label name="news-paper-date" text="1일차 아침" class="news-paper-date" />
                 <ui:ScrollView name="news-paper-list" class="news-paper-list" />
-                <ui:Label text="뉴스는 정확하지만 폭이 작아요. 아이템 힌트는 틀릴 수 있어요." class="news-paper-note" />
+                <ui:Label text="뉴스가 뜬 종목은 오늘 크게 움직여요. 오를지 내릴지는 예지 아이템으로!" class="news-paper-note" />
                 <ui:Button name="news-paper-button" text="확인 · 아이템 단계로" class="news-paper-button" />
             </ui:VisualElement>
         </ui:VisualElement>

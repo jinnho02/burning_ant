@@ -6,6 +6,7 @@ namespace BurningAnt.Market
     public class StockState
     {
         public StockDefinition Definition { get; }
+        /// <summary>기본 변동률 구간 (전날 종가 ± 비율). 뉴스·예지 템플릿이 걸린 날은 이보다 크게 움직일 수 있다.</summary>
         public float DailyLimit { get; }
         public float PrevClose { get; private set; }
         public float[] Path { get; private set; }

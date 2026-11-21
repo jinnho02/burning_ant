@@ -26,10 +26,10 @@ namespace BurningAnt.Editor
 
         static readonly (string file, ItemKind kind, string name, float price, string desc, float accuracy, float trigger, float duration)[] DefaultItems =
         {
-            ("Item_Rumor", ItemKind.Rumor, "찌라시", 300f, "랜덤 1종목의 오늘 방향 (정확도 65%)", 0.65f, 0f, 0f),
-            ("Item_AnalystReport", ItemKind.AnalystReport, "애널리스트 리포트", 600f, "고른 1종목의 오늘 방향 (정확도 75%)", 0.75f, 0f, 0f),
-            ("Item_ChainForecast", ItemKind.ChainForecast, "연쇄 예측", 800f, "진행 중인 연쇄 뉴스 1개의 내일 성공 여부 (정확도 80%)", 0.80f, 0f, 0f),
-            ("Item_InsiderMemo", ItemKind.InsiderMemo, "내부자 메모", 1200f, "고른 1종목의 오늘 방향 + 대략적 폭 (정확도 85%)", 0.85f, 0f, 0f),
+            ("Item_Rumor", ItemKind.Rumor, "찌라시", 300f, "무작위 1종목의 오늘 기사와 결과(성공·실패, 변동률)를 미리 본다. 틀리지 않음", 0.65f, 0f, 0f),
+            ("Item_AnalystReport", ItemKind.AnalystReport, "애널리스트 리포트", 600f, "고른 1종목의 오늘 기사와 결과를 미리 본다. 틀리지 않음", 0.75f, 0f, 0f),
+            ("Item_ChainForecast", ItemKind.ChainForecast, "뉴스 결과 예측", 800f, "오늘 뉴스 하나의 결과와 발표 시점을 미리 본다", 0.80f, 0f, 0f),
+            ("Item_InsiderMemo", ItemKind.InsiderMemo, "내부자 메모", 1200f, "고른 1종목의 오늘 기사·결과와 발표 시점(특보 몇 초 뒤 / 장 마감)까지 미리 본다", 0.85f, 0f, 0f),
             ("Item_StopLoss", ItemKind.StopLoss, "손절 예약", 200f, "보유 종목이 평단 대비 -5%가 되면 전량 자동 매도", 0f, 0.05f, 0f),
             ("Item_TakeProfit", ItemKind.TakeProfit, "익절 예약", 200f, "보유 종목이 평단 대비 +5%가 되면 전량 자동 매도", 0f, 0.05f, 0f),
             ("Item_SlowMotion", ItemKind.SlowMotion, "슬로우 모션", 500f, "10초간 차트 속도 절반", 0f, 0f, 10f),
@@ -42,7 +42,7 @@ namespace BurningAnt.Editor
         {
             if (!AssetDatabase.IsValidFolder(Root + "/Scenes")) AssetDatabase.CreateFolder(Root, "Scenes");
 
-            // 주식 창 에셋(종목 8개, 장 설정, PanelSettings)이 없으면 먼저 만든다.
+            // 주식 창 에셋(종목 20개, 장 설정, PanelSettings)이 없으면 먼저 만든다.
             if (AssetDatabase.LoadAssetAtPath<MarketSettings>(Root + "/Data/MarketSettings.asset") == null)
                 StockWindowSetup.Run();
 
@@ -53,7 +53,7 @@ namespace BurningAnt.Editor
                 .Select(AssetDatabase.GUIDToAssetPath)
                 .OrderBy(p => p)
                 .Select(AssetDatabase.LoadAssetAtPath<StockDefinition>)
-                .OrderBy(s => s.type).ThenBy(s => s.startPrice)
+                .OrderBy(s => s.sector).ThenBy(s => s.startPrice)
                 .ToArray();
 
             var loan = LoadOrCreate<LoanSettings>(Root + "/Data/LoanSettings.asset", _ => { });

@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd36147010276144fa24e17732bd7a57, type: 3}
+  m_Name: News_Food
+  m_EditorClassIdentifier: BurningAnt::BurningAnt.News.SectorNews
+  sector: 3
+  templates:
+  - initialHeadline: "\uC124\uD0D5 \uC808\uBC18 \uC904\uC778 \uAC74\uAC15 \uB77C\uBA74 \uCD9C\uC2DC"
+    successHeadline: "\uB9DB\uACFC \uAC74\uAC15 \uBAA8\uB450 \uC7A1\uC558\uB2E4\u2026\uD310\uB9E4\uB7C9 \uAE09\uC99D"
+    successPercent: 10
+    failureHeadline: "\uC18C\uBE44\uC790\uB4E4 '\uC885\uC774 \uC539\uB294 \uB9DB' \uD639\uD3C9\u2026\uD310\uB9E4 \uBD80\uC9C4"
+    failurePercent: -12
+  - initialHeadline: "\uC2E0\uBA54\uB274 '\uC6B0\uC8FC\uD3ED\uBC1C\uCE58\uD0A8' \uCD9C\uC2DC"
+    successHeadline: "\uCD9C\uC2DC \uC77C\uC8FC\uC77C \uB9CC\uC5D0 100\uB9CC \uB9C8\uB9AC \uD310\uB9E4"
+    successPercent: 21
+    failureHeadline: "\uC2E0\uBA54\uB274 \uC2DD\uC911\uB3C5 \uC2E0\uACE0 \uC787\uB530\uB77C\u2026\uC601\uC5C5 \uC911\uB2E8"
+    failurePercent: -30
+  - initialHeadline: "3\uBD84 \uC644\uC131 \uC989\uC11D \uAD6D\uBC25 \uCD9C\uC2DC"
+    successHeadline: "\uC790\uCDE8\uC0DD \uD544\uC218\uD15C \uB4F1\uADF9\u2026\uD3B8\uC758\uC810 \uC644\uD310"
+    successPercent: 14
+    failureHeadline: "\uC81C\uD488\uC5D0\uC11C \uC774\uBB3C\uC9C8 \uBC1C\uACAC\u2026\uC804\uB7C9 \uD68C\uC218"
+    failurePercent: -24
+  - initialHeadline: "\uCE7C\uB85C\uB9AC 0 \uCF5C\uB77C \uC2E0\uC81C\uD488 \uACF5\uAC1C"
+    successHeadline: "\uB2E4\uC774\uC5B4\uD2B8 \uC74C\uB8CC \uC2DC\uC7A5 \uC810\uC720\uC728 \uAE09\uC0C1\uC2B9"
+    successPercent: 18
+    failureHeadline: "\uC2E4\uC81C \uCE7C\uB85C\uB9AC \uD45C\uC2DC \uC624\uB958 \uC801\uBC1C\u2026\uC18C\uBE44\uC790 \uAE30\uB9CC \uB17C\uB780"
+    failurePercent: -26
+  - initialHeadline: "\uACE0\uB2E8\uBC31 \uB0C9\uB3D9\uB9CC\uB450 \uCD9C\uC2DC"
+    successHeadline: "\uC6B4\uB3D9\uC778\uB4E4 \uC0AC\uC774 \uC785\uC18C\uBB38\u2026\uB9E4\uCD9C \uC2E0\uAE30\uB85D"
+    successPercent: 12
+    failureHeadline: "\uD3EC\uC7A5 \uBD88\uB7C9\uC73C\uB85C \uB9CC\uB450 \uB300\uB7C9 \uD3D0\uAE30"
+    failurePercent: -15
+  - initialHeadline: "\uC804\uAD6D 24\uC2DC\uAC04 \uCE58\uD0A8 \uBC30\uB2EC \uC11C\uBE44\uC2A4 \uB3C4\uC785"
+    successHeadline: "\uC2EC\uC57C \uC8FC\uBB38 \uD3ED\uC99D\u2026\uAC00\uB9F9\uC810 \uB9E4\uCD9C \uC0C1\uC2B9"
+    successPercent: 17
+    failureHeadline: "\uBC30\uB2EC \uC9C0\uC5F0\xB7\uC778\uAC74\uBE44 \uD3ED\uB4F1\u2026\uC801\uC790 \uC2EC\uD654"
+    failurePercent: -19
+  - initialHeadline: "\uC720\uBA85 \uC170\uD504 \uD611\uC5C5 \uD504\uB9AC\uBBF8\uC5C4 \uBC00\uD0A4\uD2B8 \uCD9C\uC2DC"
+    successHeadline: "\uC170\uD504 \uB808\uC2DC\uD53C \uD654\uC81C\u2026\uC608\uC57D\uD310\uB9E4 \uC644\uD310"
+    successPercent: 16
+    failureHeadline: "\uBC30\uC1A1 \uC911 \uC2DD\uC7AC\uB8CC \uBCC0\uC9C8\u2026\uD658\uBD88 \uC0AC\uD0DC"
+    failurePercent: -21
+  - initialHeadline: "\uBB34\uC124\uD0D5 \uC544\uC774\uC2A4\uD06C\uB9BC \uCD9C\uC2DC"
+    successHeadline: "\uB2E4\uC774\uC5B4\uD2B8 \uB514\uC800\uD2B8 \uC5F4\uD48D\u2026\uC2DC\uC7A5 \uC810\uC720\uC728 \uD655\uB300"
+    successPercent: 13
+    failureHeadline: "\uBCF5\uD1B5\xB7\uC18C\uD654\uBD88\uB7C9 \uC2E0\uACE0 \uAE09\uC99D\u2026\uD310\uB9E4 \uC911\uB2E8"
+    failurePercent: -25
+  - initialHeadline: "\uC2DD\uBB3C\uC131 \uB300\uCCB4\uC721 \uD584\uBC84\uAC70 \uD328\uD2F0 \uAC1C\uBC1C"
+    successHeadline: "\uB9DB \uD3C9\uAC00 \uD638\uD3C9\u2026\uB300\uD615 \uD504\uB79C\uCC28\uC774\uC988 \uB0A9\uD488"
+    successPercent: 19
+    failureHeadline: "\uC54C\uB808\uB974\uAE30 \uC720\uBC1C \uC131\uBD84 \uD45C\uC2DC \uB204\uB77D\u2026\uB9AC\uCF5C"
+    failurePercent: -27
+  - initialHeadline: "\uC138\uACC4\uC5D0\uC11C \uAC00\uC7A5 \uB9E4\uC6B4 \uCE58\uD0A8 \uCD9C\uC2DC"
+    successHeadline: "\uB9E4\uC6B4\uB9DB \uCC4C\uB9B0\uC9C0 \uB300\uC720\uD589\u2026\uC8FC\uBB38 \uD3ED\uC8FC"
+    successPercent: 20
+    failureHeadline: "\uC9C0\uB098\uCE5C \uB9E4\uC6B4\uB9DB\uC5D0 \uC18C\uBE44\uC790 \uD56D\uC758\u2026\uD310\uB9E4 \uC911\uB2E8"
+    failurePercent: -18

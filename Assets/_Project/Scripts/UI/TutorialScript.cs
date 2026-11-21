@@ -31,7 +31,7 @@ namespace BurningAnt.UI
                 s.steps.Add(new Step { phase = phase, target = target, title = title, text = text });
 
             // shortcut: 임시 문구. 기획 확정 후 Data/TutorialScript 에셋으로 교체.
-            Add(GamePhase.News, "news-paper-list", "(임시) 아침 뉴스", "매일 아침 그날의 뉴스가 나와요. 뉴스는 정확하지만 가격에 주는 영향은 작아요.");
+            Add(GamePhase.News, "news-paper-list", "(임시) 아침 뉴스", "매일 아침 4종목에 뉴스가 떠요. 그 종목은 오늘 크게 움직이지만, 오를지 내릴지는 결과 기사(장 중 특보 또는 장 마감)가 나와야 알 수 있어요.");
             Add(GamePhase.News, "news-paper-button", "(임시) 다음 단계로", "다 읽었으면 눌러서 아이템·예약 단계로 넘어가요.");
             Add(GamePhase.Prep, "flow-card", "(임시) 오늘의 흐름", "오늘 한 일(뉴스, 예약, 쓴 아이템)과 아직 안 쓴 아이템이 여기에 정리돼요.");
             Add(GamePhase.Prep, "item-bar-list", "(임시) 아이템", "상점에서 산 아이템이에요. '장 전' 아이템은 지금, '장 중' 아이템은 장이 열린 뒤에 써요.");

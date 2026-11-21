@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace BurningAnt.Editor
 {
     /// <summary>
-    /// 주식 창 씬과 필요한 에셋(장 설정, 종목 8개, PanelSettings)을 만든다.
+    /// 주식 창 씬과 필요한 에셋(장 설정, 종목 20개, PanelSettings)을 만든다.
     /// 이미 있는 에셋은 그대로 두고 없는 것만 만든다. 메뉴: BurningAnt > Setup > Stock Window Scene
     /// </summary>
     public static class StockWindowSetup
@@ -16,17 +16,8 @@ namespace BurningAnt.Editor
         const string Root = "Assets/_Project";
         const string ScenePath = Root + "/Scenes/StockWindow.unity";
 
-        static readonly (string file, string name, StockType type, float price)[] DefaultStocks =
-        {
-            ("Stock_AntBank", "개미은행", StockType.Stable, 50f),
-            ("Stock_HangangTelecom", "한강통신", StockType.Stable, 67f),
-            ("Stock_FireAntElectronics", "불개미전자", StockType.Normal, 84f),
-            ("Stock_TteoksangRetail", "떡상유통", StockType.Normal, 101f),
-            ("Stock_MuriMuriSteel", "무리무리제철", StockType.Normal, 118f),
-            ("Stock_GazuaBio", "가즈아바이오", StockType.HighRisk, 135f),
-            ("Stock_YoungkkeulGames", "영끌게임즈", StockType.HighRisk, 152f),
-            ("Stock_CoinAnt", "코인개미", StockType.HighRisk, 169f),
-        };
+        // 기본 종목은 DefaultStockData (업종 5개 × 20종목)
+        static readonly (string file, string name, Sector sector, string concept, float range, float price)[] DefaultStocks = DefaultStockData.Stocks;
 
         [MenuItem("BurningAnt/Setup/Stock Window Scene")]
         public static void Run()
@@ -43,7 +34,9 @@ namespace BurningAnt.Editor
                 stocks[i] = LoadOrCreate<StockDefinition>($"{Root}/Data/Stocks/{d.file}.asset", s =>
                 {
                     s.displayName = d.name;
-                    s.type = d.type;
+                    s.sector = d.sector;
+                    s.concept = d.concept;
+                    s.baseRange = d.range;
                     s.startPrice = d.price;
                 });
             }

@@ -401,7 +401,7 @@ namespace BurningAnt.UI
             {
                 var line = new Label(n.Text);
                 line.AddToClassList("news-paper-item");
-                line.EnableInClassList("news-paper-item--chain", n.Kind != NewsKind.Normal);
+                line.EnableInClassList("news-paper-item--chain", n.Foreseen);
                 newsPaperList.Add(line);
             }
         }
@@ -410,20 +410,25 @@ namespace BurningAnt.UI
         {
             if (stockWindow != null)
                 foreach (var item in stockWindow.ListItems)
-                    item.SetBadge(game.TodayNews.Any(n => n.Stock == item.Stock) ? "뉴스" : null);
+                {
+                    var news = game.TodayNews.FirstOrDefault(n => n.Stock == item.Stock);
+                    bool foreseen = (news != null && news.Foreseen) || game.Foresights.Any(n => n.Stock == item.Stock);
+                    item.SetBadge(foreseen ? "예지" : news != null ? "뉴스" : null, foreseen ? "hint" : "news");
+                }
 
             bool newsPhase = game.Phase == GamePhase.News;
             var selected = stockWindow != null ? stockWindow.Selected : null;
             var lines = newsPhase
                 ? game.TodayNews.ToList()
-                : game.TodayNews.Where(n => n.Stock == null || n.Stock == selected).ToList();
+                : game.TodayNews.Concat(game.Foresights).Where(n => n.Stock == selected).ToList();
 
             newsBandList.Clear();
             foreach (var n in lines)
             {
-                var line = new Label("· " + n.Text);
+                // 결과가 뜨기 전엔 최초 기사만, 뜬 뒤엔 결과 기사와 변동률
+                var line = new Label("· " + (n.Revealed ? $"{n.ResultText} ({Format.SignedPercent(n.Effect)})" : n.Text));
                 line.AddToClassList("news-band-line");
-                line.EnableInClassList("news-band-line--chain", n.Kind != NewsKind.Normal);
+                line.EnableInClassList("news-band-line--chain", n.Revealed);
                 newsBandList.Add(line);
             }
             newsBandTitle.text = newsPhase ? $"{game.Day}일차 아침 뉴스" : "이 종목 오늘의 뉴스";
@@ -664,7 +669,7 @@ namespace BurningAnt.UI
                 if (n.Stock == null) continue;
                 float change = n.Stock.PriceAt(Session.Tick) / n.Stock.PrevClose - 1f;
                 bool hit = (n.Effect >= 0f) == (change >= 0f);
-                var row = Row(news, false, n.Stock.Name, n.Text, $"실제 {Format.SignedPercent(change)}");
+                var row = Row(news, false, n.Stock.Name, $"{n.Text} → {(n.Success ? "성공" : "실패")}", $"실제 {Format.SignedPercent(change)}");
                 row.ElementAt(2).AddToClassList(hit ? "report-ok" : "report-bad");
             }
 

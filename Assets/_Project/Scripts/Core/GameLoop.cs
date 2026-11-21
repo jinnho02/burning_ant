@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using BurningAnt.Character;
 using BurningAnt.Items;
 using BurningAnt.Loan;
@@ -64,6 +65,9 @@ namespace BurningAnt.Core
         public GamePhase Phase { get; private set; } = GamePhase.News;
         public int Day => session.Day;
         public IReadOnlyList<NewsItem> TodayNews => todayNews;
+        /// <summary>뉴스 없던 종목을 예지해서 생긴 템플릿 (플레이어만 앎, 결과 시점에 속보로 공개).</summary>
+        public IReadOnlyList<NewsItem> Foresights => foresights;
+        readonly List<NewsItem> foresights = new();
         public IReadOnlyList<string> Hints => hints;
         public float DayStartAssets { get; private set; }
         public float LastInterest { get; private set; }
@@ -163,7 +167,8 @@ namespace BurningAnt.Core
             ResetMarketEffects();
 
             todayNews.Clear();
-            todayNews.AddRange(newsGenerator.GenerateDay(Day, session.Stocks));
+            foresights.Clear();
+            todayNews.AddRange(newsGenerator.GenerateDay(Day, session.Stocks, session.Settings.ticksPerDay));
             newsGenerator.ApplyToPrices(session.Stocks, todayNews, session.Settings);
 
             DayStartAssets = TotalAssets();
@@ -249,6 +254,7 @@ namespace BurningAnt.Core
         {
             ResetMarketEffects();
             autoSells.Clear();
+            RevealDueNews(); // 장 마감에 뜨는 결과 기사
 
             CloseReport();
 
@@ -419,39 +425,37 @@ namespace BurningAnt.Core
             var usedOn = target;
             switch (item.kind)
             {
+                // 예지: 틀리지 않는다. 뉴스 종목이면 숨겨진 결과를, 아니면 템플릿을 하나 꺼내 고정하고 보여준다.
                 case ItemKind.Rumor:
                 {
                     usedOn = session.Stocks[rng.Next(session.Stocks.Count)];
-                    result = DirectionHint(item, usedOn, false, out bool ok);
-                    hintCorrect = ok;
+                    if (!Foresee(item, usedOn, false, out result)) return;
+                    hintCorrect = true;
                     break;
                 }
                 case ItemKind.AnalystReport:
                 {
-                    result = DirectionHint(item, target, false, out bool ok);
-                    hintCorrect = ok;
+                    if (!Foresee(item, target, false, out result)) return;
+                    hintCorrect = true;
                     break;
                 }
                 case ItemKind.InsiderMemo:
                 {
-                    result = DirectionHint(item, target, true, out bool ok);
-                    hintCorrect = ok;
+                    if (!Foresee(item, target, true, out result)) return;
+                    hintCorrect = true;
                     break;
                 }
-                case ItemKind.ChainForecast:
+                case ItemKind.ChainForecast: // 뉴스 결과 예측: 오늘 뉴스 하나의 결과를 미리 본다
                 {
-                    var chain = newsGenerator.ActiveChain;
-                    if (chain == null || chain.ResolveDay != Day + 1)
+                    var pending = todayNews.Where(n => !n.Foreseen).ToList();
+                    if (pending.Count == 0)
                     {
-                        Say("진행 중인 연쇄 뉴스가 없어요");
+                        Say("미리 볼 뉴스가 없어요");
                         return;
                     }
-                    bool correct = rng.NextDouble() < item.accuracy;
-                    bool shownSuccess = correct ? chain.WillSucceed : !chain.WillSucceed;
-                    usedOn = chain.Stock;
-                    hintCorrect = correct;
-                    revealTomorrow = true;
-                    result = $"{item.displayName}: {chain.Stock.Name} 연쇄 뉴스는 내일 {(shownSuccess ? "성공" : "실패")}할 것 같다 (정확도 {item.accuracy * 100f:0}%)";
+                    usedOn = pending[rng.Next(pending.Count)].Stock;
+                    if (!Foresee(item, usedOn, true, out result)) return;
+                    hintCorrect = true;
                     break;
                 }
                 case ItemKind.StopLoss:
@@ -503,25 +507,53 @@ namespace BurningAnt.Core
             Changed?.Invoke();
         }
 
-        /// <summary>오늘 방향(전일 종가 → 오늘 종가) 힌트. accuracy 확률로 맞고, 틀리면 방향이 반대로 나온다.</summary>
-        string DirectionHint(ItemDefinition item, StockState stock, bool withMagnitude, out bool correct)
+        /// <summary>
+        /// 예지: 그 종목의 오늘 템플릿과 결과를 보여준다 (틀리지 않음). 뉴스가 있으면 숨겨진 결과를, 없으면 템플릿을 새로 꺼내
+        /// 오늘 경로를 그 값으로 고정한다. withTiming이면 결과가 뜨는 시점도 알려준다.
+        /// </summary>
+        bool Foresee(ItemDefinition item, StockState stock, bool withTiming, out string text)
         {
-            float change = stock.Path[stock.Path.Length - 1] / stock.PrevClose - 1f;
-            bool up = change >= 0f;
-            correct = rng.NextDouble() < item.accuracy;
-            bool shownUp = correct ? up : !up;
-
-            string text = $"{item.displayName}: {stock.Name} 오늘 {(shownUp ? "오를" : "내릴")} 것 같다";
-            if (withMagnitude)
+            text = null;
+            var n = todayNews.FirstOrDefault(x => x.Stock == stock) ?? foresights.FirstOrDefault(x => x.Stock == stock);
+            if (n == null)
             {
-                float abs = Mathf.Abs(change);
-                text += abs < 0.03f ? " · 소폭(3% 미만)" : abs < 0.08f ? " · 중폭(3~8%)" : " · 대폭(8% 이상)";
+                n = newsGenerator.CreateForesight(stock, session.Settings);
+                if (n == null)
+                {
+                    Say($"{stock.Name}: 예지할 기사가 없어요");
+                    return false;
+                }
+                foresights.Add(n);
             }
-            return text + $" (정확도 {item.accuracy * 100f:0}%)";
+            n.Foreseen = true;
+
+            text = $"{item.displayName}: {stock.Name} — \"{n.Template.initialHeadline}\" → {(n.Success ? "성공" : "실패")} {Pct(n.Effect)}";
+            if (withTiming)
+                text += n.RevealAtClose ? " · 장 마감에 발표" : $" · 장 시작 {n.RevealTick * session.Settings.secondsPerTick:0}초 뒤 특보";
+            return true;
+        }
+
+        static string Pct(float change) => (change >= 0f ? "+" : "") + (change * 100f).ToString("0") + "%";
+
+        /// <summary>결과 시점이 된 템플릿의 결과 기사를 띄운다 (장 중 = 특보, 장 마감 = 마감 발표).</summary>
+        void RevealDueNews()
+        {
+            bool any = false;
+            foreach (var n in todayNews.Concat(foresights))
+            {
+                if (n.Revealed || session.Tick < n.RevealTick) continue;
+                n.Revealed = true;
+                any = true;
+                string line = $"{(n.RevealAtClose ? "[마감]" : "[속보]")} {n.ResultText} ({Pct(n.Effect)})";
+                hints.Add(line);
+                Say(line);
+            }
+            if (any) Changed?.Invoke();
         }
 
         void OnTicked()
         {
+            RevealDueNews();
             if (autoSells.Count == 0 || session.Phase != MarketPhase.Open) return;
 
             for (int i = autoSells.Count - 1; i >= 0; i--)

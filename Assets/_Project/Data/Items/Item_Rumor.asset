@@ -15,7 +15,8 @@ MonoBehaviour:
   kind: 0
   displayName: "\uCC0C\uB77C\uC2DC"
   price: 300
-  description: "\uB79C\uB364 1\uC885\uBAA9\uC758 \uC624\uB298 \uBC29\uD5A5 (\uC815\uD655\uB3C4 65%)"
+  description: "\uBB34\uC791\uC704 1\uC885\uBAA9\uC758 \uC624\uB298 \uAE30\uC0AC\uC640 \uACB0\uACFC(\uC131\uACF5\xB7\uC2E4\uD328, \uBCC0\uB3D9\uB960)\uB97C \uBBF8\uB9AC \uBCF8\uB2E4. \uD2C0\uB9AC\uC9C0 \uC54A\uC74C"
+  icon: {fileID: 0}
   accuracy: 0.65
   triggerRate: 0
   durationSeconds: 0
