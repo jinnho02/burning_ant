@@ -10,6 +10,8 @@ namespace BurningAnt.Loan
         public float Debt { get; private set; }
         public float InterestRate { get; private set; }
         public int ExtraLoansTaken { get; private set; }
+        /// <summary>지금까지 갚은 금액 합계 (빚 상환 게이지용).</summary>
+        public float TotalRepaid { get; private set; }
 
         public bool IsPaidOff => Debt <= 0.005f;
         public bool CanTakeExtraLoan => ExtraLoansTaken < settings.maxExtraLoans;
@@ -54,6 +56,7 @@ namespace BurningAnt.Loan
         {
             float paid = Mathf.Clamp(amount, 0f, Debt);
             Debt -= paid;
+            TotalRepaid += paid;
             if (Debt < 0.005f) Debt = 0f;
             return paid;
         }

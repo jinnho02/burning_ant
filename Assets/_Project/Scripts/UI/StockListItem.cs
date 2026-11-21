@@ -9,6 +9,7 @@ namespace BurningAnt.UI
     {
         readonly Label nameLabel = new() { name = "stock-item-name" };
         readonly Label heldLabel = new("보유") { name = "stock-item-held" };
+        readonly Label badgeLabel = new() { name = "stock-item-badge" };
         readonly Label priceLabel = new() { name = "stock-item-price" };
         readonly Label changeLabel = new() { name = "stock-item-change" };
 
@@ -22,11 +23,18 @@ namespace BurningAnt.UI
             heldLabel.AddToClassList("stock-item__held");
             priceLabel.AddToClassList("stock-item__price");
             changeLabel.AddToClassList("stock-item__change");
+            badgeLabel.AddToClassList("stock-item__badge");
+            badgeLabel.style.display = DisplayStyle.None;
+
+            var nameRow = new VisualElement();
+            nameRow.AddToClassList("row");
+            nameRow.Add(nameLabel);
+            nameRow.Add(badgeLabel);
 
             var top = new VisualElement();
             top.AddToClassList("row");
             top.AddToClassList("row--spread");
-            top.Add(nameLabel);
+            top.Add(nameRow);
             top.Add(heldLabel);
 
             var bottom = new VisualElement();
@@ -39,6 +47,15 @@ namespace BurningAnt.UI
             Add(bottom);
             nameLabel.text = stock.Name;
             RegisterCallback<ClickEvent>(_ => onSelect(stock));
+        }
+
+        /// <summary>이름 옆 작은 표시 (예: "뉴스"). null이면 숨김. kind는 USS 클래스 접미사.</summary>
+        public void SetBadge(string text, string kind = "news")
+        {
+            badgeLabel.style.display = string.IsNullOrEmpty(text) ? DisplayStyle.None : DisplayStyle.Flex;
+            badgeLabel.text = text ?? "";
+            badgeLabel.EnableInClassList("stock-item__badge--news", kind == "news");
+            badgeLabel.EnableInClassList("stock-item__badge--hint", kind == "hint");
         }
 
         public void Refresh(float price, bool preMarket, bool held, bool selected)

@@ -1,16 +1,18 @@
-/* 하루 루프 전체 화면. 가운데 주식 창은 StockWindow.uxml/uss를 그대로 쓴다. */
+/* 하루 루프 전체 화면 (디자인 기준: Docs/ui-mockup.png). 가운데 주식 창은 StockWindow.uxml/uss를 쓰고 여기서 카드 모양만 덧입힌다. */
 .game-screen {
-    --gs-bg: #FFFFFF;
+    --gs-page: #ECEAE3;
+    --gs-card: #FFFFFF;
     --gs-panel: #F1EFE8;
-    --gs-border: #D3D1C7;
+    --gs-border: #D9D7CE;
     --gs-text: #2C2C2A;
-    --gs-muted: #5F5E5A;
+    --gs-muted: #6B6A65;
     --gs-accent: #378ADD;
     --gs-up: #E24B4A;
     --gs-down: #378ADD;
+    --gs-good: #1D9E75;
 
     flex-grow: 1;
-    background-color: var(--gs-bg);
+    background-color: var(--gs-page);
     color: var(--gs-text);
     font-size: 18px;
 }
@@ -20,61 +22,123 @@
 .caption { font-size: 15px; color: var(--gs-muted); margin-right: 6px; }
 .price-up { color: var(--gs-up); }
 .price-down { color: var(--gs-down); }
+.card { background-color: var(--gs-card); border-width: 1px; border-color: var(--gs-border); border-radius: 14px; }
+.chip { font-size: 14px; padding: 2px 10px; border-radius: 8px; }
+.chip--warning { background-color: #FAEEDA; color: #854F0B; }
 
-/* 위 막대 */
-.top-bar {
-    flex-direction: row;
-    align-items: center;
-    padding: 10px 24px;
-    border-bottom-width: 1px;
-    border-color: var(--gs-border);
+/* 위 막대: 일차 · 단계 진행 · 빚 상환 */
+.top-bar { flex-direction: row; align-items: center; height: 70px; margin: 18px 24px 0 24px; padding: 0 22px; }
+.top-day { font-size: 28px; -unity-font-style: bold; margin-right: 18px; }
+.steps { flex-grow: 1; flex-direction: row; }
+.step {
+    flex-grow: 1;
+    flex-basis: 0;
+    height: 38px;
+    margin-right: 6px;
+    border-radius: 9px;
+    background-color: var(--gs-panel);
+    color: var(--gs-muted);
+    font-size: 16px;
+    -unity-text-align: middle-center;
 }
-.top-day { font-size: 22px; -unity-font-style: bold; margin-right: 12px; }
-.top-phase {
-    font-size: 15px;
-    padding: 2px 10px;
-    border-radius: 8px;
-    background-color: rgba(55, 138, 221, 0.12);
-    color: var(--gs-accent);
-}
-.top-spacer { flex-grow: 1; }
-.top-value { -unity-font-style: bold; margin-right: 12px; }
-.top-debt { color: var(--gs-up); }
-.top-gap { margin-right: 16px; }
+.step--done { color: #B4B2A9; }
+.step--now { background-color: var(--gs-up); color: #FFFFFF; -unity-font-style: bold; }
+.repay { width: 340px; margin-left: 18px; }
+.repay-track { height: 10px; margin-top: 6px; border-radius: 5px; background-color: var(--gs-panel); }
+.repay-fill { height: 10px; width: 0; border-radius: 5px; background-color: var(--gs-good); }
 
-/* 가운데 */
-.main-row { flex-grow: 1; flex-direction: row; }
+/* 몸통 */
+.body { flex-grow: 1; flex-direction: row; }
+.main-col { flex-grow: 1; padding: 16px 16px 18px 24px; }
 .stock-window-host { flex-grow: 1; }
 
-.side-panel { width: 340px; padding: 24px 24px 24px 0; }
-.side-card { padding: 12px; border-radius: 8px; background-color: var(--gs-panel); margin-bottom: 12px; }
-.side-card--grow { flex-grow: 1; }
-.side-title { -unity-font-style: bold; font-size: 16px; margin-bottom: 6px; }
-.side-title--gap { margin-top: 12px; }
-.news-line { font-size: 14px; white-space: normal; margin-bottom: 6px; }
-.hint-list { flex-grow: 1; }
-.hint-line { font-size: 13px; white-space: normal; margin-bottom: 4px; color: var(--gs-muted); }
-
-.character-cam { align-items: center; margin-bottom: 0; }
-.portrait { width: 100%; height: 300px; -unity-background-scale-mode: scale-to-fit; }
-.end-portrait { height: 360px; -unity-background-scale-mode: scale-to-fit; margin-bottom: 8px; }
-.face { font-size: 40px; -unity-font-style: bold; margin: 8px 0; }
-.mood { -unity-font-style: bold; margin-bottom: 4px; }
-
-/* 아래 아이템 막대 */
-.item-bar {
-    flex-direction: row;
-    align-items: center;
-    min-height: 64px;
-    padding: 8px 24px;
-    border-top-width: 1px;
+/* 주식 창을 카드 두 장(종목 리스트 / 상세)으로 보이게 */
+.game-screen .stock-window { padding: 0; background-color: rgba(0, 0, 0, 0); }
+.game-screen .stock-list-panel,
+.game-screen .detail-panel {
+    padding: 16px 18px;
+    background-color: var(--gs-card);
+    border-width: 1px;
     border-color: var(--gs-border);
+    border-radius: 14px;
 }
+.game-screen .stock-list-panel { margin-right: 16px; }
+.stock-group { font-size: 14px; color: var(--gs-muted); -unity-font-style: bold; margin: 10px 4px 4px 4px; }
+.stock-item__badge { font-size: 12px; padding: 1px 7px; margin-left: 6px; border-radius: 7px; }
+.stock-item__badge--news { background-color: #FAEEDA; color: #854F0B; }
+.stock-item__badge--hint { background-color: #E6F1FB; color: #185FA5; }
+
+/* 뉴스 띠 (차트 위) */
+.news-band { margin-bottom: 10px; padding: 8px 14px; border-radius: 10px; background-color: #FAEEDA; }
+.news-band--alert { background-color: var(--gs-up); }
+.news-band--alert .news-band-title, .news-band--alert .news-band-line { color: #FFFFFF; }
+.news-band-title { -unity-font-style: bold; font-size: 16px; color: #854F0B; }
+.news-band-line { font-size: 15px; white-space: normal; color: #633806; margin-top: 3px; }
+.news-band-line--chain { -unity-font-style: bold; }
+.news-confirm { height: 34px; font-size: 15px; border-radius: 8px; }
+
+/* 아래 아이템 칸 */
+.item-bar { flex-direction: row; align-items: center; min-height: 96px; margin-top: 14px; padding: 10px 16px; }
 .item-bar-title { -unity-font-style: bold; margin-right: 12px; }
-.item-bar-list { flex-direction: row; flex-wrap: wrap; }
-.item-bar-hint { margin-left: auto; white-space: normal; max-width: 520px; }
-.item-chip { height: 40px; font-size: 15px; border-radius: 8px; margin-right: 6px; }
-.item-chip--off { opacity: 0.4; }
+.item-bar-list { flex-direction: row; flex-grow: 1; flex-wrap: wrap; }
+.item-bar-hint { margin-left: 10px; white-space: normal; max-width: 360px; }
+.item-slot {
+    width: 150px;
+    height: 64px;
+    margin-right: 8px;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: var(--gs-border);
+    background-color: #FAF9F5;
+    padding: 4px 6px;
+    justify-content: center;
+}
+.item-slot--off { opacity: 0.4; }
+.item-slot__name { font-size: 15px; -unity-text-align: middle-center; white-space: normal; }
+.item-slot__meta { font-size: 12px; color: var(--gs-muted); -unity-text-align: middle-center; }
+
+/* 오른쪽 열: 오른쪽·아래 여백 없음 → 주인공이 화면 끝까지 */
+.side-col { width: 380px; padding: 16px 0 0 0; margin-right: 24px; }
+.status-card { padding: 14px 18px; }
+.status-row { margin-bottom: 6px; }
+.status-row--total { border-top-width: 1px; border-color: #E4E2DA; padding-top: 8px; margin-top: 2px; margin-bottom: 0; }
+.status-value { -unity-font-style: bold; }
+.status-value--small { font-size: 15px; }
+.status-value--big { font-size: 20px; }
+.hint-card { margin-top: 12px; padding: 10px 14px; max-height: 170px; }
+.side-title { -unity-font-style: bold; font-size: 15px; margin-bottom: 4px; }
+.hint-list { flex-grow: 1; }
+.hint-line { font-size: 13px; white-space: normal; margin-bottom: 3px; color: var(--gs-muted); }
+
+/* 주인공: 버튜버처럼 화면 바닥에 붙음 */
+.character-area { flex-grow: 1; margin-right: -24px; }
+.portrait {
+    position: absolute;
+    left: -120px;
+    right: 0;
+    top: 40px;
+    bottom: 0;
+    -unity-background-scale-mode: scale-to-fit;
+    background-position-y: bottom;
+}
+.face { position: absolute; bottom: 90px; left: 0; right: 24px; font-size: 48px; -unity-font-style: bold; -unity-text-align: middle-center; }
+.speech {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    padding: 8px 14px;
+    border-radius: 14px;
+    border-bottom-left-radius: 3px;
+    background-color: var(--gs-card);
+    border-width: 1px;
+    border-color: var(--gs-border);
+    font-size: 16px;
+    white-space: normal;
+    max-width: 320px;
+}
+.mood-box { position: absolute; bottom: 16px; left: -60px; right: 24px; align-items: center; }
+.mood { -unity-font-style: bold; font-size: 16px; padding: 3px 12px; border-radius: 9px; background-color: rgba(255, 255, 255, 0.92); }
+.outfit { font-size: 12px; color: var(--gs-muted); margin-top: 3px; padding: 1px 8px; border-radius: 6px; background-color: rgba(255, 255, 255, 0.85); }
 
 /* 단계별 창 */
 .overlay {
@@ -85,20 +149,12 @@
     justify-content: center;
     display: none;
 }
-.modal {
-    width: 640px;
-    max-height: 90%;
-    padding: 24px;
-    border-radius: 12px;
-    background-color: var(--gs-bg);
-}
+.modal { width: 640px; max-height: 90%; padding: 24px; border-radius: 14px; background-color: var(--gs-card); }
 .modal--wide { width: 980px; }
 .modal-title { font-size: 26px; -unity-font-style: bold; margin-bottom: 12px; }
 .modal-body { margin-bottom: 12px; white-space: normal; }
 .modal-button { height: 48px; font-size: 18px; border-radius: 8px; margin-top: 8px; }
 .modal-button--sub { height: 40px; }
-.news-card { padding: 10px 12px; border-radius: 8px; background-color: var(--gs-panel); margin-bottom: 8px; white-space: normal; }
-.news-card--chain { border-left-width: 4px; border-color: #BA7517; }
 
 .picker-list { flex-direction: row; flex-wrap: wrap; }
 .picker-button { width: 180px; height: 44px; margin: 4px; }
@@ -110,14 +166,7 @@
 
 .shop-cash { -unity-font-style: bold; }
 .shop-list { max-height: 640px; }
-.shop-row {
-    flex-direction: row;
-    align-items: center;
-    padding: 10px 12px;
-    margin-bottom: 6px;
-    border-radius: 8px;
-    background-color: var(--gs-panel);
-}
+.shop-row { flex-direction: row; align-items: center; padding: 10px 12px; margin-bottom: 6px; border-radius: 8px; background-color: var(--gs-panel); }
 .shop-info { flex-grow: 1; flex-shrink: 1; }
 .shop-name { -unity-font-style: bold; }
 .shop-desc { font-size: 14px; color: var(--gs-muted); white-space: normal; }
@@ -126,4 +175,5 @@
 .shop-owned { width: 70px; -unity-text-align: middle-center; color: var(--gs-muted); font-size: 14px; }
 .shop-buy { width: 90px; height: 40px; }
 
+.end-portrait { height: 360px; -unity-background-scale-mode: scale-to-fit; margin-bottom: 8px; }
 .end-title { font-size: 34px; }

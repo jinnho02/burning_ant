@@ -64,6 +64,7 @@ namespace BurningAnt.Editor
 
             Near(loan.Repay(1000f), 1000f, "일부 상환");
             Near(loan.Repay(1e9f), 24500f, "빚보다 많이 갚으면 남은 빚만");
+            Near(loan.TotalRepaid, 25500f, "갚은 금액 합계 (상환 게이지)");
             Expect(loan.IsPaidOff, "전액 상환");
         }
 

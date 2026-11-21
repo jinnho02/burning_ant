@@ -19,6 +19,10 @@ namespace BurningAnt.UI
         StockState selected;
         bool useMax;
 
+        public StockState Selected => selected;
+        public IReadOnlyList<StockListItem> ListItems => listItems;
+        public event System.Action SelectionChanged;
+
         Label holdingCountLabel, nameLabel, typeBadge, phaseBadge, priceLabel, changeLabel, gapLabel;
         Label upperLabel, lowerLabel, chartHint, sharesLabel, averageLabel, profitLabel, returnLabel;
         Label cashLabel, reservationLabel, messageLabel;
@@ -87,13 +91,35 @@ namespace BurningAnt.UI
         {
             listContainer.Clear();
             listItems.Clear();
-            foreach (var stock in session.Stocks)
+            // 성향별로 묶어 제목을 단다 (업종이 들어오면 업종으로 바꾼다)
+            foreach (var group in session.Stocks.GroupBy(s => s.Definition.type).OrderBy(g => g.Key))
             {
-                var item = new StockListItem(stock, Select);
-                listItems.Add(item);
-                listContainer.Add(item);
+                var header = new Label($"{group.Key.ToKorean()} ±{Mathf.RoundToInt(group.First().DailyLimit * 100f)}%");
+                header.AddToClassList("stock-group");
+                listContainer.Add(header);
+                foreach (var stock in group)
+                {
+                    var item = new StockListItem(stock, Select);
+                    listItems.Add(item);
+                    listContainer.Add(item);
+                }
             }
         }
+
+        void Update()
+        {
+            // 단축키: Q 매수, W 매도 (수량 입력 중에는 무시)
+            if (selected == null || IsTyping()) return;
+            if (Input.GetKeyDown(KeyCode.Q) && CanPress(buyButton)) Submit(OrderSide.Buy);
+            if (Input.GetKeyDown(KeyCode.W) && CanPress(sellButton)) Submit(OrderSide.Sell);
+        }
+
+        bool IsTyping() =>
+            quantityField.panel?.focusController?.focusedElement is VisualElement focused &&
+            (focused.GetFirstOfType<IntegerField>() != null || focused.GetFirstOfType<FloatField>() != null || focused.GetFirstOfType<TextField>() != null);
+
+        static bool CanPress(Button button) =>
+            button.enabledInHierarchy && button.resolvedStyle.display == DisplayStyle.Flex && button.visible;
 
         void BindInput()
         {
@@ -113,6 +139,7 @@ namespace BurningAnt.UI
         {
             selected = stock;
             Refresh();
+            SelectionChanged?.Invoke();
         }
 
         void Submit(OrderSide side)

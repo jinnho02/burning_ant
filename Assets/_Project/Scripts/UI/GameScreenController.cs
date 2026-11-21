@@ -12,7 +12,8 @@ namespace BurningAnt.UI
 {
     /// <summary>
     /// GameScreen.uxml과 GameLoop를 연결한다. 가운데 주식 창은 StockWindowController가 그대로 맡고,
-    /// 여기서는 위 막대 · 뉴스/힌트 · 반신 캠 · 아이템 막대 · 단계별 창(뉴스, 정산, 상점, 결과)만 다룬다.
+    /// 여기서는 위 막대(단계·빚 상환) · 뉴스 띠 · 상태창 · 주인공 · 아이템 칸 · 단계별 창(정산, 상점, 결과)만 다룬다.
+    /// 디자인 기준: Docs/ui-mockup.png
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class GameScreenController : MonoBehaviour
@@ -20,14 +21,19 @@ namespace BurningAnt.UI
         [SerializeField] GameLoop game;
 
         MarketSession Session => game.Session;
+        StockWindowController stockWindow;
 
-        Label dayLabel, phaseLabel, debtLabel, rateLabel, loanCountLabel, netWorthLabel;
-        VisualElement newsList, itemBarList;
+        Label dayLabel, repayLabel, cashLabel, stockValueLabel, debtLabel, interestLabel, loanCountLabel, netWorthLabel;
+        readonly Label[] steps = new Label[5];
+        VisualElement repayFill, itemBarList;
         ScrollView hintList, shopList;
-        Label faceLabel, moodLabel, outfitLabel, itemBarHint;
-        VisualElement newsOverlay, pickerOverlay, settlementOverlay, shopOverlay, endOverlay;
-        Label newsOverlayTitle, pickerTitle, settlementTitle, settlementSummary, settlementMessage, shopCash, shopMessage, endTitle, endBody;
-        VisualElement newsOverlayList, pickerList;
+        Label faceLabel, speechLabel, moodLabel, outfitLabel, itemBarHint;
+        VisualElement newsBand, newsBandList;
+        Label newsBandTitle;
+        Button newsConfirmButton, buyButton, sellButton, startButton;
+        VisualElement pickerOverlay, settlementOverlay, shopOverlay, endOverlay;
+        Label pickerTitle, settlementTitle, settlementSummary, settlementMessage, shopCash, shopMessage, endTitle, endBody;
+        VisualElement pickerList;
         FloatField repayField;
         PriceChartElement chart;
         VisualElement portrait, endPortrait;
@@ -38,16 +44,23 @@ namespace BurningAnt.UI
         {
             var root = GetComponent<UIDocument>().rootVisualElement;
             KoreanFont.Apply(root);
+            stockWindow = GetComponent<StockWindowController>();
             Query(root);
-            Bind();
+            Bind(root);
+
+            // 뉴스 띠는 차트 바로 위(주식 창 오른쪽 카드 맨 위)에 둔다
+            root.Q("detail-panel")?.Insert(0, newsBand);
 
             game.Changed += RefreshAll;
             game.PhaseChanged += OnPhaseChanged;
             game.Message += OnMessage;
             game.Inventory.Changed += RefreshItemBar;
             Session.Portfolio.Changed += RefreshAll;
+            if (stockWindow != null) stockWindow.SelectionChanged += RefreshNews;
 
             OnPhaseChanged();
+            // 종목 리스트는 StockWindowController.Start가 만든다. 실행 순서가 정해져 있지 않아 한 프레임 뒤 다시 표시한다.
+            root.schedule.Execute(RefreshNews);
         }
 
         void OnDestroy()
@@ -58,12 +71,14 @@ namespace BurningAnt.UI
             game.Message -= OnMessage;
             if (game.Inventory != null) game.Inventory.Changed -= RefreshItemBar;
             if (Session != null && Session.Portfolio != null) Session.Portfolio.Changed -= RefreshAll;
+            if (stockWindow != null) stockWindow.SelectionChanged -= RefreshNews;
         }
 
         void Update()
         {
             if (game.Inventory == null) return;
             RefreshStatus();
+            HandleItemKeys();
             if (game.Phase == GamePhase.Market)
             {
                 chart.SetPreview(game.PreviewTicks);
@@ -79,25 +94,36 @@ namespace BurningAnt.UI
         void Query(VisualElement root)
         {
             dayLabel = root.Q<Label>("day-label");
-            phaseLabel = root.Q<Label>("phase-label");
+            for (int i = 0; i < steps.Length; i++) steps[i] = root.Q<Label>($"step-{i + 1}");
+            repayLabel = root.Q<Label>("repay-label");
+            repayFill = root.Q("repay-fill");
+
+            cashLabel = root.Q<Label>("cash-label");
+            stockValueLabel = root.Q<Label>("stock-value-label");
             debtLabel = root.Q<Label>("debt-label");
-            rateLabel = root.Q<Label>("rate-label");
+            interestLabel = root.Q<Label>("interest-label");
             loanCountLabel = root.Q<Label>("loan-count-label");
             netWorthLabel = root.Q<Label>("networth-label");
-            newsList = root.Q("news-list");
             hintList = root.Q<ScrollView>("hint-list");
-            faceLabel = root.Q<Label>("face-label");
+
             portrait = root.Q("portrait");
-            endPortrait = root.Q("end-portrait");
+            faceLabel = root.Q<Label>("face-label");
+            speechLabel = root.Q<Label>("speech-label");
             moodLabel = root.Q<Label>("mood-label");
             outfitLabel = root.Q<Label>("outfit-label");
+            endPortrait = root.Q("end-portrait");
+
             itemBarList = root.Q("item-bar-list");
             itemBarHint = root.Q<Label>("item-bar-hint");
             chart = root.Q<PriceChartElement>("chart");
+            buyButton = root.Q<Button>("buy-button");
+            sellButton = root.Q<Button>("sell-button");
+            startButton = root.Q<Button>("start-button");
 
-            newsOverlay = root.Q("news-overlay");
-            newsOverlayTitle = root.Q<Label>("news-overlay-title");
-            newsOverlayList = root.Q("news-overlay-list");
+            newsBand = root.Q("news-band");
+            newsBandTitle = root.Q<Label>("news-band-title");
+            newsBandList = root.Q("news-band-list");
+            newsConfirmButton = root.Q<Button>("news-confirm-button");
 
             pickerOverlay = root.Q("picker-overlay");
             pickerTitle = root.Q<Label>("picker-title");
@@ -119,10 +145,9 @@ namespace BurningAnt.UI
             endBody = root.Q<Label>("end-body");
         }
 
-        void Bind()
+        void Bind(VisualElement root)
         {
-            var root = GetComponent<UIDocument>().rootVisualElement;
-            root.Q<Button>("news-confirm-button").clicked += game.ConfirmNews;
+            newsConfirmButton.clicked += game.ConfirmNews;
             root.Q<Button>("picker-cancel-button").clicked += () => Show(pickerOverlay, false);
             root.Q<Button>("repay-button").clicked += () => game.Repay(repayField.value);
             root.Q<Button>("repay-all-button").clicked += () => game.Repay(Session.Portfolio.Cash);
@@ -142,14 +167,13 @@ namespace BurningAnt.UI
         {
             lastMessage = "";
             Show(pickerOverlay, false);
-            Show(newsOverlay, game.Phase == GamePhase.News);
             Show(settlementOverlay, game.Phase == GamePhase.Settlement);
             Show(shopOverlay, game.Phase == GamePhase.Shop);
             Show(endOverlay, game.Phase == GamePhase.GameOver);
             chart.SetPreview(0);
 
-            if (game.Phase == GamePhase.News) BuildNews();
             if (game.Phase == GamePhase.Settlement) repayField.value = 0f;
+            RefreshNews();
             RefreshAll();
         }
 
@@ -176,24 +200,43 @@ namespace BurningAnt.UI
         void RefreshStatus()
         {
             var loan = game.Loan;
-            dayLabel.text = $"{game.Day}일차";
-            phaseLabel.text = game.Phase switch
+            dayLabel.text = $"DAY {game.Day}";
+
+            // 단계 진행: 지난 단계는 흐리게, 지금 단계는 강조, 장 중에는 남은 시간
+            int now = game.Phase switch
             {
-                GamePhase.News => "1 뉴스 탐색",
-                GamePhase.Prep => "2 아이템 사용 · 예약",
-                GamePhase.Market => "3 장 시간",
-                GamePhase.Settlement => "4 장 결과",
-                GamePhase.Shop => "5 아이템 구매",
-                _ => "게임 끝",
+                GamePhase.News => 0,
+                GamePhase.Prep => 1,
+                GamePhase.Market => 2,
+                GamePhase.Settlement => 3,
+                GamePhase.Shop => 4,
+                _ => 5,
             };
+            for (int i = 0; i < steps.Length; i++)
+            {
+                steps[i].EnableInClassList("step--done", i < now);
+                steps[i].EnableInClassList("step--now", i == now);
+            }
+            steps[2].text = now == 2 ? $"3 장 · {Mathf.CeilToInt(Mathf.Max(0f, Session.RemainingSeconds))}초" : "3 장";
+
+            // 빚 상환 게이지 = 갚은 돈 / (갚은 돈 + 남은 빚)
+            float repaid = loan.TotalRepaid;
+            float total = repaid + loan.Debt;
+            repayLabel.text = $"{Format.Money(repaid)} / {Format.Money(total)}";
+            repayFill.style.width = Length.Percent(total > 0f ? 100f * repaid / total : 100f);
+
+            cashLabel.text = Format.Money(Session.Portfolio.Cash);
+            stockValueLabel.text = Format.Money(game.StockValue());
             debtLabel.text = Format.Money(loan.Debt);
-            rateLabel.text = $"이자 {loan.InterestRate * 100f:0}% · 다음 {loan.NextInterestDay(game.Day)}일차";
-            loanCountLabel.text = $"추가 대출 {loan.ExtraLoansLeft}회 남음";
+            int daysLeft = loan.NextInterestDay(game.Day) - game.Day;
+            interestLabel.text = $"{(daysLeft == 0 ? "오늘" : $"D-{daysLeft}")} · {loan.InterestRate * 100f:0}%";
+            loanCountLabel.text = $"{loan.ExtraLoansLeft}회 남음";
 
             float netWorth = game.NetWorth();
             netWorthLabel.text = Format.SignedMoney(netWorth);
             Format.SetTrendClass(netWorthLabel, netWorth);
 
+            // 주인공
             float today = game.TodayReturn();
             var mood = game.Character.GetMood(today);
             bool beforeMarket = game.Phase is GamePhase.News or GamePhase.Prep;
@@ -201,27 +244,43 @@ namespace BurningAnt.UI
             SetImage(portrait, image);
             faceLabel.text = CharacterSettings.MoodFace(mood);
             faceLabel.style.display = image == null ? DisplayStyle.Flex : DisplayStyle.None;
+            speechLabel.text = beforeMarket ? game.Character.prepLine : game.Character.MoodLine(mood);
             moodLabel.text = $"{CharacterSettings.MoodName(mood)} · 오늘 {Format.SignedPercent(today)}";
             Format.SetTrendClass(moodLabel, today);
             outfitLabel.text = game.Character.OutfitName(netWorth);
+
+            // 뉴스를 확인하기 전(1단계)에는 예약·장 시작을 막는다 (예전엔 뉴스 팝업이 화면을 가렸다)
+            bool newsPhase = game.Phase == GamePhase.News;
+            buyButton?.SetEnabled(!newsPhase);
+            sellButton?.SetEnabled(!newsPhase);
+            startButton?.SetEnabled(!newsPhase);
         }
 
-        void BuildNews()
+        /// <summary>뉴스 띠와 종목 리스트의 "뉴스" 표시. 1단계엔 오늘 뉴스 전체, 그 뒤엔 선택한 종목의 뉴스만.</summary>
+        void RefreshNews()
         {
-            newsOverlayTitle.text = $"{game.Day}일차 아침 뉴스";
-            newsOverlayList.Clear();
-            newsList.Clear();
-            foreach (var n in game.TodayNews)
-            {
-                var card = new Label(n.Text);
-                card.AddToClassList("news-card");
-                card.EnableInClassList("news-card--chain", n.Kind != NewsKind.Normal);
-                newsOverlayList.Add(card);
+            if (stockWindow != null)
+                foreach (var item in stockWindow.ListItems)
+                    item.SetBadge(game.TodayNews.Any(n => n.Stock == item.Stock) ? "뉴스" : null);
 
+            bool newsPhase = game.Phase == GamePhase.News;
+            var selected = stockWindow != null ? stockWindow.Selected : null;
+            var lines = newsPhase
+                ? game.TodayNews.ToList()
+                : game.TodayNews.Where(n => n.Stock == null || n.Stock == selected).ToList();
+
+            newsBandList.Clear();
+            foreach (var n in lines)
+            {
                 var line = new Label("· " + n.Text);
-                line.AddToClassList("news-line");
-                newsList.Add(line);
+                line.AddToClassList("news-band-line");
+                line.EnableInClassList("news-band-line--chain", n.Kind != NewsKind.Normal);
+                newsBandList.Add(line);
             }
+            newsBandTitle.text = newsPhase ? $"{game.Day}일차 아침 뉴스" : "이 종목 오늘의 뉴스";
+            Show(newsConfirmButton, newsPhase);
+            Show(newsBand, newsPhase || lines.Count > 0);
+            newsBand.EnableInClassList("news-band--alert", newsPhase);
         }
 
         void RefreshHints()
@@ -232,6 +291,7 @@ namespace BurningAnt.UI
             if (game.StopRemaining > 0f) AddHint($"[시간 정지] {game.StopRemaining:0.0}초 남음");
             if (game.SlowRemaining > 0f) AddHint($"[슬로우 모션] {game.SlowRemaining:0.0}초 남음");
             if (game.PreviewTicks > 0) AddHint("[망원경] 차트의 주황 선이 앞으로의 가격");
+            if (hintList.childCount == 0) AddHint("아직 없어요. 정보 아이템을 쓰면 여기에 떠요.");
         }
 
         void AddHint(string text)
@@ -245,23 +305,52 @@ namespace BurningAnt.UI
         {
             itemBarList.Clear();
             var owned = game.Inventory.Owned.ToList();
-            foreach (var (item, count) in owned)
+            for (int i = 0; i < owned.Count; i++)
             {
-                var chip = new Button(() => OnItemClicked(item)) { text = $"{item.displayName} x{count}" };
-                chip.AddToClassList("item-chip");
-                chip.EnableInClassList("item-chip--off", !game.CanUseNow(item));
-                chip.tooltip = item.description;
-                itemBarList.Add(chip);
+                var (item, count) = owned[i];
+                var slot = new Button(() => OnItemClicked(item));
+                slot.AddToClassList("item-slot");
+                slot.EnableInClassList("item-slot--off", !game.CanUseNow(item));
+                slot.tooltip = item.description;
+                string key = i < 9 ? $"[{i + 1}] " : "";
+                var name = new Label($"{key}{item.displayName} x{count}");
+                name.AddToClassList("item-slot__name");
+                var meta = new Label(item.Timing == ItemTiming.Prep ? "장 전" : "장 중");
+                meta.AddToClassList("item-slot__meta");
+                slot.Add(name);
+                slot.Add(meta);
+                itemBarList.Add(slot);
             }
 
             string guide = game.Phase switch
             {
-                GamePhase.Prep => "정보 아이템을 쓰고, 매수·매도 예약 후 '장 시작'을 누르세요",
-                GamePhase.Market => "장 시간용 아이템을 쓸 수 있어요",
+                GamePhase.News => "뉴스를 읽고 '확인'을 누르세요",
+                GamePhase.Prep => "정보 아이템을 쓰고, 매수·매도 예약 후 '장 시작'",
+                GamePhase.Market => "장 중 아이템 사용 가능 · 매수 Q · 매도 W",
                 _ => owned.Count == 0 ? "아이템은 장이 끝난 뒤 상점에서 살 수 있어요" : "",
             };
             itemBarHint.text = string.IsNullOrEmpty(lastMessage) ? guide : lastMessage;
         }
+
+        /// <summary>숫자 1~9 = 아이템 칸 순서대로 사용 (입력 중이거나 창이 떠 있으면 무시).</summary>
+        void HandleItemKeys()
+        {
+            if (!Input.anyKeyDown || AnyOverlayOpen() || IsTyping()) return;
+            var owned = game.Inventory.Owned.ToList();
+            for (int i = 0; i < owned.Count && i < 9; i++)
+                if (Input.GetKeyDown(KeyCode.Alpha1 + i) || Input.GetKeyDown(KeyCode.Keypad1 + i))
+                {
+                    OnItemClicked(owned[i].item);
+                    return;
+                }
+        }
+
+        bool AnyOverlayOpen() =>
+            new[] { pickerOverlay, settlementOverlay, shopOverlay, endOverlay }.Any(o => o.resolvedStyle.display == DisplayStyle.Flex);
+
+        bool IsTyping() =>
+            itemBarList.panel?.focusController?.focusedElement is VisualElement focused &&
+            (focused.GetFirstOfType<IntegerField>() != null || focused.GetFirstOfType<FloatField>() != null || focused.GetFirstOfType<TextField>() != null);
 
         void OnItemClicked(ItemDefinition item)
         {

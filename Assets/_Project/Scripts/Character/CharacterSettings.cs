@@ -20,6 +20,11 @@ namespace BurningAnt.Character
         [Tooltip("장 전(뉴스·아이템 시간)에 보여줄 그림. 비우면 표정 그림")] public Texture2D prepImage;
         [Tooltip("빚을 다 갚았을 때")] public Texture2D winImage;
 
+        [Header("말풍선 대사")]
+        [Tooltip("표정 5종: 폭락, 손해, 보합, 이득, 대박 순서")]
+        public string[] moodLines = { "무리무리무리!!", "으으… 무리무리…", "아직 몰라, 버텨!", "가즈아~!", "무리… 아니었어?!" };
+        [Tooltip("장 전(뉴스·아이템 시간) 대사")] public string prepLine = "오늘은 뭘 살까~?";
+
         [Header("표정 (그날 수익률 경계)")]
         [Tooltip("이 수익률 이하면 폭락")] public float crashBelow = -0.05f;
         [Tooltip("이 수익률 미만이면 손해")] public float lossBelow = -0.01f;
@@ -54,6 +59,12 @@ namespace BurningAnt.Character
         {
             int i = (int)mood;
             return moodImages != null && i < moodImages.Length ? moodImages[i] : null;
+        }
+
+        public string MoodLine(Mood mood)
+        {
+            int i = (int)mood;
+            return moodLines != null && i < moodLines.Length ? moodLines[i] : "";
         }
 
         public static string MoodName(Mood mood) => mood switch
