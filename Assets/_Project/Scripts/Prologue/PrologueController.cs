@@ -8,29 +8,35 @@ using UnityEngine.UIElements;
 namespace BurningAnt.Prologue
 {
     /// <summary>
-    /// 타이틀(표지) → 프롤로그(대사 + 소품 카드 + 주인공) → "DAY 1" → 게임 씬.
-    /// 처음 한 번만 프롤로그가 나오고, 다음부터는 바로 게임으로 간다 (타이틀의 "프롤로그 보기"로 다시 볼 수 있음).
+    /// 프롤로그(대사 + 소품 카드 + 주인공) → "DAY 1" → 게임 씬.
+    /// 게임 화면의 타이틀을 처음 클릭했을 때 한 번만 열리고(GameScreenController), 끝나면 타이틀 없이 1일차로 간다.
     /// 대사·그림은 PrologueScript 에셋에서 고친다. 실행 인자 -autoplay: 자동 진행 (시연용).
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class PrologueController : MonoBehaviour
     {
+        public const string SceneName = "Prologue";
         const string SeenKey = "BurningAnt.PrologueSeen";
 
+        /// <summary>프롤로그를 한 번이라도 끝까지(또는 건너뛰기로) 봤는지.</summary>
+        public static bool HasSeen => PlayerPrefs.GetInt(SeenKey, 0) == 1;
+        /// <summary>프롤로그가 끝나 게임 씬으로 돌아가는 중. 게임 화면이 타이틀을 한 번 건너뛰고 지운다.</summary>
+        public static bool ReturnedFromPrologue;
+        public static bool AutoplayArg => System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-autoplay") >= 0;
+
         [SerializeField] PrologueScript script;
-        [SerializeField] Texture2D cover;
         [SerializeField, Tooltip("글자 하나가 나오는 간격(초)")] float secondsPerChar = 0.035f;
         [SerializeField, Tooltip("AUTO일 때 대사가 다 나온 뒤 넘어가기까지(초)")] float autoDelay = 1.6f;
 
-        VisualElement titleScreen, storyScreen, daySplash, portrait, stamp, loanFill, loginFill;
-        Label pressStart, speaker, line, footnote, nextMark, loanAmount, loanTerms, accountCash, accountDebt, dreamAmount;
+        VisualElement storyScreen, daySplash, portrait, stamp, loanFill, loginFill;
+        Label speaker, line, footnote, nextMark, loanAmount, loanTerms, accountCash, accountDebt, dreamAmount;
         Button autoButton;
         readonly Dictionary<PrologueProp, VisualElement> props = new();
 
         int index = -1;
         string fullText = "";
-        float shownChars, autoTimer, blinkTimer, propTimer;
-        bool inStory, ending, auto, autoplayArg;
+        float shownChars, autoTimer, propTimer;
+        bool ending, auto;
         PrologueProp currentProp;
 
         void Start()
@@ -39,29 +45,24 @@ namespace BurningAnt.Prologue
             KoreanFont.Apply(root);
             Query(root);
 
-            if (cover != null) root.Q("cover").style.backgroundImage = new StyleBackground(cover);
             float debt = script.loanSettings != null ? script.loanSettings.startingDebt : 10000f;
             accountCash.text = Money(debt);
             accountDebt.text = Money(debt);
             dreamAmount.text = Money(debt * 2f) + "?!";
             loanTerms.text = script.Fill("한도 100% · 이자 {rate} / {period}");
 
-            titleScreen.RegisterCallback<PointerDownEvent>(e => { if (!IsButton(e.target)) StartGame(forcePrologue: false); });
-            root.Q<Button>("watch-prologue-button").clicked += () => StartGame(forcePrologue: true);
             storyScreen.RegisterCallback<PointerDownEvent>(e => { if (!IsButton(e.target)) Advance(); });
             root.Q<Button>("skip-button").clicked += Finish;
             autoButton.clicked += () => SetAuto(!auto);
+            SetAuto(AutoplayArg);
 
-            autoplayArg = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-autoplay") >= 0;
-            SetAuto(autoplayArg);
+            Next();
         }
 
         void Query(VisualElement root)
         {
-            titleScreen = root.Q("title-screen");
             storyScreen = root.Q("story-screen");
             daySplash = root.Q("day-splash");
-            pressStart = root.Q<Label>("press-start");
             portrait = root.Q("story-portrait");
             speaker = root.Q<Label>("speaker");
             line = root.Q<Label>("line");
@@ -88,20 +89,6 @@ namespace BurningAnt.Prologue
         {
             if (ending) return;
 
-            if (!inStory)
-            {
-                blinkTimer += Time.deltaTime;
-                if (blinkTimer > 0.6f)
-                {
-                    blinkTimer = 0f;
-                    pressStart.ToggleInClassList("press-start--dim");
-                }
-                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space)
-                    || (autoplayArg && Time.timeSinceLevelLoad > 2f))
-                    StartGame(forcePrologue: autoplayArg);
-                return;
-            }
-
             // 글자 한 자씩
             if (shownChars < fullText.Length)
             {
@@ -117,21 +104,6 @@ namespace BurningAnt.Prologue
                 Advance();
             else if (auto && !typing && (autoTimer += Time.deltaTime) > autoDelay)
                 Advance();
-        }
-
-        void StartGame(bool forcePrologue)
-        {
-            if (inStory || ending) return;
-            if (!forcePrologue && PlayerPrefs.GetInt(SeenKey, 0) == 1)
-            {
-                Finish();
-                return;
-            }
-            inStory = true;
-            titleScreen.style.display = DisplayStyle.None;
-            storyScreen.style.display = DisplayStyle.Flex;
-            index = -1;
-            Next();
         }
 
         /// <summary>글자가 나오는 중이면 한 번에 다 보여주고, 다 나왔으면 다음 대사.</summary>
@@ -214,13 +186,14 @@ namespace BurningAnt.Prologue
             autoButton.EnableInClassList("story-button--on", on);
         }
 
-        /// <summary>프롤로그를 봤다고 기록하고 "DAY 1"을 띄운 뒤 게임 씬으로.</summary>
+        /// <summary>프롤로그를 봤다고 기록하고 "DAY 1"을 띄운 뒤 게임 씬으로 (타이틀 없이).</summary>
         void Finish()
         {
             if (ending) return;
             ending = true;
             PlayerPrefs.SetInt(SeenKey, 1);
             PlayerPrefs.Save();
+            ReturnedFromPrologue = true;
             daySplash.style.display = DisplayStyle.Flex;
             daySplash.schedule.Execute(() => daySplash.AddToClassList("day-splash--on"));
             daySplash.schedule.Execute(() => SceneManager.LoadScene(script.nextScene)).ExecuteLater(1600);

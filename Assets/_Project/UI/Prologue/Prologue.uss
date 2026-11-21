@@ -1,4 +1,4 @@
-/* 타이틀 + 프롤로그. 색·카드 모양은 GameScreen.uss와 맞춘다. */
+/* 프롤로그. 색·카드 모양은 GameScreen.uss와 맞춘다. */
 .prologue-root {
     --pg-page: #ECEAE3;
     --pg-card: #FFFFFF;
@@ -19,27 +19,8 @@
 .row--spread { justify-content: space-between; }
 .card { background-color: var(--pg-card); border-width: 1px; border-color: var(--pg-border); border-radius: 16px; }
 
-/* 타이틀 */
-.title-screen { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background-color: #1B1033; }
-.cover { position: absolute; left: 0; right: 0; top: 0; bottom: 0; -unity-background-scale-mode: scale-and-crop; }
-.press-start {
-    position: absolute;
-    left: 0; right: 0; bottom: 70px;
-    -unity-text-align: middle-center;
-    font-size: 30px;
-    -unity-font-style: bold;
-    color: #FFFFFF;
-    -unity-text-outline-width: 1px;
-    -unity-text-outline-color: #7F3A8F;
-    transition-property: opacity;
-    transition-duration: 0.5s;
-}
-.press-start--dim { opacity: 0.25; }
-.title-buttons { position: absolute; right: 28px; bottom: 24px; flex-direction: row; }
-.title-button { height: 40px; padding: 0 16px; border-radius: 10px; font-size: 16px; background-color: rgba(255, 255, 255, 0.85); }
-
 /* 프롤로그 */
-.story-screen { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: none; }
+.story-screen { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
 .story-top { position: absolute; top: 20px; right: 24px; flex-direction: row; }
 .story-button { height: 38px; padding: 0 14px; margin-left: 8px; border-radius: 10px; font-size: 15px; background-color: var(--pg-card); }
 .story-button--on { background-color: var(--pg-up); color: #FFFFFF; }

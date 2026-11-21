@@ -2,16 +2,7 @@
     <Style src="Prologue.uss" />
     <ui:VisualElement name="prologue-root" class="prologue-root">
 
-        <!-- 타이틀: 표지 + 시작 -->
-        <ui:VisualElement name="title-screen" class="title-screen">
-            <ui:VisualElement name="cover" class="cover" />
-            <ui:Label name="press-start" text="PRESS START · 클릭 또는 Enter" class="press-start" />
-            <ui:VisualElement class="title-buttons">
-                <ui:Button name="watch-prologue-button" text="프롤로그 보기" class="title-button" />
-            </ui:VisualElement>
-        </ui:VisualElement>
-
-        <!-- 프롤로그 -->
+        <!-- 프롤로그 (타이틀은 게임 화면 쪽에 있다) -->
         <ui:VisualElement name="story-screen" class="story-screen">
             <ui:VisualElement class="story-top">
                 <ui:Button name="auto-button" text="AUTO" class="story-button" />

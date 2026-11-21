@@ -176,15 +176,33 @@ namespace BurningAnt.UI
 
         // ───────── 타이틀 ─────────
 
-        /// <summary>시작할 때 타이틀이 맨 위에 덮여 있고, 아무 곳이나 클릭하면 닫혀 1일차 뉴스가 보인다.</summary>
+        /// <summary>
+        /// 시작할 때 타이틀이 맨 위에 덮여 있고, 아무 곳이나 클릭하면 닫혀 1일차 뉴스가 보인다.
+        /// 프롤로그를 아직 안 봤으면 클릭 시 프롤로그 씬으로 가고, 프롤로그가 끝나 돌아오면 타이틀을 건너뛴다.
+        /// </summary>
         void BindTitle(VisualElement root)
         {
             titleOverlay = root.Q("title-overlay");
             titleStart = root.Q<Label>("title-start");
             if (titleOverlay == null) return;
+            if (Prologue.PrologueController.ReturnedFromPrologue)
+            {
+                Prologue.PrologueController.ReturnedFromPrologue = false;
+                Show(titleOverlay, false);
+                return;
+            }
             titleOverlay.BringToFront();
-            titleOverlay.RegisterCallback<ClickEvent>(_ => Show(titleOverlay, false));
+            titleOverlay.RegisterCallback<ClickEvent>(_ => OnTitleClicked());
             titleOverlay.RegisterCallback<GeometryChangedEvent>(_ => LayoutTitle());
+            if (Prologue.PrologueController.AutoplayArg) titleOverlay.schedule.Execute(OnTitleClicked).ExecuteLater(2000); // 시연용
+        }
+
+        void OnTitleClicked()
+        {
+            if (!Prologue.PrologueController.HasSeen && Application.CanStreamedLevelBeLoaded(Prologue.PrologueController.SceneName))
+                SceneManager.LoadScene(Prologue.PrologueController.SceneName);
+            else
+                Show(titleOverlay, false);
         }
 
         // 타이틀 그림(1672×941) 안에서의 문구 자리: 제목 아랫변(약 70.7%)과 그래프 윗변(약 78%) 사이
