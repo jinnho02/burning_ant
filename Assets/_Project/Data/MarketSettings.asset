@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23dd940ed00b01f47a77769f98764bd5, type: 3}
+  m_Name: MarketSettings
+  m_EditorClassIdentifier: BurningAnt::BurningAnt.Market.MarketSettings
+  ticksPerDay: 120
+  secondsPerTick: 0.5
+  startingCash: 10000
+  feeRate: 0.002
+  maxHoldings: 4
+  stableLimit: 0.05
+  normalLimit: 0.12
+  highRiskLimit: 0.25
+  maxGapRatio: 0.4
+  maxTrendRatio: 0.6
+  noiseRatio: 0.1
+  pullStrength: 0.08

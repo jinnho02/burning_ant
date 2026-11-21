@@ -38,9 +38,12 @@ Assets/_Project/
 │   ├── Items/       아이템, 상점
 │   ├── Loan/        대출, 이자, 상환
 │   ├── Character/   주인공 반신 캠 (옷·표정)
-│   └── UI/          화면 UI
+│   ├── UI/          화면 컨트롤러 (C#)
+│   └── Editor/      에디터 전용: 셋업 메뉴, 자체 점검
+├── UI/              UI Toolkit 레이아웃(.uxml)·스타일(.uss), PanelSettings
 ├── Data/            ScriptableObject 데이터
-│   ├── Stocks/      종목 (이름, 성향, 등락 한도)
+│   ├── MarketSettings.asset  장 시간·수수료·등락 한도 등 밸런스
+│   ├── Stocks/      종목 (이름, 성향, 시작가)
 │   ├── Items/       아이템 (가격, 효과, 정확도)
 │   └── News/        뉴스 문구 템플릿
 ├── Prefabs/
@@ -51,6 +54,37 @@ Assets/_Project/
 └── Fonts/
 Docs/                기획 사본 등 문서
 ```
+
+## 주식 창 (Stock Window)
+
+씬: `Assets/_Project/Scenes/StockWindow.unity` → 열고 Play.
+
+| 바꾸고 싶은 것 | 고칠 곳 |
+|---|---|
+| 배치·요소 추가 | `UI/StockWindow/StockWindow.uxml` (UI Builder로 열어도 됨) |
+| 색·크기·여백 (상승·하락 색 포함) | `UI/StockWindow/StockWindow.uss` 맨 위 변수 |
+| 장 시간, 수수료, 등락 한도, 가격 움직임 | `Data/MarketSettings.asset` (인스펙터) |
+| 종목 이름·성향·시작가, 종목 추가 | `Data/Stocks/` 에셋, 씬의 `StockWindow` 오브젝트 → MarketSession → Stocks 목록 |
+| 매매·예약·장 진행 규칙 | `Scripts/Market/` (`Portfolio`, `MarketSession`) |
+| 화면 갱신·버튼 동작 | `Scripts/UI/StockWindowController.cs` |
+
+구조 (UI는 규칙을 모르고, 규칙은 UI를 모름):
+
+```
+MarketSession (장 진행: 예약 → 장 시작 시 시가 체결 → 틱 → 마감 → 다음 날)
+ ├─ StockState × N  (전일 종가, 오늘 가격 경로)  ← PricePathGenerator
+ └─ Portfolio       (현금, 보유, 매수·매도·수수료·최대 4종목)
+        ▲ 이벤트(PhaseChanged, Ticked …)          │ Reserve / Trade
+        │                                          ▼
+StockWindowController (UXML 요소 찾기, 화면 갱신, 버튼 → 주문)
+ ├─ StockListItem      왼쪽 종목 한 줄
+ └─ PriceChartElement  라인 차트 (USS --chart-* 색)
+```
+
+- 에디터 메뉴 **BurningAnt > Setup > Stock Window Scene**: 씬과 기본 에셋을 다시 만듭니다 (이미 있는 에셋은 그대로 둠).
+- 에디터 메뉴 **BurningAnt > Self Check > Market**: 매매·가격 로직 점검. 로직을 고친 뒤 실행해 주세요.
+- 가격은 아직 뉴스와 무관한 무작위입니다 (`PricePathGenerator`의 `shortcut:` 주석 참고).
+- 한글 폰트는 지금 OS 폰트(맑은 고딕)를 빌려 씁니다. 출시 전에 배포 가능한 폰트로 바꿔야 합니다 (`KoreanFont.cs`).
 
 ## 협업 규칙
 

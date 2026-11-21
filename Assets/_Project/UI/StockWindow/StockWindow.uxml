@@ -1,0 +1,88 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="StockWindow.uss" />
+    <ui:VisualElement name="stock-window" class="stock-window">
+
+        <!-- 왼쪽: 종목 리스트 -->
+        <ui:VisualElement name="stock-list-panel" class="stock-list-panel">
+            <ui:VisualElement class="row row--spread panel-header">
+                <ui:Label text="종목" class="panel-title" />
+                <ui:Label name="holding-count" text="보유 0/4" class="caption" />
+            </ui:VisualElement>
+            <ui:ScrollView name="stock-list" class="stock-list" />
+        </ui:VisualElement>
+
+        <!-- 오른쪽: 선택한 종목 -->
+        <ui:VisualElement name="detail-panel" class="detail-panel">
+
+            <ui:VisualElement class="row row--spread">
+                <ui:VisualElement class="row">
+                    <ui:Label name="stock-name" text="종목명" class="stock-name" />
+                    <ui:Label name="stock-type" text="성향" class="badge" />
+                </ui:VisualElement>
+                <ui:Label name="phase-badge" text="장 중" class="badge phase-badge" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="row price-row">
+                <ui:Label name="price" text="$0.00" class="price" />
+                <ui:Label name="change" text="전일 종가" class="change" />
+                <ui:Label name="gap" class="caption" />
+                <ui:VisualElement class="row limits">
+                    <ui:Label text="상한" class="caption" />
+                    <ui:Label name="upper-limit" text="$0.00" class="caption price-up" />
+                    <ui:Label text="· 하한" class="caption" />
+                    <ui:Label name="lower-limit" text="$0.00" class="caption price-down" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement class="progress-track">
+                <ui:VisualElement name="progress-fill" class="progress-fill" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="chart-area">
+                <BurningAnt.UI.PriceChartElement name="chart" class="chart" />
+                <ui:Label name="chart-hint" text="시가는 장이 시작될 때 공개돼요" class="chart-hint" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="stats">
+                <ui:VisualElement class="stat-card">
+                    <ui:Label text="보유" class="caption" />
+                    <ui:Label name="stat-shares" text="0주" class="stat-value" />
+                </ui:VisualElement>
+                <ui:VisualElement class="stat-card">
+                    <ui:Label text="평단" class="caption" />
+                    <ui:Label name="stat-average" text="-" class="stat-value" />
+                </ui:VisualElement>
+                <ui:VisualElement class="stat-card">
+                    <ui:Label text="평가손익" class="caption" />
+                    <ui:Label name="stat-profit" text="$0.00" class="stat-value" />
+                </ui:VisualElement>
+                <ui:VisualElement class="stat-card stat-card--last">
+                    <ui:Label text="수익률" class="caption" />
+                    <ui:Label name="stat-return" text="0.00%" class="stat-value" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement class="row row--spread order-row">
+                <ui:VisualElement class="row">
+                    <ui:Label text="수량" class="caption" />
+                    <ui:IntegerField name="quantity" value="10" class="quantity-field" />
+                    <ui:Label text="주" class="caption" />
+                    <ui:Button name="max-button" text="최대" class="max-button" />
+                </ui:VisualElement>
+                <ui:VisualElement class="row">
+                    <ui:Label text="현금" class="caption" />
+                    <ui:Label name="cash" text="$0.00" class="cash" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement class="row action-row">
+                <ui:Button name="buy-button" text="매수 예약" class="action-button buy-button" />
+                <ui:Button name="sell-button" text="매도 예약" class="action-button sell-button" />
+                <ui:Button name="start-button" text="장 시작" class="action-button start-button" />
+            </ui:VisualElement>
+
+            <ui:Label name="reservations" class="caption" />
+            <ui:Label name="message" class="caption message" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

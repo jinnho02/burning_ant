@@ -1,0 +1,106 @@
+/* 색은 여기 변수만 고치면 전체가 바뀐다. 상승·하락 색 (현재 한국식: 빨강 상승 / 파랑 하락) */
+:root {
+    --color-up: #E24B4A;
+    --color-down: #378ADD;
+    --color-average: #BA7517;
+    --color-bg: #FFFFFF;
+    --color-panel: #F1EFE8;
+    --color-border: #D3D1C7;
+    --color-text: #2C2C2A;
+    --color-muted: #5F5E5A;
+    --color-accent: #378ADD;
+}
+
+/* 레이아웃 */
+.stock-window {
+    flex-grow: 1;
+    flex-direction: row;
+    padding: 24px;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-size: 18px;
+}
+
+.row { flex-direction: row; align-items: center; }
+.row--spread { justify-content: space-between; }
+.caption { font-size: 15px; color: var(--color-muted); margin-right: 6px; }
+.price-up { color: var(--color-up); }
+.price-down { color: var(--color-down); }
+
+/* 종목 리스트 */
+.stock-list-panel { width: 300px; margin-right: 24px; }
+.panel-header { margin-bottom: 8px; }
+.panel-title { -unity-font-style: bold; }
+.stock-list { flex-grow: 1; }
+
+.stock-item {
+    padding: 8px 10px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0);
+}
+.stock-item:hover { background-color: var(--color-panel); }
+.stock-item--selected { border-color: var(--color-accent); background-color: rgba(55, 138, 221, 0.1); }
+.stock-item__name { font-size: 16px; }
+.stock-item__held { font-size: 12px; color: var(--color-muted); }
+.stock-item__price, .stock-item__change { font-size: 14px; }
+
+/* 상세 */
+.detail-panel { flex-grow: 1; }
+.stock-name { font-size: 24px; -unity-font-style: bold; margin-right: 8px; }
+.badge {
+    font-size: 14px;
+    padding: 2px 10px;
+    border-radius: 8px;
+    background-color: var(--color-panel);
+    color: var(--color-muted);
+}
+.phase-badge--open { background-color: rgba(226, 75, 74, 0.12); color: var(--color-up); }
+
+.price-row { margin: 8px 0; }
+.price { font-size: 32px; -unity-font-style: bold; margin-right: 12px; }
+.change { margin-right: 8px; }
+.limits { margin-left: auto; }
+
+.progress-track { height: 4px; background-color: var(--color-panel); border-radius: 2px; margin-bottom: 8px; }
+.progress-fill { height: 4px; width: 0; background-color: var(--color-muted); border-radius: 2px; }
+
+/* 차트: 색은 위 변수와 맞춘다 */
+.chart-area { flex-grow: 1; min-height: 240px; }
+.chart {
+    flex-grow: 1;
+    --chart-up-color: #E24B4A;
+    --chart-down-color: #378ADD;
+    --chart-base-color: #B4B2A9;
+    --chart-average-color: #BA7517;
+}
+.chart-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 42%;
+    -unity-text-align: middle-center;
+    color: var(--color-muted);
+    font-size: 16px;
+}
+
+/* 보유 현황 */
+.stats { flex-direction: row; margin: 12px 0; }
+.stat-card { flex-grow: 1; flex-basis: 0; padding: 8px 12px; margin-right: 8px; border-radius: 8px; background-color: var(--color-panel); }
+.stat-card--last { margin-right: 0; }
+.stat-value { -unity-font-style: bold; }
+
+/* 주문 */
+.order-row { margin-bottom: 8px; }
+.quantity-field { width: 120px; margin-right: 6px; }
+.quantity-field--disabled { opacity: 0.4; }
+.max-button { margin-left: 4px; }
+.max-button--on { border-color: var(--color-accent); color: var(--color-accent); }
+.cash { -unity-font-style: bold; }
+
+.action-row { margin-bottom: 6px; }
+.action-button { flex-grow: 1; flex-basis: 0; height: 48px; font-size: 18px; border-radius: 8px; }
+.buy-button { background-color: rgba(226, 75, 74, 0.12); color: var(--color-up); border-color: var(--color-up); }
+.sell-button { background-color: rgba(55, 138, 221, 0.12); color: var(--color-down); border-color: var(--color-down); }
+.message { min-height: 22px; }

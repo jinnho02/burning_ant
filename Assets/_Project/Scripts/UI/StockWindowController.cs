@@ -1,0 +1,249 @@
+using System.Collections.Generic;
+using System.Linq;
+using BurningAnt.Market;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+namespace BurningAnt.UI
+{
+    /// <summary>
+    /// StockWindow.uxml과 MarketSession을 연결한다. 화면 구조는 UXML, 모양은 USS, 규칙은 MarketSession에 있고
+    /// 여기서는 이벤트를 받아 화면을 갱신하고 버튼 입력을 주문으로 바꾸기만 한다.
+    /// </summary>
+    [RequireComponent(typeof(UIDocument))]
+    public class StockWindowController : MonoBehaviour
+    {
+        [SerializeField] MarketSession session;
+
+        readonly List<StockListItem> listItems = new();
+        StockState selected;
+        bool useMax;
+
+        Label holdingCountLabel, nameLabel, typeBadge, phaseBadge, priceLabel, changeLabel, gapLabel;
+        Label upperLabel, lowerLabel, chartHint, sharesLabel, averageLabel, profitLabel, returnLabel;
+        Label cashLabel, reservationLabel, messageLabel;
+        VisualElement listContainer, progressFill;
+        PriceChartElement chart;
+        IntegerField quantityField;
+        Button maxButton, buyButton, sellButton, startButton;
+
+        void Start()
+        {
+            var root = GetComponent<UIDocument>().rootVisualElement;
+            KoreanFont.Apply(root);
+            QueryElements(root);
+            BuildStockList();
+            BindInput();
+
+            session.PhaseChanged += OnPhaseChanged;
+            session.Ticked += Refresh;
+            session.ReservationsChanged += Refresh;
+            session.ReservationsExecuted += OnReservationsExecuted;
+            session.Portfolio.Changed += Refresh;
+
+            Select(session.Stocks[0]);
+        }
+
+        void OnDestroy()
+        {
+            if (session == null) return;
+            session.PhaseChanged -= OnPhaseChanged;
+            session.Ticked -= Refresh;
+            session.ReservationsChanged -= Refresh;
+            session.ReservationsExecuted -= OnReservationsExecuted;
+            if (session.Portfolio != null) session.Portfolio.Changed -= Refresh;
+        }
+
+        void QueryElements(VisualElement root)
+        {
+            holdingCountLabel = root.Q<Label>("holding-count");
+            listContainer = root.Q("stock-list");
+            nameLabel = root.Q<Label>("stock-name");
+            typeBadge = root.Q<Label>("stock-type");
+            phaseBadge = root.Q<Label>("phase-badge");
+            priceLabel = root.Q<Label>("price");
+            changeLabel = root.Q<Label>("change");
+            gapLabel = root.Q<Label>("gap");
+            upperLabel = root.Q<Label>("upper-limit");
+            lowerLabel = root.Q<Label>("lower-limit");
+            progressFill = root.Q("progress-fill");
+            chart = root.Q<PriceChartElement>("chart");
+            chartHint = root.Q<Label>("chart-hint");
+            sharesLabel = root.Q<Label>("stat-shares");
+            averageLabel = root.Q<Label>("stat-average");
+            profitLabel = root.Q<Label>("stat-profit");
+            returnLabel = root.Q<Label>("stat-return");
+            quantityField = root.Q<IntegerField>("quantity");
+            maxButton = root.Q<Button>("max-button");
+            cashLabel = root.Q<Label>("cash");
+            buyButton = root.Q<Button>("buy-button");
+            sellButton = root.Q<Button>("sell-button");
+            startButton = root.Q<Button>("start-button");
+            reservationLabel = root.Q<Label>("reservations");
+            messageLabel = root.Q<Label>("message");
+        }
+
+        void BuildStockList()
+        {
+            listContainer.Clear();
+            listItems.Clear();
+            foreach (var stock in session.Stocks)
+            {
+                var item = new StockListItem(stock, Select);
+                listItems.Add(item);
+                listContainer.Add(item);
+            }
+        }
+
+        void BindInput()
+        {
+            buyButton.clicked += () => Submit(OrderSide.Buy);
+            sellButton.clicked += () => Submit(OrderSide.Sell);
+            maxButton.clicked += () => { useMax = !useMax; Refresh(); };
+            quantityField.RegisterValueChangedCallback(_ => { useMax = false; ShowMessage(""); Refresh(); });
+            startButton.clicked += () =>
+            {
+                ShowMessage("");
+                if (session.Phase == MarketPhase.PreMarket) session.StartMarket();
+                else if (session.Phase == MarketPhase.Closed) session.NextDay();
+            };
+        }
+
+        void Select(StockState stock)
+        {
+            selected = stock;
+            Refresh();
+        }
+
+        void Submit(OrderSide side)
+        {
+            if (!useMax && quantityField.value < 1)
+            {
+                ShowMessage("수량을 1주 이상 입력하세요");
+                return;
+            }
+
+            var order = new OrderRequest(selected, side, quantityField.value, useMax);
+            if (session.Phase == MarketPhase.PreMarket)
+                ShowMessage(session.Reserve(order) ? "예약했어요" : "지금은 예약할 수 없어요");
+            else
+                ShowMessage(Describe(session.Trade(order)));
+        }
+
+        void OnPhaseChanged()
+        {
+            if (session.Phase == MarketPhase.Closed) ShowMessage("장 마감");
+            Refresh();
+        }
+
+        void OnReservationsExecuted(IReadOnlyList<TradeResult> results) =>
+            ShowMessage("시가 체결: " + string.Join(" / ", results.Select(Describe)));
+
+        void ShowMessage(string text) => messageLabel.text = text;
+
+        string Describe(TradeResult r)
+        {
+            string side = r.Side == OrderSide.Buy ? "매수" : "매도";
+            return r.Error switch
+            {
+                TradeError.None => $"{r.Stock.Name} {r.Shares}주 {side} @ {Format.Money(r.Price)}",
+                TradeError.InvalidQuantity => "수량을 1주 이상 입력하세요",
+                TradeError.NotEnoughCash => $"{r.Stock.Name}: 현금이 부족해요",
+                TradeError.NotEnoughShares => $"{r.Stock.Name}: 보유 수량이 부족해요",
+                TradeError.TooManyHoldings => $"{r.Stock.Name}: 최대 {session.Portfolio.MaxHoldings}종목까지 보유할 수 있어요",
+                TradeError.MarketClosed => "장이 열려 있을 때만 거래할 수 있어요",
+                _ => r.Error.ToString(),
+            };
+        }
+
+        void Refresh()
+        {
+            if (selected == null) return;
+
+            var phase = session.Phase;
+            bool pre = phase == MarketPhase.PreMarket;
+            var portfolio = session.Portfolio;
+
+            foreach (var item in listItems)
+                item.Refresh(session.CurrentPrice(item.Stock), pre, portfolio.GetHolding(item.Stock).Shares > 0, item.Stock == selected);
+            holdingCountLabel.text = $"보유 {portfolio.HoldingCount}/{portfolio.MaxHoldings}";
+
+            RefreshHeader(phase, pre);
+            RefreshChart(pre);
+            RefreshStats();
+            RefreshOrderArea(phase, pre);
+        }
+
+        void RefreshHeader(MarketPhase phase, bool pre)
+        {
+            float price = session.CurrentPrice(selected);
+            float change = price / selected.PrevClose - 1f;
+
+            nameLabel.text = selected.Name;
+            typeBadge.text = $"{selected.Definition.type.ToKorean()} ±{Mathf.RoundToInt(selected.DailyLimit * 100f)}%";
+
+            // 단계·일차 표시는 전체 화면 오른쪽 위에서 따로 보여준다. 여기서는 장 중·마감만.
+            phaseBadge.style.display = pre ? DisplayStyle.None : DisplayStyle.Flex;
+            phaseBadge.text = phase == MarketPhase.Open ? $"장 중 · {Mathf.CeilToInt(session.RemainingSeconds)}초 남음" : "장 마감";
+            phaseBadge.EnableInClassList("phase-badge--open", phase == MarketPhase.Open);
+
+            priceLabel.text = Format.Money(price);
+            Format.SetTrendClass(priceLabel, pre ? 0f : change);
+            changeLabel.text = pre ? "전일 종가" : (change >= 0f ? "▲ " : "▼ ") + Format.SignedPercent(change);
+            Format.SetTrendClass(changeLabel, pre ? 0f : change);
+            gapLabel.text = pre ? "" : "· 시가 갭 " + Format.SignedPercent(selected.OpenPrice / selected.PrevClose - 1f);
+
+            upperLabel.text = Format.Money(selected.UpperLimit);
+            lowerLabel.text = Format.Money(selected.LowerLimit);
+
+            int ticks = session.Settings.ticksPerDay;
+            progressFill.style.width = Length.Percent(pre ? 0f : 100f * session.Tick / ticks);
+        }
+
+        void RefreshChart(bool pre)
+        {
+            var holding = session.Portfolio.GetHolding(selected);
+            float? average = holding.Shares > 0 ? holding.AveragePrice : null;
+            int visible = pre ? 0 : session.Tick + 1;
+            chart.SetData(selected.PrevClose, selected.DailyLimit, selected.Path, visible, session.Settings.ticksPerDay, average);
+            chartHint.style.display = pre ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        void RefreshStats()
+        {
+            var holding = session.Portfolio.GetHolding(selected);
+            float price = session.CurrentPrice(selected);
+            float profit = holding.ProfitLoss(price);
+            float rate = holding.ReturnRate(price);
+
+            sharesLabel.text = $"{holding.Shares}주";
+            averageLabel.text = holding.Shares > 0 ? Format.Money(holding.AveragePrice) : "-";
+            profitLabel.text = Format.SignedMoney(profit);
+            Format.SetTrendClass(profitLabel, profit);
+            returnLabel.text = Format.SignedPercent(rate);
+            Format.SetTrendClass(returnLabel, rate);
+        }
+
+        void RefreshOrderArea(MarketPhase phase, bool pre)
+        {
+            cashLabel.text = Format.Money(session.Portfolio.Cash);
+            maxButton.EnableInClassList("max-button--on", useMax);
+            quantityField.EnableInClassList("quantity-field--disabled", useMax);
+
+            bool closed = phase == MarketPhase.Closed;
+            buyButton.text = pre ? "매수 예약" : "매수";
+            sellButton.text = pre ? "매도 예약" : "매도";
+            buyButton.style.display = closed ? DisplayStyle.None : DisplayStyle.Flex;
+            sellButton.style.display = closed ? DisplayStyle.None : DisplayStyle.Flex;
+            // 장 중에는 시작·다음 날 버튼이 없다 (장은 멈출 수 없음).
+            startButton.style.display = phase == MarketPhase.Open ? DisplayStyle.None : DisplayStyle.Flex;
+            startButton.text = pre ? "장 시작" : "다음 날";
+
+            reservationLabel.text = session.Reservations.Count == 0
+                ? ""
+                : "예약: " + string.Join(", ", session.Reservations.Select(o =>
+                      $"{o.Stock.Name} {(o.Side == OrderSide.Buy ? "매수" : "매도")} {(o.UseMax ? "최대" : o.Quantity + "주")}"))
+                  + " — 장 시작 시 시가로 자동 체결";
+        }
+    }
+}

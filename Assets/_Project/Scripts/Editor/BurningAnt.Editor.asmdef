@@ -1,0 +1,10 @@
+{
+    "name": "BurningAnt.Editor",
+    "rootNamespace": "BurningAnt.Editor",
+    "references": ["BurningAnt"],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "autoReferenced": true,
+    "noEngineReferences": false
+}
