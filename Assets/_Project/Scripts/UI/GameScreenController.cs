@@ -39,7 +39,9 @@ namespace BurningAnt.UI
         VisualElement newsBand, newsBandList;
         Label newsBandTitle;
         Button newsConfirmButton, buyButton, sellButton, startButton;
-        VisualElement pickerOverlay, settlementOverlay, shopOverlay, endOverlay;
+        VisualElement pickerOverlay, settlementOverlay, shopOverlay, endOverlay, emergencyOverlay;
+        Label emergencyBody;
+        Button loanButton;
         Label pickerTitle, settlementTitle, settlementSummary, settlementMessage, shopCash, shopMessage, endTitle, endBody;
         VisualElement pickerList;
         FloatField repayField;
@@ -148,6 +150,9 @@ namespace BurningAnt.UI
             pickerTitle = root.Q<Label>("picker-title");
             pickerList = root.Q("picker-list");
 
+            emergencyOverlay = root.Q("emergency-overlay");
+            emergencyBody = root.Q<Label>("emergency-body");
+            loanButton = root.Q<Button>("loan-button");
             settlementOverlay = root.Q("settlement-overlay");
             settlementTitle = root.Q<Label>("settlement-title");
             settlementSummary = root.Q<Label>("settlement-summary");
@@ -171,7 +176,9 @@ namespace BurningAnt.UI
             root.Q<Button>("picker-cancel-button").clicked += () => Show(pickerOverlay, false);
             root.Q<Button>("repay-button").clicked += () => game.Repay(repayField.value);
             root.Q<Button>("repay-all-button").clicked += () => game.Repay(Session.Portfolio.Cash);
-            root.Q<Button>("loan-button").clicked += game.TakeExtraLoan;
+            loanButton.clicked += game.TakeExtraLoan;
+            root.Q<Button>("emergency-accept-button").clicked += game.AcceptEmergencyLoan;
+            root.Q<Button>("emergency-decline-button").clicked += game.DeclineEmergencyLoan;
             root.Q<Button>("to-shop-button").clicked += game.GoToShop;
             root.Q<Button>("next-day-button").clicked += game.StartNextDay;
             root.Q<Button>("restart-button").clicked += () =>
@@ -253,7 +260,6 @@ namespace BurningAnt.UI
         {
             lastMessage = "";
             Show(pickerOverlay, false);
-            Show(settlementOverlay, game.Phase == GamePhase.Settlement);
             Show(shopOverlay, game.Phase == GamePhase.Shop);
             Show(newsOverlay, game.Phase == GamePhase.News);
             if (game.Phase == GamePhase.News) BuildNewsPaper();
@@ -280,6 +286,10 @@ namespace BurningAnt.UI
             RefreshStatus();
             RefreshHints();
             RefreshItemBar();
+            // 정산 후 잔고가 0 밑이면 정산 창 대신 긴급 대출 창 (고르기 전까지 4단계로 못 감)
+            Show(emergencyOverlay, game.NeedsEmergency);
+            Show(settlementOverlay, game.Phase == GamePhase.Settlement && !game.NeedsEmergency);
+            if (game.NeedsEmergency) RefreshEmergency();
             if (game.Phase == GamePhase.Settlement) RefreshSettlement();
             if (game.Phase == GamePhase.Shop) RefreshShop();
             if (game.Phase == GamePhase.GameOver) RefreshEnd();
@@ -319,6 +329,7 @@ namespace BurningAnt.UI
             int daysLeft = loan.NextInterestDay(game.Day) - game.Day;
             interestLabel.text = $"{(daysLeft == 0 ? "오늘" : $"D-{daysLeft}")} · {loan.InterestRate * 100f:0}%";
             loanCountLabel.text = $"{loan.ExtraLoansLeft}회 남음";
+            loanButton.SetEnabled(game.Phase == GamePhase.Prep && loan.CanTakeExtraLoan); // 추가 대출은 2단계에서만
 
             float netWorth = game.NetWorth();
             netWorthLabel.text = Format.SignedMoney(netWorth);
@@ -448,7 +459,7 @@ namespace BurningAnt.UI
         }
 
         bool AnyOverlayOpen() =>
-            new[] { pickerOverlay, settlementOverlay, shopOverlay, endOverlay, titleOverlay, newsOverlay }.Any(o => o != null && o.resolvedStyle.display == DisplayStyle.Flex);
+            new[] { pickerOverlay, settlementOverlay, shopOverlay, endOverlay, titleOverlay, newsOverlay, emergencyOverlay }.Any(o => o != null && o.resolvedStyle.display == DisplayStyle.Flex);
 
         bool IsTyping() =>
             itemBarList.panel?.focusController?.focusedElement is VisualElement focused &&
@@ -486,6 +497,18 @@ namespace BurningAnt.UI
             Show(pickerOverlay, true);
         }
 
+        void RefreshEmergency()
+        {
+            float shortfall = -Session.Portfolio.Cash;
+            var loan = game.Loan;
+            emergencyBody.text =
+                $"장 마감 정산에서 마이너스 종목({string.Join(", ", game.LastClosedStocks.Select(s => s.Name))}) 때문에 " +
+                $"잔고에서 {Format.Money(game.LastSettlementCharge)}이 빠져, 현금이 {Format.SignedMoney(-shortfall)}이에요.\n\n" +
+                $"햇살론을 받으면 {Format.Money(shortfall + game.LoanSettings.emergencyLoanBuffer)}을 빌려 살아남지만, " +
+                $"이자율이 {loan.InterestRate * 100f:0}% → {(loan.InterestRate + game.LoanSettings.emergencyRateStep) * 100f:0}%로 올라요.\n" +
+                "한 판에 한 번뿐이에요. 안 받으면 파산이에요.";
+        }
+
         void RefreshSettlement()
         {
             var portfolio = Session.Portfolio;
@@ -493,10 +516,14 @@ namespace BurningAnt.UI
             float todayProfit = total - game.DayStartAssets;
 
             settlementTitle.text = $"{game.Day}일차 장 결과";
+            string closed = game.LastSettlementCharge > 0f
+                ? $"마이너스 정산: {string.Join(", ", game.LastClosedStocks.Select(s => s.Name))} 정리, 잔고에서 {Format.Money(game.LastSettlementCharge)} 빠짐\n"
+                : "";
             string interest = game.LastInterest > 0f
                 ? $"\n오늘은 이자일: 빚에 {Format.Money(game.LastInterest)} 추가됨"
                 : $"\n다음 이자일: {game.Loan.NextInterestDay(game.Day + 1)}일차";
             settlementSummary.text =
+                closed +
                 $"오늘 손익 {Format.SignedMoney(todayProfit)} ({Format.SignedPercent(game.TodayReturn())})\n" +
                 $"현금 {Format.Money(portfolio.Cash)} · 주식 {Format.Money(game.StockValue())}\n" +
                 $"남은 빚 {Format.Money(game.Loan.Debt)} (이자율 {game.Loan.InterestRate * 100f:0}%)" +

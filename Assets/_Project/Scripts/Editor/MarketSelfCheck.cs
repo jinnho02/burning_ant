@@ -30,6 +30,7 @@ namespace BurningAnt.Editor
                 CheckBuySell(stocks[0]);
                 CheckLimits(stocks);
                 CheckMaxOrders(stocks[0]);
+                CheckLeverage(stocks[0], stocks[1]);
                 CheckPricePath(settings);
                 Debug.Log("[MarketSelfCheck] 모두 통과");
             }
@@ -93,6 +94,34 @@ namespace BurningAnt.Editor
             Expect(r.Success && r.Shares == 9 && p.HoldingCount == 0, "최대 매도 = 전량");
             r = p.Execute(new OrderRequest(s, OrderSide.Sell, 0, true), 100f);
             Expect(r.Error == TradeError.NotEnoughShares, "보유 없을 때 최대 매도 실패");
+        }
+
+        /// <summary>3배: 손해가 넣은 돈보다 크면 마이너스, 넘친 만큼은 잔고에서 빠진다.</summary>
+        static void CheckLeverage(StockState a, StockState b)
+        {
+            var p = new Portfolio(1000f, 0f, 4, 3f);
+            Expect(p.Buy(a, 10, 1f).Success, "3배 매수 ($10)");
+            Near(p.Cash, 990f, "넣은 돈만큼 현금이 빠짐");
+            Near(p.GetHolding(a).Value(1.2f), 16f, "+20% → $10 + $6 = $16");
+            Near(p.GetHolding(a).Value(0.5f), -5f, "$10 넣고 −50% → $30어치가 $15 → 평가금 −$5");
+            Expect(p.Sell(a, 10, 0.5f).Success, "마이너스 종목 매도");
+            Near(p.Cash, 985f, "마이너스 $5만큼 내 현금이 빠짐");
+
+            var broke = new Portfolio(10f, 0f, 4, 3f);
+            broke.Buy(a, 10, 1f);
+            Expect(broke.Sell(a, 10, 0.5f).Error == TradeError.NotEnoughCash, "현금으로 마이너스를 못 메우면 팔 수 없음");
+
+            // 장 마감 정산: 마이너스 종목만 정리되고 그만큼 잔고에서 빠짐. 플러스 종목은 그대로
+            var q = new Portfolio(20f, 0f, 4, 3f);
+            q.Buy(a, 10, 1f);
+            q.Buy(b, 10, 1f);
+            var closed = new System.Collections.Generic.List<StockState>();
+            Near(q.SettleNegatives(s => s == a ? 0.5f : 1.5f, closed), 5f, "정산에서 빠진 금액 $5");
+            Near(q.Cash, -5f, "잔고가 0 밑으로 (→ 긴급 대출 아니면 파산)");
+            Expect(closed.Count == 1 && closed[0] == a && q.GetHolding(a).Shares == 0, "마이너스 종목만 정리");
+            Expect(q.GetHolding(b).Shares == 10, "플러스 종목은 다음 날로");
+            Expect(q.Sell(b, 10, 1.5f).Success, "플러스 종목을 팔아 잔고 채우기");
+            Near(q.Cash, 20f, "−$5 + $25 = $20");
         }
 
         static void CheckPricePath(MarketSettings settings)

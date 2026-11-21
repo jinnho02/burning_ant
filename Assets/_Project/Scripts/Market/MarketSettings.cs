@@ -14,6 +14,8 @@ namespace BurningAnt.Market
         public float startingCash = 10000f;
         [Tooltip("거래금액 대비 수수료 (0.002 = 0.2%)")] public float feeRate = 0.002f;
         [Tooltip("동시에 보유할 수 있는 최대 종목 수")] public int maxHoldings = 4;
+        [Tooltip("손익 배수. 3 = $10 넣으면 $30어치처럼 움직임. 손해가 넣은 돈보다 크면 넘친 만큼 장 마감 때 잔고에서 빠짐")]
+        public float leverage = 3f;
 
         [Header("하루 등락 한도 (전일 종가 대비)")]
         public float stableLimit = 0.05f;

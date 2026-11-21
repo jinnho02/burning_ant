@@ -51,6 +51,19 @@ namespace BurningAnt.Loan
             return settings.extraLoanAmount;
         }
 
+        public bool EmergencyUsed { get; private set; }
+
+        /// <summary>긴급 대출 (한 판에 1번). 모자란 금액 + 여유분을 빌려주고 이자율이 크게 오른다. 실패하면 0.</summary>
+        public float TakeEmergencyLoan(float shortfall)
+        {
+            if (EmergencyUsed || shortfall <= 0f) return 0f;
+            EmergencyUsed = true;
+            float amount = shortfall + settings.emergencyLoanBuffer;
+            Debt += amount;
+            InterestRate += settings.emergencyRateStep;
+            return amount;
+        }
+
         /// <summary>최대 amount만큼 갚고 실제로 갚은 금액을 돌려준다.</summary>
         public float Repay(float amount)
         {

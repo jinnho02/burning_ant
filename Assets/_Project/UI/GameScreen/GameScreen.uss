@@ -267,3 +267,11 @@
 .shop-case .shop-owned { color: #E0C9B8; }
 .shop-case .message { color: #F6E7D8; }
 .shop-case .modal-button { background-color: #F2C14E; color: #2A0E16; -unity-font-style: bold; border-width: 0; }
+
+/* 추가 대출 버튼 (2단계에서만 켜짐) */
+.loan-take { height: 26px; font-size: 13px; padding: 0 10px; margin-left: 8px; border-radius: 7px; }
+
+/* 긴급 대출 */
+.emergency { border-width: 3px; border-color: var(--gs-up); }
+.emergency-title { color: var(--gs-up); }
+.emergency-accept { background-color: var(--gs-up); color: #FFFFFF; }

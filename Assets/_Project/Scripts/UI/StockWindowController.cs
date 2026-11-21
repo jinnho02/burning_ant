@@ -175,6 +175,7 @@ namespace BurningAnt.UI
             {
                 TradeError.None => $"{r.Stock.Name} {r.Shares}주 {side} @ {Format.Money(r.Price)}",
                 TradeError.InvalidQuantity => "수량을 1주 이상 입력하세요",
+                TradeError.NotEnoughCash when r.Side == OrderSide.Sell => $"{r.Stock.Name}: 마이너스를 메울 현금이 부족해서 팔 수 없어요",
                 TradeError.NotEnoughCash => $"{r.Stock.Name}: 현금이 부족해요",
                 TradeError.NotEnoughShares => $"{r.Stock.Name}: 보유 수량이 부족해요",
                 TradeError.TooManyHoldings => $"{r.Stock.Name}: 최대 {session.Portfolio.MaxHoldings}종목까지 보유할 수 있어요",
@@ -207,7 +208,7 @@ namespace BurningAnt.UI
             float change = price / selected.PrevClose - 1f;
 
             nameLabel.text = selected.Name;
-            typeBadge.text = $"{selected.Definition.type.ToKorean()} ±{Mathf.RoundToInt(selected.DailyLimit * 100f)}%";
+            typeBadge.text = $"{selected.Definition.type.ToKorean()} ±{Mathf.RoundToInt(selected.DailyLimit * 100f)}% · 손익 {session.Portfolio.Leverage:0}배";
 
             // 단계·일차 표시는 전체 화면 오른쪽 위에서 따로 보여준다. 여기서는 장 중·마감만.
             phaseBadge.style.display = pre ? DisplayStyle.None : DisplayStyle.Flex;

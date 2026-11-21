@@ -4,21 +4,28 @@ using UnityEngine;
 
 namespace BurningAnt.Market
 {
-    /// <summary>한 종목의 보유 현황. Cost = 산 금액 합계(수수료 제외).</summary>
+    /// <summary>
+    /// 한 종목의 보유 현황. Cost = 넣은 돈(산 금액 합계, 수수료 제외).
+    /// 손익은 넣은 돈의 Leverage배로 계산된다 (3배: $10 넣으면 $30어치처럼 움직임). 손해가 넣은 돈보다 크면 평가금이 마이너스.
+    /// </summary>
     public readonly struct Holding
     {
         public readonly int Shares;
         public readonly float Cost;
+        public readonly float Leverage;
 
-        public Holding(int shares, float cost)
+        public Holding(int shares, float cost, float leverage)
         {
             Shares = shares;
             Cost = cost;
+            Leverage = leverage;
         }
 
         public float AveragePrice => Shares > 0 ? Cost / Shares : 0f;
-        public float ProfitLoss(float price) => Shares * price - Cost;
+        public float ProfitLoss(float price) => (Shares * price - Cost) * Leverage;
         public float ReturnRate(float price) => Cost > 0f ? ProfitLoss(price) / Cost : 0f;
+        /// <summary>평가금 = 넣은 돈 + 손익. 마이너스가 될 수 있다.</summary>
+        public float Value(float price) => Cost + ProfitLoss(price);
     }
 
     /// <summary>현금과 보유 종목. 모든 매매는 여기서만 일어난다.</summary>
@@ -27,18 +34,22 @@ namespace BurningAnt.Market
         readonly Dictionary<StockState, Holding> holdings = new();
         readonly float feeRate;
         readonly int maxHoldings;
+        readonly float leverage;
 
+        /// <summary>장 마감 정산에서 마이너스가 빠지면 0 밑이 될 수 있다 (그러면 긴급 대출 아니면 파산).</summary>
         public float Cash { get; private set; }
         public int HoldingCount => holdings.Count;
         public int MaxHoldings => maxHoldings;
+        public float Leverage => leverage;
 
         public event Action Changed;
 
-        public Portfolio(float cash, float feeRate, int maxHoldings)
+        public Portfolio(float cash, float feeRate, int maxHoldings, float leverage = 1f)
         {
             Cash = cash;
             this.feeRate = feeRate;
             this.maxHoldings = maxHoldings;
+            this.leverage = Mathf.Max(1f, leverage);
         }
 
         /// <summary>대출금 입금, 상환·아이템 구매 출금. 출금은 현금이 모자라면 실패한다.</summary>
@@ -60,8 +71,10 @@ namespace BurningAnt.Market
         public Holding GetHolding(StockState stock) =>
             holdings.TryGetValue(stock, out var h) ? h : default;
 
+        public IEnumerable<StockState> HeldStocks => holdings.Keys;
+
         public int MaxBuyable(float price) =>
-            price > 0f ? Mathf.FloorToInt(Cash / (price * (1f + feeRate))) : 0;
+            price > 0f && Cash > 0f ? Mathf.FloorToInt(Cash / (price * (1f + feeRate))) : 0;
 
         public TradeResult Execute(OrderRequest order, float price)
         {
@@ -89,11 +102,15 @@ namespace BurningAnt.Market
             if (total > Cash) return TradeResult.Fail(stock, OrderSide.Buy, TradeError.NotEnoughCash);
 
             Cash -= total;
-            holdings[stock] = new Holding(h.Shares + quantity, h.Cost + quantity * price);
+            holdings[stock] = new Holding(h.Shares + quantity, h.Cost + quantity * price, leverage);
             Changed?.Invoke();
             return TradeResult.Ok(stock, OrderSide.Buy, quantity, price);
         }
 
+        /// <summary>
+        /// 판 만큼의 평가금(넣은 돈 + 손익)을 받는다. 마이너스 종목을 팔면 그만큼 현금이 빠져나가고,
+        /// 현금으로 메울 수 없으면 팔 수 없다 (NotEnoughCash).
+        /// </summary>
         public TradeResult Sell(StockState stock, int quantity, float price)
         {
             if (quantity < 1) return TradeResult.Fail(stock, OrderSide.Sell, TradeError.InvalidQuantity);
@@ -101,13 +118,39 @@ namespace BurningAnt.Market
             var h = GetHolding(stock);
             if (quantity > h.Shares) return TradeResult.Fail(stock, OrderSide.Sell, TradeError.NotEnoughShares);
 
-            float averagePrice = h.AveragePrice;
-            Cash += quantity * price * (1f - feeRate);
+            float soldCost = h.AveragePrice * quantity;
+            float proceeds = soldCost + (quantity * price - soldCost) * leverage - quantity * price * feeRate;
+            if (Cash + proceeds < 0f) return TradeResult.Fail(stock, OrderSide.Sell, TradeError.NotEnoughCash);
+
+            Cash += proceeds;
             int remaining = h.Shares - quantity;
             if (remaining == 0) holdings.Remove(stock);
-            else holdings[stock] = new Holding(remaining, h.Cost - averagePrice * quantity);
+            else holdings[stock] = new Holding(remaining, h.Cost - soldCost, leverage);
             Changed?.Invoke();
             return TradeResult.Ok(stock, OrderSide.Sell, quantity, price);
+        }
+
+        /// <summary>
+        /// 장 마감 정산: 평가금이 마이너스인 종목을 정리하고 그 마이너스만큼 현금에서 뺀다 (현금이 0 밑이 될 수 있음).
+        /// 플러스 종목은 그대로 다음 날로. 돌려주는 값 = 뺀 금액(양수).
+        /// </summary>
+        public float SettleNegatives(Func<StockState, float> priceOf, List<StockState> closed)
+        {
+            float charged = 0f;
+            foreach (var (stock, h) in new List<KeyValuePair<StockState, Holding>>(holdings))
+            {
+                float value = h.Value(priceOf(stock));
+                if (value >= 0f) continue;
+                charged -= value;
+                holdings.Remove(stock);
+                closed?.Add(stock);
+            }
+            if (charged > 0f)
+            {
+                Cash -= charged;
+                Changed?.Invoke();
+            }
+            return charged;
         }
     }
 }

@@ -54,6 +54,7 @@ namespace BurningAnt.Core
         public CharacterSettings Character => characterSettings;
         public IReadOnlyList<ItemDefinition> ShopItems => shopItems;
         public LoanAccount Loan { get; private set; }
+        public LoanSettings LoanSettings => loanSettings;
         public Inventory Inventory { get; private set; }
         public GamePhase Phase { get; private set; } = GamePhase.News;
         public int Day => session.Day;
@@ -62,6 +63,12 @@ namespace BurningAnt.Core
         public float DayStartAssets { get; private set; }
         public float LastInterest { get; private set; }
         public bool Won { get; private set; }
+        /// <summary>오늘 장 마감 정산에서 마이너스 종목 때문에 잔고에서 빠진 금액과 정리된 종목.</summary>
+        public float LastSettlementCharge { get; private set; }
+        public IReadOnlyList<StockState> LastClosedStocks => lastClosed;
+        /// <summary>정산 후 현금이 0 밑이고 긴급 대출을 아직 안 썼다 → 받을지 고르기 전까지 4단계로 못 감.</summary>
+        public bool NeedsEmergency { get; private set; }
+        readonly List<StockState> lastClosed = new();
 
         public float SlowRemaining => slowRemaining;
         public float StopRemaining => stopRemaining;
@@ -109,9 +116,10 @@ namespace BurningAnt.Core
 
         public float StockValue()
         {
+            // 3배 손익이 들어간 평가금 합계. 마이너스 종목이 있으면 줄어들고, 전체가 마이너스일 수도 있다.
             float sum = 0f;
             foreach (var s in session.Stocks)
-                sum += session.Portfolio.GetHolding(s).Shares * session.CurrentPrice(s);
+                sum += session.Portfolio.GetHolding(s).Value(session.CurrentPrice(s));
             return sum;
         }
 
@@ -167,30 +175,62 @@ namespace BurningAnt.Core
             ResetMarketEffects();
             autoSells.Clear();
 
+            // 장 마감 정산: 마이너스 종목은 정리되고 그 마이너스만큼 잔고에서 빠진다
+            lastClosed.Clear();
+            LastSettlementCharge = session.Portfolio.SettleNegatives(session.CurrentPrice, lastClosed);
             LastInterest = Loan.IsInterestDay(Day) ? Loan.ApplyInterest() : 0f;
+
+            if (session.Portfolio.Cash < 0f)
+            {
+                if (Loan.EmergencyUsed)
+                {
+                    GoBankrupt();
+                    return;
+                }
+                NeedsEmergency = true; // 4단계 직전: 긴급 대출을 받을지 고른다
+            }
             SetPhase(GamePhase.Settlement);
-            CheckBankruptcy();
+        }
+
+        /// <summary>긴급 대출 수락: 모자란 금액 + 여유분을 빌려 잔고를 0 이상으로 만든다 (한 판에 1번).</summary>
+        public void AcceptEmergencyLoan()
+        {
+            if (!NeedsEmergency) return;
+            float amount = Loan.TakeEmergencyLoan(-session.Portfolio.Cash);
+            NeedsEmergency = false;
+            if (amount <= 0f)
+            {
+                GoBankrupt();
+                return;
+            }
+            session.Portfolio.Deposit(amount);
+            Say($"긴급 대출 ${amount:N0} (이자율 {Loan.InterestRate * 100f:0}%)");
+            Changed?.Invoke();
+        }
+
+        public void DeclineEmergencyLoan()
+        {
+            if (!NeedsEmergency) return;
+            NeedsEmergency = false;
+            GoBankrupt();
+        }
+
+        void GoBankrupt()
+        {
+            Won = false;
+            SetPhase(GamePhase.GameOver);
         }
 
         public void GoToShop()
         {
-            if (Phase != GamePhase.Settlement) return;
+            if (Phase != GamePhase.Settlement || NeedsEmergency) return;
             SetPhase(GamePhase.Shop);
         }
 
         public void StartNextDay()
         {
             if (Phase != GamePhase.Shop) return;
-            if (CheckBankruptcy()) return;
             session.NextDay(); // → PreMarket 이벤트 → BeginDay
-        }
-
-        bool CheckBankruptcy()
-        {
-            if (TotalAssets() >= loanSettings.bankruptcyThreshold || Loan.CanTakeExtraLoan) return false;
-            Won = false;
-            SetPhase(GamePhase.GameOver);
-            return true;
         }
 
         void SetPhase(GamePhase phase)
@@ -225,9 +265,14 @@ namespace BurningAnt.Core
             Changed?.Invoke();
         }
 
+        /// <summary>추가 대출은 2단계(아이템·예약)에서만.</summary>
         public void TakeExtraLoan()
         {
-            if (Phase != GamePhase.Settlement) return;
+            if (Phase != GamePhase.Prep)
+            {
+                Say("추가 대출은 아이템 단계(2단계)에서만 받을 수 있어요");
+                return;
+            }
             float amount = Loan.TakeExtraLoan();
             if (amount <= 0f)
             {

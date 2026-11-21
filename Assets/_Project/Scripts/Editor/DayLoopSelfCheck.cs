@@ -66,6 +66,11 @@ namespace BurningAnt.Editor
             Near(loan.Repay(1e9f), 24500f, "빚보다 많이 갚으면 남은 빚만");
             Near(loan.TotalRepaid, 25500f, "갚은 금액 합계 (상환 게이지)");
             Expect(loan.IsPaidOff, "전액 상환");
+
+            var rescue = new LoanAccount(settings);
+            Near(rescue.TakeEmergencyLoan(800f), 800f + settings.emergencyLoanBuffer, "긴급 대출 = 모자란 금액 + 여유분");
+            Near(rescue.InterestRate, settings.baseInterestRate + settings.emergencyRateStep, "긴급 대출 후 이자율 크게 오름");
+            Expect(rescue.EmergencyUsed && rescue.TakeEmergencyLoan(500f) == 0f, "긴급 대출은 한 판에 한 번");
         }
 
         static void CheckNews(NewsSettings settings, MarketSettings market, StockState[] stocks)

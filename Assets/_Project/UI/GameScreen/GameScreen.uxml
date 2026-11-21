@@ -43,7 +43,7 @@
                     <ui:VisualElement class="row row--spread status-row"><ui:Label text="주식 평가" class="caption" /><ui:Label name="stock-value-label" class="status-value" /></ui:VisualElement>
                     <ui:VisualElement class="row row--spread status-row"><ui:Label text="남은 빚" class="caption" /><ui:Label name="debt-label" class="status-value price-up" /></ui:VisualElement>
                     <ui:VisualElement class="row row--spread status-row"><ui:Label text="다음 이자" class="caption" /><ui:Label name="interest-label" class="chip chip--warning" /></ui:VisualElement>
-                    <ui:VisualElement class="row row--spread status-row"><ui:Label text="추가 대출" class="caption" /><ui:Label name="loan-count-label" class="status-value status-value--small" /></ui:VisualElement>
+                    <ui:VisualElement class="row row--spread status-row"><ui:Label text="추가 대출" class="caption" /><ui:VisualElement class="row"><ui:Label name="loan-count-label" class="status-value status-value--small" /><ui:Button name="loan-button" text="받기" class="loan-take" tooltip="추가 대출은 아이템 단계(2단계)에서만" /></ui:VisualElement></ui:VisualElement>
                     <ui:VisualElement class="row row--spread status-row status-row--total"><ui:Label text="순자산" class="caption" /><ui:Label name="networth-label" class="status-value status-value--big" /></ui:VisualElement>
                 </ui:VisualElement>
 
@@ -102,10 +102,19 @@
                     <ui:FloatField name="repay-field" value="0" class="repay-field" />
                     <ui:Button name="repay-button" text="갚기" />
                     <ui:Button name="repay-all-button" text="현금 전부" />
-                    <ui:Button name="loan-button" text="추가 대출" />
                 </ui:VisualElement>
                 <ui:Label name="settlement-message" class="caption message" />
                 <ui:Button name="to-shop-button" text="상점으로" class="modal-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- 긴급 대출: 장 마감 정산 후 잔고가 0 밑일 때, 4단계 직전에 한 판에 한 번 -->
+        <ui:VisualElement name="emergency-overlay" class="overlay">
+            <ui:VisualElement class="modal emergency">
+                <ui:Label text="잔고 부족 · 이대로면 파산!" class="modal-title emergency-title" />
+                <ui:Label name="emergency-body" class="modal-body" />
+                <ui:Button name="emergency-accept-button" text="햇살론 받기 (한 판에 한 번)" class="modal-button emergency-accept" />
+                <ui:Button name="emergency-decline-button" text="안 받을래… (파산)" class="modal-button modal-button--sub" />
             </ui:VisualElement>
         </ui:VisualElement>
 
