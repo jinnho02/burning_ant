@@ -106,7 +106,8 @@ namespace BurningAnt.Editor
                 {
                     Expect(settings.library.First(l => l.sector == n.Stock.Definition.sector).templates.Contains(n.Template), "그 종목 업종의 템플릿");
                     float percent = (n.Success ? n.Template.successPercent : n.Template.failurePercent) / 100f;
-                    Near(n.Effect * 100f, Mathf.Sign(percent) * (n.Stock.DailyLimit + Mathf.Abs(percent)) * 100f, "결과 = 기본 구간 끝 + 템플릿 %");
+                    float ratio = Mathf.Abs(n.Effect) / n.Stock.DailyLimit;
+                    Expect(n.Effect <= -0.95f + 1e-4f || (ratio >= 1.5f - 1e-3f && ratio <= 3f + 1e-3f), "뉴스 변동 폭 = 기본 구간보다 50~200% 큼");
                     Expect(Mathf.Abs(n.Effect) > n.Stock.DailyLimit, "떡상·떡락은 기본 구간보다 큼");
                     Expect(n.Success ? n.Effect > 0f : n.Effect < 0f, "성공은 상승, 실패는 하락");
                     if (n.RevealAtClose) { sawClose = true; Expect(n.RevealTick == ticks, "마감 발표는 마지막 틱"); }

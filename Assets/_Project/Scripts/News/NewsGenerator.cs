@@ -86,7 +86,16 @@ namespace BurningAnt.News
         public float TargetChange(StockState stock, NewsTemplate t, bool success)
         {
             float percent = (success ? t.successPercent : t.failurePercent) / 100f;
-            float change = settings.addBaseRange ? Mathf.Sign(percent) * (stock.DailyLimit + Mathf.Abs(percent)) : percent;
+            float sign = percent >= 0f ? 1f : -1f;
+            float change;
+            if (settings.useExtraRange)
+            {
+                // 사용자 확정: 뉴스(최초·결과 기사)로 움직이는 폭은 기본 구간보다 대략 50~200% 크다.
+                // 템플릿 %를 기본 구간 대비 비율로 보고 그 비율만큼 더 움직인다 (0.5~2.0으로 자름).
+                float extra = Mathf.Clamp(Mathf.Abs(percent) / Mathf.Max(0.01f, stock.DailyLimit), settings.extraMin, settings.extraMax);
+                change = sign * stock.DailyLimit * (1f + extra);
+            }
+            else change = settings.addBaseRange ? sign * (stock.DailyLimit + Mathf.Abs(percent)) : percent;
             return Mathf.Max(-0.95f, change);
         }
 

@@ -153,6 +153,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BurningAnt::BurningAnt.UI.GameScreenController
   game: {fileID: 1848083951}
+  characterScale: 1
+  tutorialScale: 2
   tutorialScript: {fileID: 0}
   alwaysShowTutorial: 0
   titleTextTop: 0.77
@@ -177,10 +179,22 @@ MonoBehaviour:
   shopItems:
   - {fileID: 11400000, guid: ca460ad9cc8944e4d93b8a1d1969b389, type: 2}
   - {fileID: 11400000, guid: 1cea5ac042cf60143b73aff6c1722286, type: 2}
-  - {fileID: 11400000, guid: 2738967a4478d474ebf0ba74e5d17dbb, type: 2}
-  - {fileID: 11400000, guid: 60b7ed1f2c82dc042b079841af39cbeb, type: 2}
+  - {fileID: 11400000, guid: 36ee6e08b32c63643a5d5076daebdd3e, type: 2}
+  - {fileID: 11400000, guid: fd7f019a6c317404c940607469063c67, type: 2}
+  - {fileID: 11400000, guid: 91271a617fef7564b902ed4a37e23f01, type: 2}
+  - {fileID: 11400000, guid: 5e932d021b5582841ba70dce6a32e1e5, type: 2}
+  - {fileID: 11400000, guid: 91453b6a93bed364794eca6fc6df14bb, type: 2}
+  - {fileID: 11400000, guid: f3130373f99bbbe4499c172eea5702f2, type: 2}
+  - {fileID: 11400000, guid: f10a42d05a9cf994c948de9be05ecb73, type: 2}
+  - {fileID: 11400000, guid: dd26481e76b30f2429c91caccddb668f, type: 2}
+  - {fileID: 11400000, guid: 57b878efc1ae9db469672015821560d0, type: 2}
+  - {fileID: 11400000, guid: beb2bd3d35c1ac14e84830a1f3b48a9a, type: 2}
+  - {fileID: 11400000, guid: 72eb43858bb679a41bd396d61367b417, type: 2}
   - {fileID: 11400000, guid: 28da4546c5e9b7b498582949df0c2066, type: 2}
   - {fileID: 11400000, guid: 0c32762ae1ccdd749b14f8ee20de2a73, type: 2}
+  - {fileID: 11400000, guid: 17bbab83d40da234188212a46595c161, type: 2}
+  - {fileID: 11400000, guid: f2836361fc9171242a8cb0ada9418117, type: 2}
+  - {fileID: 11400000, guid: 4de41d66146fecf47aa4db160a2b5d46, type: 2}
   - {fileID: 11400000, guid: 866c3fd0a1949cc44961482175e1dfa9, type: 2}
   - {fileID: 11400000, guid: eca58817f7a49894985036fc9a1962da, type: 2}
   - {fileID: 11400000, guid: d330b6c64b719474fb46650a1143e181, type: 2}

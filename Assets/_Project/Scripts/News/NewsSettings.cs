@@ -17,6 +17,12 @@ namespace BurningAnt.News
         [Tooltip("켜면 결과 = 기본 구간 끝 + 템플릿 % (떡상·떡락이 항상 기본 구간보다 큼). 끄면 템플릿 % 그대로")]
         public bool addBaseRange = true;
 
+        [Header("뉴스 변동 폭 (사용자 확정: 기본 구간보다 50~200% 큼)")]
+        [Tooltip("켜면 결과 = 기본 구간 × (1 + 템플릿%/기본 구간을 extraMin~extraMax로 자른 값). addBaseRange보다 우선")]
+        public bool useExtraRange = true;
+        [Tooltip("기본 구간보다 최소 몇 배 더 (0.5 = 50% 더)")] public float extraMin = 0.5f;
+        [Tooltip("기본 구간보다 최대 몇 배 더 (2.0 = 200% 더)")] public float extraMax = 2f;
+
         [Header("결과가 뜨는 시점 (제안값)")]
         [Range(0f, 1f), Tooltip("결과가 장 중(특보)에 뜰 확률. 나머지는 장 마감에 뜸")] public float intradayRevealChance = 0.5f;
         [Range(0f, 1f), Tooltip("특보가 뜰 수 있는 가장 이른 시점 (장 길이 대비)")] public float earliestReveal = 0.15f;

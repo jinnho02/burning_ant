@@ -64,6 +64,28 @@ namespace BurningAnt.Loan
             return amount;
         }
 
+        /// <summary>악마의 계약서: 빚을 늘린다.</summary>
+        public void AddDebt(float amount)
+        {
+            if (amount > 0f) Debt += amount;
+        }
+
+        /// <summary>채무 조정: 이자율을 내린다 (시작 이자율 밑으로는 안 내려감). 실제로 내린 폭을 돌려준다.</summary>
+        public float ReduceRate(float step)
+        {
+            float before = InterestRate;
+            InterestRate = Mathf.Max(settings.baseInterestRate, InterestRate - step);
+            return before - InterestRate;
+        }
+
+        /// <summary>햇살론(회생): 이미 쓴 긴급 대출 기회를 되살린다. 아직 안 썼으면 false.</summary>
+        public bool RestoreEmergency()
+        {
+            if (!EmergencyUsed) return false;
+            EmergencyUsed = false;
+            return true;
+        }
+
         /// <summary>최대 amount만큼 갚고 실제로 갚은 금액을 돌려준다.</summary>
         public float Repay(float amount)
         {

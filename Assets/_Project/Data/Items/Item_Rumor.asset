@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: Item_Rumor
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
   kind: 0
-  displayName: "\uCC0C\uB77C\uC2DC"
+  displayName: "\uC99D\uAD8C\uAC00 \uCC0C\uB77C\uC2DC"
   price: 300
-  description: "\uBB34\uC791\uC704 1\uC885\uBAA9\uC758 \uC624\uB298 \uAE30\uC0AC\uC640 \uACB0\uACFC(\uC131\uACF5\xB7\uC2E4\uD328, \uBCC0\uB3D9\uB960)\uB97C \uBBF8\uB9AC \uBCF8\uB2E4. \uD2C0\uB9AC\uC9C0 \uC54A\uC74C"
-  icon: {fileID: 0}
+  description: "\uBB34\uC791\uC704 1\uC885\uBAA9\uC758 \uC624\uB298 \uAE30\uC0AC\uC640 \uACB0\uACFC(\uC131\uACF5\xB7\uC2E4\uD328, \uBCC0\uB3D9\uB960)\uB97C \uBBF8\uB9AC \uBD10\uC694."
+  icon: {fileID: 2800000, guid: 271809bdb4cbae74d8eaf24209f94ffd, type: 3}
   accuracy: 0.65
   triggerRate: 0
   durationSeconds: 0
-  speedMultiplier: 0.5
+  speedMultiplier: 0
+  amount: 0
+  debtAmount: 0

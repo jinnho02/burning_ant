@@ -10,14 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9ed2c906fd971364a97236656d11d5d5, type: 3}
-  m_Name: Item_InsiderMemo
+  m_Name: Item_Lottery
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
-  kind: 2
-  displayName: "\uB0B4\uBD80\uC790 \uBA54\uBAA8"
-  price: 1200
-  description: "\uACE0\uB978 1\uC885\uBAA9\uC758 \uC624\uB298 \uAE30\uC0AC\xB7\uACB0\uACFC\uC640 \uBC1C\uD45C \uC2DC\uC810(\uD2B9\uBCF4 \uBA87 \uCD08 \uB4A4 / \uC7A5 \uB9C8\uAC10)\uAE4C\uC9C0 \uBBF8\uB9AC \uBCF8\uB2E4"
-  icon: {fileID: 0}
-  accuracy: 0.85
+  kind: 18
+  displayName: "\uC778\uC0DD\uC5ED\uC804 \uBCF5\uAD8C"
+  price: 200
+  description: "2% $20,000 \xB7 10% $2,000 \xB7 30% $300 \xB7 \uB098\uBA38\uC9C0\uB294 \uAF5D."
+  icon: {fileID: 2800000, guid: fe454c8467eec8f4dbb42c5d3a6c4993, type: 3}
+  accuracy: 0.75
   triggerRate: 0
   durationSeconds: 0
-  speedMultiplier: 0.5
+  speedMultiplier: 0
+  amount: 0
+  debtAmount: 0

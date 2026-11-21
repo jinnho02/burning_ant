@@ -41,6 +41,9 @@ namespace BurningAnt.Market
         public int HoldingCount => holdings.Count;
         public int MaxHoldings => maxHoldings;
         public float Leverage => leverage;
+        /// <summary>은행 VIP 쿠폰·영혼의 풀매수: true인 동안 매매 수수료 0.</summary>
+        public bool FeeWaived { get; set; }
+        float Fee => FeeWaived ? 0f : feeRate;
 
         public event Action Changed;
 
@@ -74,7 +77,7 @@ namespace BurningAnt.Market
         public IEnumerable<StockState> HeldStocks => holdings.Keys;
 
         public int MaxBuyable(float price) =>
-            price > 0f && Cash > 0f ? Mathf.FloorToInt(Cash / (price * (1f + feeRate))) : 0;
+            price > 0f && Cash > 0f ? Mathf.FloorToInt(Cash / (price * (1f + Fee))) : 0;
 
         public TradeResult Execute(OrderRequest order, float price)
         {
@@ -98,7 +101,7 @@ namespace BurningAnt.Market
             if (h.Shares == 0 && holdings.Count >= maxHoldings)
                 return TradeResult.Fail(stock, OrderSide.Buy, TradeError.TooManyHoldings);
 
-            float total = quantity * price * (1f + feeRate);
+            float total = quantity * price * (1f + Fee);
             if (total > Cash) return TradeResult.Fail(stock, OrderSide.Buy, TradeError.NotEnoughCash);
 
             Cash -= total;
@@ -119,7 +122,7 @@ namespace BurningAnt.Market
             if (quantity > h.Shares) return TradeResult.Fail(stock, OrderSide.Sell, TradeError.NotEnoughShares);
 
             float soldCost = h.AveragePrice * quantity;
-            float proceeds = soldCost + (quantity * price - soldCost) * leverage - quantity * price * feeRate;
+            float proceeds = soldCost + (quantity * price - soldCost) * leverage - quantity * price * Fee;
             if (Cash + proceeds < 0f) return TradeResult.Fail(stock, OrderSide.Sell, TradeError.NotEnoughCash);
 
             Cash += proceeds;

@@ -51,6 +51,10 @@ namespace BurningAnt.Core
         public float ExtraLoan;            // 오늘 받은 추가 대출
         public float EmergencyLoan;        // 오늘 받은 긴급 대출
         public float Repaid;               // 오늘 갚은 돈
+        public float ItemCash;             // 아이템으로 들어온 현금 (복권, 악마의 계약서, 손실 보험)
+        public float ItemDebt;             // 아이템으로 늘어난 빚 (악마의 계약서)
+        public float InsuranceRefund;      // 손실 보험으로 돌려받은 돈
+        public bool InterestDeferred;      // 이자 유예로 오늘 이자를 건너뜀
         public bool Closed;                // 장이 끝나 결과가 확정됐는지
 
         public float ProfitLoss => EndAssets - StartAssets;

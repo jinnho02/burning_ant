@@ -13,10 +13,13 @@ MonoBehaviour:
   m_Name: Item_TimeStop
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
   kind: 7
-  displayName: "\uC2DC\uAC04 \uC815\uC9C0"
+  displayName: "\uC5D0\uB108\uC9C0 \uB4DC\uB9C1\uD06C"
   price: 900
-  description: "5\uCD08\uAC04 \uCC28\uD2B8 \uBA48\uCDA4 (\uBA48\uCD98 \uB3D9\uC548 \uB9E4\uB9E4 \uAC00\uB2A5)"
+  description: "5\uCD08 \uB3D9\uC548 \uCC28\uD2B8\uAC00 \uBA48\uCDB0\uC694. \uBA48\uCD98 \uB3D9\uC548 \uB9E4\uB9E4\uD560 \uC218 \uC788\uC5B4\uC694."
+  icon: {fileID: 2800000, guid: a810222d53e1e0b40ab27b0c322ea570, type: 3}
   accuracy: 0
   triggerRate: 0
   durationSeconds: 5
-  speedMultiplier: 0.5
+  speedMultiplier: 0
+  amount: 0
+  debtAmount: 0

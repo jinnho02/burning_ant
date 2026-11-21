@@ -10,14 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9ed2c906fd971364a97236656d11d5d5, type: 3}
-  m_Name: Item_ChainForecast
+  m_Name: Item_StrongDevilContract
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
-  kind: 3
-  displayName: "\uB274\uC2A4 \uACB0\uACFC \uC608\uCE21"
-  price: 800
-  description: "\uC624\uB298 \uB274\uC2A4 \uD558\uB098\uC758 \uACB0\uACFC\uC640 \uBC1C\uD45C \uC2DC\uC810\uC744 \uBBF8\uB9AC \uBCF8\uB2E4"
-  icon: {fileID: 0}
-  accuracy: 0.8
+  kind: 14
+  displayName: "\uB354 \uAC15\uD55C \uC545\uB9C8\uC758 \uACC4\uC57D\uC11C"
+  price: 200
+  description: "\uC9C0\uAE08 \uBC14\uB85C \uD604\uAE08 $8,000. \uB300\uC2E0 \uBE5A\uC774 $13,000 \uB298\uC5B4\uB098\uC694."
+  icon: {fileID: 2800000, guid: 66def533cf2123f4cbde01281454779b, type: 3}
+  accuracy: 0.75
   triggerRate: 0
   durationSeconds: 0
-  speedMultiplier: 0.5
+  speedMultiplier: 0
+  amount: 8000
+  debtAmount: 13000
