@@ -16,7 +16,7 @@ namespace BurningAnt.UI
 
         GameLoop game;
         AudioSource bgm, sfx;
-        AudioClip morning, noon, evening, gold, click;
+        AudioClip morning, noon, evening, gold, click, alarm;
         int boughtFrame = -1;
 
         public void Init(GameLoop loop, VisualElement root)
@@ -36,9 +36,11 @@ namespace BurningAnt.UI
             evening = Resources.Load<AudioClip>("Audio/저녁");
             gold = Resources.Load<AudioClip>("Audio/골드");
             click = MakeClick();
+            alarm = MakeAlarm();
 
             game.PhaseChanged += OnPhaseChanged;
             game.ItemBought += OnItemBought;
+            game.AlarmFired += OnAlarm;
             // 버블 단계(대상 처리 뒤)에서 듣는다: 같은 클릭으로 아이템을 샀으면 클릭음 대신 골드만
             root.RegisterCallback<ClickEvent>(_ =>
             {
@@ -52,6 +54,7 @@ namespace BurningAnt.UI
             if (game == null) return;
             game.PhaseChanged -= OnPhaseChanged;
             game.ItemBought -= OnItemBought;
+            game.AlarmFired -= OnAlarm;
         }
 
         void OnPhaseChanged()
@@ -72,6 +75,26 @@ namespace BurningAnt.UI
         {
             boughtFrame = Time.frameCount;
             if (gold != null) sfx.PlayOneShot(gold, GoldVolume);
+        }
+
+        void OnAlarm() => sfx.PlayOneShot(alarm, 0.8f);
+
+        /// <summary>파산 경보: 880Hz·660Hz를 번갈아 6번 (1.2초) 울리는 사이렌.</summary>
+        static AudioClip MakeAlarm()
+        {
+            const int rate = 44100;
+            int n = rate * 12 / 10;
+            var data = new float[n];
+            double phase = 0;
+            for (int i = 0; i < n; i++)
+            {
+                int beep = i / (rate / 5);
+                phase += 2 * System.Math.PI * (beep % 2 == 0 ? 880 : 660) / rate;
+                data[i] = (float)System.Math.Sin(phase) * 0.6f;
+            }
+            var clip = AudioClip.Create("alarm", n, 1, rate, false);
+            clip.SetData(data, 0);
+            return clip;
         }
 
         /// <summary>짧은 "틱" 소리: 1.4kHz에서 0.9kHz로 내려가며 빠르게 사라지는 사인파 (45ms).</summary>

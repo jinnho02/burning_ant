@@ -21,7 +21,7 @@ namespace BurningAnt.Loan
         [Header("햇살론 = 긴급 대출 (한 판에 1번, 장 마감 정산 후 현금이 0 밑이면 제안. 거절하면 파산)")]
         [Tooltip("모자란 금액에 더 얹어 주는 돈")] public float emergencyLoanBuffer = 10_000_000f;
         [Tooltip("햇살론 최대 금액 (파산 직전에만 1회). 모자란 돈이 이보다 크면 파산")] public float emergencyLoanMax = 200_000_000f;
-        [Tooltip("햇살론을 받으면 오르는 이자율 (0.10 = +10%p)")] public float emergencyRateStep = 0.10f;
+        [Tooltip("햇살론 하루 이자율 (기본 대출과 따로, 받은 다음 날부터)")] public float emergencyRate = 0.30f;
 
         [Header("승리")]
         [Tooltip("빚(원금+이자)을 다 갚고, 자산(현금+주식)이 이만큼 있으면 승리")] public float winAssets = 500_000_000f;

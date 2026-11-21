@@ -88,25 +88,38 @@ namespace BurningAnt.Editor
 
             Won(loan.Debt, 100_000_000f, "시작 빚 1억");
             Expect(loan.InterestDue(1) == 0f && loan.InterestDue(2) == 0f, "1·2일차는 이자 없음");
-            Won(loan.InterestDue(3), 5_000_000f, "3일차부터 매일 이자 5% = 500만");
+            Won(loan.InterestDue(3), 5_000_000f, "3일차부터 매일 기본 대출 이자 5% = 500만");
 
             Won(loan.TakeExtraLoan(500_000_000f, 3), 200_000_000f, "추가 대출은 최대 2억");
             Expect(!loan.CanTakeExtraLoan && loan.TakeExtraLoan(1f, 3) == 0f, "추가 대출은 한 번만");
             Won(loan.InterestDue(4), 5_000_000f, "추가 대출 다음 날은 추가 대출 이자 없음");
             Won(loan.InterestDue(5), 5_000_000f + 60_000_000f, "다다음 날부터 추가 대출 이자 30%");
 
+            loan.HalveNextRate = true;
+            Near(loan.AddLoan("콩대출", 100_000_000f, 0.2f, 4), 0.1f, "신용등급 세탁기: 다음 대출 이자율 절반 (20% → 10%)");
+            Expect(!loan.HalveNextRate, "세탁기는 한 번 쓰면 끝");
+            Won(loan.InterestDue(5), 5_000_000f + 60_000_000f + 10_000_000f, "대출마다 이자율 따로 (5% + 30% + 10%)");
+            Expect(loan.RatesOn(5).SequenceEqual(new[] { 0.3f, 0.1f, 0.05f }), "오늘 이자율 목록 (높은 순)");
+
             loan.AddUnpaidInterest(5_000_000f);
-            Won(loan.MainDebt, 105_000_000f, "안 낸 이자는 빚에 붙음");
-            Won(loan.Repay(50_000_000f), 50_000_000f, "일부 상환");
-            Won(loan.ExtraDebt, 150_000_000f, "이자 높은 추가 대출부터 갚음");
-            Won(loan.Repay(1e12f), 255_000_000f, "빚보다 많이 갚으면 남은 빚만");
-            Won(loan.TotalRepaid, 305_000_000f, "갚은 금액 합계 (상환 게이지)");
+            Won(loan.MainDebt, 105_000_000f, "안 낸 이자는 기본 대출에 붙음");
+            Won(loan.Repay(250_000_000f), 250_000_000f, "일부 상환");
+            Expect(loan.Loans.Count == 2 && loan.Loans[1].Name == "콩대출", "이자 높은 추가 대출(30%)부터 갚고, 다 갚은 대출은 지움");
+            Won(loan.Debt, 155_000_000f, "남은 빚 = 콩대출 일부 + 기본 대출");
+            Won(loan.Repay(1e12f), 155_000_000f, "빚보다 많이 갚으면 남은 빚만");
+            Won(loan.TotalRepaid, 405_000_000f, "갚은 금액 합계 (상환 게이지)");
             Expect(loan.IsPaidOff && loan.InterestDue(9) == 0f, "전액 상환하면 이자 없음");
+
+            var adj = new LoanAccount(settings);
+            Won(adj.ReduceBasePrincipal(0.01f), 1_000_000f, "채무 조정: 기본 대출 원금 1%");
+            adj.AddDebt(30_000_000f);
+            Won(adj.MainDebt, 129_000_000f, "사채업자 명함: 기본 대출 원금 증가");
 
             var rescue = new LoanAccount(settings);
             Expect(rescue.EmergencyAmount(settings.emergencyLoanMax + 1_000_000f) == 0f, "모자란 돈이 햇살론 한도(2억)를 넘으면 못 받음");
-            Won(rescue.TakeEmergencyLoan(8_000_000f), 8_000_000f + settings.emergencyLoanBuffer, "햇살론 = 모자란 금액 + 여유분");
-            Near(rescue.InterestRate, settings.baseInterestRate + settings.emergencyRateStep, "햇살론 후 이자율 크게 오름");
+            Won(rescue.TakeEmergencyLoan(8_000_000f, 4), 8_000_000f + settings.emergencyLoanBuffer, "햇살론 = 모자란 금액 + 여유분");
+            Near(rescue.Loans[1].Rate, settings.emergencyRate, "햇살론 이자율 30% (기본 대출과 따로)");
+            Expect(rescue.Loans[1].StartDay == 5 && Mathf.Approximately(rescue.InterestRate, settings.baseInterestRate), "햇살론 이자는 다음 날부터, 기본 대출 이자율은 그대로");
             Expect(rescue.EmergencyUsed && rescue.TakeEmergencyLoan(500f) == 0f, "햇살론은 한 판에 한 번");
             var big = new LoanAccount(settings);
             Won(big.TakeEmergencyLoan(195_000_000f), settings.emergencyLoanMax, "햇살론은 최대 2억");

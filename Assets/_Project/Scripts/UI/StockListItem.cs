@@ -64,7 +64,7 @@ namespace BurningAnt.UI
         public void Refresh(float price, bool preMarket, bool held, bool selected)
         {
             EnableInClassList("stock-item--selected", selected);
-            heldLabel.style.display = held ? DisplayStyle.Flex : DisplayStyle.None;
+            heldLabel.style.display = DisplayStyle.None; // 보유 종목은 목록 맨 위 "보유 중" 상자에 따로 모아 보여준다
             priceLabel.text = Format.Money(price);
 
             float change = price / Stock.PrevClose - 1f;

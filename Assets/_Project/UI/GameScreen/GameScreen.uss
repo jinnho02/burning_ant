@@ -628,3 +628,59 @@
     margin-top: 26px; font-size: 26px; color: #E8E2D8; -unity-text-align: middle-center; white-space: normal;
     max-width: 80%;
 }
+
+/* 뉴스: 4개를 한 칸씩 상자로, 글자 조금 크게 (1단계 신문 · 오른쪽 위 목록) */
+.news-paper-item {
+    font-size: 27px; padding: 14px 18px; margin-bottom: 12px;
+    border-width: 2px; border-color: rgba(59, 42, 32, 0.45); border-radius: 10px;
+    background-color: rgba(255, 250, 240, 0.55);
+}
+.side-news-line {
+    font-size: 14px; padding: 6px 8px; margin-bottom: 6px;
+    border-width: 1px; border-color: #E2C9A0; border-radius: 8px; background-color: #FFF8EC;
+}
+
+/* 왼쪽 맨 위: 보유 중인 종목 상자 */
+.held-box {
+    margin: 0 0 8px 0; padding: 6px 4px 4px 0;
+    border-width: 2px; border-color: #378ADD; border-radius: 10px; background-color: rgba(55, 138, 221, 0.06);
+}
+.held-box-title { font-size: 14px; -unity-font-style: bold; color: #185FA5; margin: 0 0 2px 8px; }
+
+/* 오른쪽 위 상자를 아래로 조금 길게. 주인공 그림은 위로 넘쳐도 크기 그대로 */
+.body--areas .side-top { flex-grow: 0.8; }
+.body--areas .portrait { top: -70px; }
+
+/* 망원경 창: 화면 위쪽 가운데 */
+.telescope-panel {
+    position: absolute; left: 30%; width: 40%; top: 90px; height: 230px;
+    padding: 10px 14px; border-radius: 12px; border-width: 2px; border-color: #F2C14E;
+    background-color: rgba(20, 14, 6, 0.92); display: none;
+}
+.telescope-title { color: #F2C14E; -unity-font-style: bold; font-size: 16px; margin-bottom: 4px; }
+.telescope-chart { flex-grow: 1; }
+
+/* 파산 경보: 빨간 테두리 + 큰 글씨, 깜빡임 */
+.alarm-overlay {
+    position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+    border-width: 14px; border-color: #FF1E1E; background-color: rgba(255, 0, 0, 0.12);
+    align-items: center; justify-content: center; display: none;
+    transition-property: opacity; transition-duration: 0.15s;
+}
+.alarm-overlay--dim { opacity: 0.25; }
+.alarm-text {
+    font-size: 64px; -unity-font-style: bold; color: #FFFFFF;
+    background-color: rgba(200, 0, 0, 0.85); padding: 10px 40px; border-radius: 16px;
+}
+
+/* 아이템 칸: 긴 이름이 칸을 벗어나지 않게 (칸 넓히고 글자 줄이고 줄바꿈) */
+.item-slot { width: 200px; min-height: 64px; height: auto; margin-bottom: 4px; }
+.item-slot__name { font-size: 13px; white-space: normal; -unity-text-align: middle-left; }
+.item-slot__meta { font-size: 11px; -unity-text-align: middle-left; }
+.shop-slot-name { font-size: 15px; white-space: normal; overflow: hidden; }
+
+/* 왼쪽 목록 조금 넓게, 종목 상자 안 글자 조금 작게 (등락률이 잘리지 않게) */
+.left-column { width: 16%; min-width: 215px; }
+.left-column .stock-item { padding: 6px 7px; margin-left: 2px; }
+.left-column .stock-item__name { font-size: 15px; }
+.left-column .stock-item__price, .left-column .stock-item__change { font-size: 13px; }

@@ -20,5 +20,5 @@ MonoBehaviour:
   extraLoanGraceDays: 2
   emergencyLoanBuffer: 10000000
   emergencyLoanMax: 200000000
-  emergencyRateStep: 0.1
+  emergencyRate: 0.3
   winAssets: 500000000

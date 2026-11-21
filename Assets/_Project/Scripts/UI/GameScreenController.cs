@@ -64,6 +64,10 @@ namespace BurningAnt.UI
         int endingIndex;
         float autoTimer;
         GamePhase autoPhase = GamePhase.GameOver;
+        VisualElement telescopePanel, alarmOverlay;
+        Label telescopeTitle;
+        PriceChartElement telescopeChart;
+        float alarmTimer;
         VisualElement pickerList;
         FloatField repayField;
         PriceChartElement chart;
@@ -114,6 +118,11 @@ namespace BurningAnt.UI
             game.PhaseChanged += OnPhaseChanged;
             game.Message += OnMessage;
             gameObject.AddComponent<GameAudio>().Init(game, root);
+            telescopePanel = root.Q("telescope-panel");
+            telescopeTitle = root.Q<Label>("telescope-title");
+            telescopeChart = root.Q<PriceChartElement>("telescope-chart");
+            alarmOverlay = root.Q("alarm-overlay");
+            game.AlarmFired += () => alarmTimer = 3f;
             // 시연용 자동 진행 중에는 창이 뒤에 있어도 계속 돌게 (평소 실행은 그대로: 창을 내리면 멈춤)
             if (Prologue.PrologueController.AutoplayArg) Application.runInBackground = true;
             game.Inventory.Changed += RefreshItemBar;
@@ -145,11 +154,12 @@ namespace BurningAnt.UI
             UpdateIntro();
             tutorial?.Update(IntroShowing());
             AutoPlay();
+            UpdateAlarm();
             RefreshStatus();
             HandleItemKeys();
             if (game.Phase == GamePhase.Market)
             {
-                chart.SetPreview(game.PreviewTicks);
+                UpdateTelescope();
                 hintTimer -= Time.unscaledDeltaTime;
                 if (hintTimer <= 0f)
                 {
@@ -249,7 +259,7 @@ namespace BurningAnt.UI
             newsConfirmButton.clicked += game.ConfirmNews;
             root.Q<Button>("news-paper-button").clicked += game.ConfirmNews;
             root.Q<Button>("picker-cancel-button").clicked += () => Show(pickerOverlay, false);
-            root.Q<Button>("repay-button").clicked += () => game.Repay(repayField.value);
+            root.Q<Button>("repay-button").clicked += () => game.Repay(repayField.value * 10000f); // 입력은 만원 단위
             root.Q<Button>("repay-all-button").clicked += () => game.Repay(Session.Portfolio.Cash);
             loanButton.clicked += OpenLoan;
             root.Q<Button>("loan-cancel-button").clicked += CloseLoan;
@@ -461,6 +471,7 @@ namespace BurningAnt.UI
             if (game.Phase == GamePhase.GameOver) StartEnding();
             else Show(endOverlay, false);
             chart.SetPreview(0);
+            Show(telescopePanel, false);
 
             if (game.Phase == GamePhase.Settlement)
             {
@@ -553,11 +564,10 @@ namespace BurningAnt.UI
             cashLabel.text = Format.Money(Session.Portfolio.Cash);
             stockValueLabel.text = Format.Money(game.StockValue());
             int startDay = game.LoanSettings.interestStartDay;
-            // 오늘 낼 이자율만 (조건은 3단계 튜토리얼에서 설명): 1·2일차 0%, 3일차부터 일반 이자율 (+ 다다음 날부터 추가 대출 이자율)
-            bool extraToday = loan.ExtraDebt > 0f && game.Day >= loan.ExtraLoanDay + game.LoanSettings.extraLoanGraceDays;
-            interestLabel.text = game.Day < startDay ? "0%"
-                : $"{loan.InterestRate * 100f:0}%" + (extraToday ? $" + {loan.ExtraRate * 100f:0}%" : "");
-            loanCountLabel.text = loan.CanTakeExtraLoan ? "1회 남음" : Format.Money(loan.ExtraDebt);
+            // 오늘 낼 이자율만 (조건은 3단계 튜토리얼에서 설명): 오늘 이자가 붙는 대출들의 이자율
+            var rates = loan.RatesOn(game.Day).Select(r => $"{r * 100f:0.#}%").ToList();
+            interestLabel.text = rates.Count == 0 ? "0%" : string.Join(" · ", rates);
+            loanCountLabel.text = loan.CanTakeExtraLoan ? "1회 남음" : "사용함";
             loanButton.SetEnabled(game.CanTakeExtraLoanNow); // 추가 대출은 2·3단계에서, 한 판에 1번
 
             float netWorth = game.NetWorth();
@@ -654,7 +664,7 @@ namespace BurningAnt.UI
             foreach (var a in game.ActiveAutoSells()) AddHint("[예약 중] " + a);
             if (game.StopRemaining > 0f) AddHint($"[시간 정지] {game.StopRemaining:0.0}초 남음");
             if (game.SlowRemaining > 0f) AddHint($"[슬로우 모션] {game.SlowRemaining:0.0}초 남음");
-            if (game.PreviewTicks > 0) AddHint("[망원경] 차트의 주황 선이 앞으로의 가격");
+            if (game.PreviewTicks > 0 && game.TelescopeStock != null) AddHint($"[망원경] {game.TelescopeStock.Name} 미리보기 창");
             if (hintList.childCount == 0) AddHint("아직 없어요. 정보 아이템을 쓰면 여기에 떠요.");
         }
 
@@ -766,16 +776,16 @@ namespace BurningAnt.UI
             var loan = game.Loan;
             var s = game.LoanSettings;
             float amount = loan.EmergencyAmount(shortfall);
-            float rateAfter = loan.InterestRate + s.emergencyRateStep;
+            float rate = s.emergencyRate * (loan.HalveNextRate ? 0.5f : 1f);
             float debtAfter = loan.Debt + amount;
             string closed = game.LastClosedStocks.Count > 0 ? $"마이너스 종목({string.Join(", ", game.LastClosedStocks.Select(x => x.Name))}) 정리로 " : "";
             emergencyBody.text =
                 $"{closed}잔고에서 {Format.Money(game.LastSettlementCharge)}이 빠져 현금이 {Format.SignedMoney(-shortfall)}이에요.\n\n" +
                 $"· 대출 금액: {Format.Money(amount)} (모자란 돈 + 여유 {Format.Money(s.emergencyLoanBuffer)}, 최대 {Format.Money(s.emergencyLoanMax)})\n" +
                 $"· 대출 후 현금: {Format.Money(amount - shortfall)}\n" +
-                $"· 이자율: 하루 {loan.InterestRate * 100f:0}% → {rateAfter * 100f:0}%\n" +
+                $"· 햇살론 이자: 하루 {rate * 100f:0.#}% (기본 대출과 따로, 내일부터)" + (loan.HalveNextRate ? " · 신용등급 세탁기 적용" : "") + "\n" +
                 $"· 남은 빚: {Format.Money(loan.Debt)} → {Format.Money(debtAfter)}\n" +
-                $"· 다음 이자(예상): 하루 약 {Format.Money((loan.MainDebt + amount) * rateAfter)}\n\n" +
+                $"· 햇살론 이자(하루): 약 {Format.Money(amount * rate)}\n\n" +
                 "햇살론은 파산 직전에 한 번만 받을 수 있어요. 안 받으면 파산이에요.";
         }
 
@@ -962,9 +972,10 @@ namespace BurningAnt.UI
             Note(loan, r.Interest > 0f
                 ? $"오늘 이자 {Format.Money(r.Interest)} (왼쪽 '이자 갚기'로 내요. 안 내면 상점으로 갈 때 빚에 붙어요)"
                 : game.Day < game.LoanSettings.interestStartDay ? $"이자는 {game.LoanSettings.interestStartDay}일차부터 매일 붙어요" : "오늘은 낼 이자가 없어요");
-            if (game.Loan.ExtraDebt > 0f) Note(loan, $"추가 대출 남은 빚 {Format.Money(game.Loan.ExtraDebt)} (하루 {game.Loan.ExtraRate * 100f:0}%, {game.Loan.ExtraLoanDay + game.LoanSettings.extraLoanGraceDays}일차부터)");
+            foreach (var l in game.Loan.Loans.Where(l => l.Principal > 0.5f))
+                Note(loan, $"{l.Name} {Format.Money(l.Principal)} · 하루 {l.Rate * 100f:0.#}% ({l.StartDay}일차부터)");
             if (r.Repaid > 0f) Note(loan, $"오늘 갚은 돈 {Format.Money(r.Repaid)}");
-            Note(loan, $"현금 {Format.Money(Session.Portfolio.Cash)} · 남은 빚 {Format.Money(game.Loan.Debt)} (이자율 {game.Loan.InterestRate * 100f:0}%)");
+            Note(loan, $"현금 {Format.Money(Session.Portfolio.Cash)} · 남은 빚 {Format.Money(game.Loan.Debt)}");
         }
 
         /// <summary>왼쪽 이자 갚기 (3일차부터 보임) · 오른쪽 빚 갚기.</summary>
@@ -1027,7 +1038,7 @@ namespace BurningAnt.UI
         // 바닥면 위 칸 자리 (바닥 기준 u: 왼→오, v: 안쪽→앞쪽, 0~1)
         static readonly float[] ShopColumnsU = { 0.03f, 0.275f, 0.52f, 0.765f };
         static readonly float[] ShopRowsV = { 0.06f, 0.52f };
-        const float ShopSlotU = 0.2f, ShopSlotV = 0.3f, ShopNameGap = 0.006f, ShopNameHeight = 0.045f;
+        const float ShopSlotU = 0.2f, ShopSlotV = 0.3f, ShopNameGap = 0.006f, ShopNameHeight = 0.07f;
 
         static float FloorY(float v) => Mathf.Lerp(FloorTopY, FloorBottomY, Mathf.Pow(Mathf.Clamp01(v), FloorDepthCurve));
 
@@ -1175,6 +1186,34 @@ namespace BurningAnt.UI
             if (item != null && item != hoveredShopItem) return;
             hoveredShopItem = null;
             Show(shopTooltip, false);
+        }
+
+        // ───────── 망원경 창 · 파산 경보 ─────────
+
+        /// <summary>망원경을 쓰면 그 종목의 [쓴 순간 ~ 몇 초 뒤] 가격을 따로 창에 그린다. 그 구간이 지나면 닫힌다.</summary>
+        void UpdateTelescope()
+        {
+            var s = game.TelescopeStock;
+            bool show = s != null && game.PreviewTicks > 0;
+            Show(telescopePanel, show);
+            if (!show) return;
+            int from = game.TelescopeFromTick, until = Mathf.Min(game.TelescopeUntilTick, s.Path.Length - 1);
+            var seg = new float[until - from + 1];
+            System.Array.Copy(s.Path, from, seg, 0, seg.Length);
+            telescopeChart.SetData(s.PrevClose, s.DailyLimit, seg, seg.Length, seg.Length - 1, null);
+            telescopeTitle.text = $"망원경 · {s.Name} 앞으로 {Mathf.CeilToInt(game.PreviewTicks * Session.Settings.secondsPerTick)}초 · 끝 {Format.Money(seg[seg.Length - 1])}";
+        }
+
+        /// <summary>파산 경보기가 울리면 3초 동안 빨간 테두리가 깜빡인다 (소리는 GameAudio).</summary>
+        void UpdateAlarm()
+        {
+            if (alarmOverlay == null) return;
+            bool on = alarmTimer > 0f;
+            Show(alarmOverlay, on);
+            if (!on) return;
+            alarmTimer -= Time.unscaledDeltaTime;
+            alarmOverlay.EnableInClassList("alarm-overlay--dim", Mathf.FloorToInt(alarmTimer * 4f) % 2 == 0);
+            alarmOverlay.BringToFront();
         }
 
         // ───────── 시연용 자동 진행 (실행 인자 -autoplay. -autoplay-win / -autoplay-bankrupt면 2일차 결과 뒤 엔딩) ─────────

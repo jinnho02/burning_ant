@@ -14,12 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
   kind: 15
   displayName: "\uC774\uC790 \uC720\uC608 \uC2E0\uCCAD\uC11C"
-  price: 5000000
-  description: "\uB2E4\uC74C \uC774\uC790(\uB9E4\uC77C, 3\uC77C\uCC28\uBD80\uD130)\uB97C \uD55C \uBC88 \uBA74\uC81C\uBC1B\uC544\uC694."
+  price: 400000
+  description: "[\uC7A5 \uC804] \uB2E4\uC74C \uC774\uC790\uB97C \uD558\uB8E8 \uBBF8\uB904\uC694 (\uB2E4\uC74C \uB0A0 \uC774\uC790\uC5D0 \uB354\uD574\uC838\uC694). \uAC8C\uC784\uB2F9 1\uBC88."
   icon: {fileID: 2800000, guid: ab2341611a279274887606e25ec7a6a2, type: 3}
-  accuracy: 0.75
+  accuracy: 1
   triggerRate: 0
   durationSeconds: 0
   speedMultiplier: 0
   amount: 0
   debtAmount: 0
+  loanRate: 0

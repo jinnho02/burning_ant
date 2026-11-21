@@ -39,7 +39,15 @@ namespace BurningAnt.Market
         /// <summary>장 마감 정산에서 마이너스가 빠지면 0 밑이 될 수 있다 (그러면 긴급 대출 아니면 파산).</summary>
         public float Cash { get; private set; }
         public int HoldingCount => holdings.Count;
-        public int MaxHoldings => maxHoldings;
+        /// <summary>듀얼 모니터: 그날만 보유 종목 수 +1.</summary>
+        public int BonusHoldings { get; set; }
+        public int MaxHoldings => maxHoldings + BonusHoldings;
+        /// <summary>영혼의 풀매수: 다음 매수 1회의 레버리지 (0이면 기본).</summary>
+        public float NextBuyLeverage { get; set; }
+        /// <summary>악마의 계약서: 다음 매도 1회의 손익 배수 (1이면 그대로).</summary>
+        public float NextSellMultiplier { get; set; } = 1f;
+        /// <summary>마지막 매도의 실현 손익 (손실 보험 계산용).</summary>
+        public float LastRealized { get; private set; }
         public float Leverage => leverage;
         /// <summary>은행 VIP 쿠폰·영혼의 풀매수: true인 동안 매매 수수료 0.</summary>
         public bool FeeWaived { get; set; }
@@ -98,14 +106,19 @@ namespace BurningAnt.Market
             if (quantity < 1) return TradeResult.Fail(stock, OrderSide.Buy, TradeError.InvalidQuantity);
 
             var h = GetHolding(stock);
-            if (h.Shares == 0 && holdings.Count >= maxHoldings)
+            if (h.Shares == 0 && holdings.Count >= MaxHoldings)
                 return TradeResult.Fail(stock, OrderSide.Buy, TradeError.TooManyHoldings);
 
             float total = quantity * price * (1f + Fee);
             if (total > Cash) return TradeResult.Fail(stock, OrderSide.Buy, TradeError.NotEnoughCash);
 
             Cash -= total;
-            holdings[stock] = new Holding(h.Shares + quantity, h.Cost + quantity * price, leverage);
+            // shortcut: 풀매수로 다른 레버리지를 섞어 사면 넣은 돈 비율로 평균낸다 (산 가격이 크게 다르면 손익이 조금 어긋남), 정확히 하려면 매수분마다 따로 보관
+            float buyLev = NextBuyLeverage > 0f ? NextBuyLeverage : leverage;
+            NextBuyLeverage = 0f;
+            float addCost = quantity * price;
+            float lev = h.Shares > 0 ? (h.Cost * h.Leverage + addCost * buyLev) / (h.Cost + addCost) : buyLev;
+            holdings[stock] = new Holding(h.Shares + quantity, h.Cost + addCost, lev);
             Changed?.Invoke();
             return TradeResult.Ok(stock, OrderSide.Buy, quantity, price);
         }
@@ -122,13 +135,16 @@ namespace BurningAnt.Market
             if (quantity > h.Shares) return TradeResult.Fail(stock, OrderSide.Sell, TradeError.NotEnoughShares);
 
             float soldCost = h.AveragePrice * quantity;
-            float proceeds = soldCost + (quantity * price - soldCost) * leverage - quantity * price * Fee;
+            float realized = (quantity * price - soldCost) * h.Leverage * NextSellMultiplier;
+            float proceeds = soldCost + realized - quantity * price * Fee;
             if (Cash + proceeds < 0f) return TradeResult.Fail(stock, OrderSide.Sell, TradeError.NotEnoughCash);
 
             Cash += proceeds;
+            LastRealized = realized;
+            NextSellMultiplier = 1f;
             int remaining = h.Shares - quantity;
             if (remaining == 0) holdings.Remove(stock);
-            else holdings[stock] = new Holding(remaining, h.Cost - soldCost, leverage);
+            else holdings[stock] = new Holding(remaining, h.Cost - soldCost, h.Leverage);
             Changed?.Invoke();
             return TradeResult.Ok(stock, OrderSide.Sell, quantity, price);
         }

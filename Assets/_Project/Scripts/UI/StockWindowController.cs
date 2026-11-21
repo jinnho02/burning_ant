@@ -20,7 +20,11 @@ namespace BurningAnt.UI
         bool useMax;
 
         public StockState Selected => selected;
-        public IReadOnlyList<StockListItem> ListItems => listItems;
+        // 업종 목록의 종목 + 맨 위 "보유 중" 상자의 종목 (같은 종목이 두 군데 있을 수 있다)
+        readonly List<StockListItem> heldItems = new();
+        readonly List<StockListItem> allItems = new();
+        VisualElement heldBox;
+        public IReadOnlyList<StockListItem> ListItems => allItems;
         public event System.Action SelectionChanged;
 
         Label holdingCountLabel, nameLabel, typeBadge, phaseBadge, priceLabel, changeLabel, gapLabel;
@@ -100,7 +104,22 @@ namespace BurningAnt.UI
         {
             listContainer.Clear();
             listItems.Clear();
+            heldItems.Clear();
             groupHeaders.Clear();
+
+            // 맨 위: 보유 중인 종목만 따로 모은 상자
+            heldBox = new VisualElement();
+            heldBox.AddToClassList("held-box");
+            var heldTitle = new Label("보유 중");
+            heldTitle.AddToClassList("held-box-title");
+            heldBox.Add(heldTitle);
+            foreach (var stock in session.Stocks)
+            {
+                var item = new StockListItem(stock, Select);
+                heldItems.Add(item);
+                heldBox.Add(item);
+            }
+            listContainer.Add(heldBox);
             foreach (var group in session.Stocks.GroupBy(s => s.Definition.sector).OrderBy(g => g.Key))
             {
                 var sector = group.Key;
@@ -121,6 +140,9 @@ namespace BurningAnt.UI
                 }
             }
             openSector = session.Stocks[0].Definition.sector;
+            allItems.Clear();
+            allItems.AddRange(listItems);
+            allItems.AddRange(heldItems);
         }
 
         void RefreshGroups()
@@ -136,6 +158,14 @@ namespace BurningAnt.UI
             }
             foreach (var item in listItems)
                 item.style.display = openSector == item.Stock.Definition.sector ? DisplayStyle.Flex : DisplayStyle.None;
+            bool anyHeld = false;
+            foreach (var item in heldItems)
+            {
+                bool held = session.Portfolio.GetHolding(item.Stock).Shares > 0;
+                anyHeld |= held;
+                item.style.display = held ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+            heldBox.style.display = anyHeld ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         void Update()
@@ -224,7 +254,7 @@ namespace BurningAnt.UI
             bool pre = phase == MarketPhase.PreMarket;
             var portfolio = session.Portfolio;
 
-            foreach (var item in listItems)
+            foreach (var item in allItems)
                 item.Refresh(session.CurrentPrice(item.Stock), pre, portfolio.GetHolding(item.Stock).Shares > 0, item.Stock == selected);
             holdingCountLabel.text = $"보유 {portfolio.HoldingCount}/{portfolio.MaxHoldings}";
             RefreshGroups();

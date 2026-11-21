@@ -49,8 +49,14 @@ namespace BurningAnt.Core
             public bool IsStopLoss => Mode == AutoMode.StopLoss;
         }
 
-        int interestDeferrals;      // 이자 유예 신청서: 남은 면제 횟수
-        ItemDefinition insurance;   // 손실 보험 증서: 오늘 걸려 있으면
+        bool deferNext, deferralUsed; // 이자 유예 신청서: 다음 이자 하루 연기 (게임당 1회)
+        float deferredCarry;           // 연기된 이자 (다음 날 이자에 더해짐)
+        bool vipCoupon;                // 은행 VIP 쿠폰: 다음 이자 30% 감면
+        bool debtAdjustUsed;           // 채무 조정 신청서: 게임당 1회
+        ItemDefinition insurance;      // 손실 보험 증서: 다음 매도 1회 (날이 바뀌어도 유지)
+        ItemDefinition lottery;        // 인생역전 복권: 오늘 장 결과에서 추첨
+        ItemDefinition alarm;          // 파산 경보기: 오늘 장 중
+        bool alarmOn;                  // 지금 경보 중 (위험 금액 위로 올라오면 다시 꺼짐)
 
         readonly List<NewsItem> todayNews = new();
         readonly List<string> hints = new();
@@ -91,6 +97,10 @@ namespace BurningAnt.Core
         public float StopRemaining => stopRemaining;
         /// <summary>망원경: 차트에 미리 보여줄 미래 틱 수.</summary>
         public int PreviewTicks => Phase == GamePhase.Market && telescopeUntilTick > session.Tick ? telescopeUntilTick - session.Tick : 0;
+        /// <summary>망원경으로 보는 종목과 미리보기 시작 틱 (PreviewTicks > 0일 때만 의미 있음).</summary>
+        public StockState TelescopeStock { get; private set; }
+        public int TelescopeFromTick { get; private set; }
+        public int TelescopeUntilTick => telescopeUntilTick;
 
         /// <summary>오늘 하루 기록 (2단계 흐름 표시, 4단계 결과창). 지난 날들은 History.</summary>
         public DailyReport Today { get; private set; }
@@ -103,6 +113,8 @@ namespace BurningAnt.Core
         public event Action Changed;
         public event Action PhaseChanged;
         public event Action<string> Message;
+        /// <summary>파산 경보기가 울린 순간 (화면 깜빡임·경고음).</summary>
+        public event Action AlarmFired;
         /// <summary>상점에서 아이템을 산 순간 (골드 효과음).</summary>
         public event Action<ItemDefinition> ItemBought;
 
@@ -181,8 +193,9 @@ namespace BurningAnt.Core
             todayNews.AddRange(newsGenerator.GenerateDay(Day, session.Stocks, session.Settings.ticksPerDay));
             newsGenerator.ApplyToPrices(session.Stocks, todayNews, session.Settings);
 
-            session.Portfolio.FeeWaived = false; // 은행 VIP 쿠폰은 그날만
-            insurance = null;                    // 손실 보험도 그날만
+            session.Portfolio.BonusHoldings = 0; // 듀얼 모니터는 그날만
+            alarm = null;                        // 파산 경보기도 그날만
+            alarmOn = false;
             DayStartAssets = TotalAssets();
             StartReport();
             SetPhase(GamePhase.News);
@@ -223,6 +236,20 @@ namespace BurningAnt.Core
                 line.Sells++;
                 line.SoldShares += r.Shares;
                 line.SellAmount += r.Shares * r.Price;
+                // 손실 보험 증서: 걸어 둔 뒤 첫 매도가 손해면 손실의 amount 비율을 돌려줌 (최대 debtAmount)
+                if (insurance != null)
+                {
+                    float loss = -session.Portfolio.LastRealized;
+                    if (loss > 0f)
+                    {
+                        float refund = Mathf.Min(loss * insurance.amount, insurance.debtAmount);
+                        session.Portfolio.Deposit(refund);
+                        Today.InsuranceRefund += refund;
+                        Today.ItemCash += refund;
+                        Say($"{insurance.displayName}: 손실 보상 +{Money(refund)}");
+                    }
+                    insurance = null;
+                }
             }
         }
 
@@ -275,14 +302,23 @@ namespace BurningAnt.Core
             // 장 마감 정산: 마이너스 종목은 정리되고 그 마이너스만큼 잔고에서 빠진다
             lastClosed.Clear();
             LastSettlementCharge = session.Portfolio.SettleNegatives(session.CurrentPrice, lastClosed);
-            ApplyInsurance();
-            // 오늘 이자: 3일차부터 매일. 장 결과에서 '이자 갚기'로 내고, 안 내면 상점으로 갈 때 빚에 붙는다
-            LastInterest = Loan.InterestDue(Day);
-            if (LastInterest > 0f && interestDeferrals > 0)
+            DrawLottery();
+            // 오늘 이자: 3일차부터 매일 (대출마다 이자율 따로). 장 결과에서 '이자 갚기'로 내고, 안 내면 상점으로 갈 때 빚에 붙는다
+            LastInterest = Loan.InterestDue(Day) + deferredCarry;
+            deferredCarry = 0f;
+            if (LastInterest > 0f && deferNext)
             {
-                interestDeferrals--;
+                deferNext = false;
+                deferredCarry = LastInterest; // 하루 연기: 내일 이자에 더해짐
                 Today.InterestDeferred = true;
                 LastInterest = 0f;
+            }
+            if (LastInterest > 0f && vipCoupon)
+            {
+                vipCoupon = false;
+                float cut = LastInterest * 0.3f;
+                LastInterest -= cut;
+                Say($"은행 VIP 쿠폰: 오늘 이자 {Money(cut)} 감면");
             }
             Today.SettlementCharge = LastSettlementCharge;
             Today.ClosedStocks.AddRange(lastClosed);
@@ -342,7 +378,7 @@ namespace BurningAnt.Core
         public void AcceptEmergencyLoan()
         {
             if (!NeedsEmergency) return;
-            float amount = Loan.TakeEmergencyLoan(-session.Portfolio.Cash);
+            float amount = Loan.TakeEmergencyLoan(-session.Portfolio.Cash, Day);
             NeedsEmergency = false;
             if (amount <= 0f)
             {
@@ -351,7 +387,7 @@ namespace BurningAnt.Core
             }
             session.Portfolio.Deposit(amount);
             Today.EmergencyLoan += amount;
-            Say($"햇살론 {Money(amount)} (이자율 {Loan.InterestRate * 100f:0}%)");
+            Say($"햇살론 {Money(amount)} (하루 이자 {Loan.Loans[Loan.Loans.Count - 1].Rate * 100f:0}%, 내일부터)");
             Changed?.Invoke();
         }
 
@@ -443,7 +479,7 @@ namespace BurningAnt.Core
             }
             session.Portfolio.Deposit(got);
             Today.ExtraLoan += got;
-            Say($"추가 대출 {Money(got)} (하루 이자 {Loan.ExtraRate * 100f:0}%, {Day + loanSettings.extraLoanGraceDays}일차부터)");
+            Say($"추가 대출 {Money(got)} (하루 이자 {Loan.Loans[Loan.Loans.Count - 1].Rate * 100f:0}%, {Day + loanSettings.extraLoanGraceDays}일차부터)");
             Changed?.Invoke();
         }
 
@@ -468,7 +504,7 @@ namespace BurningAnt.Core
         public void Buy(ItemDefinition item)
         {
             if (Phase != GamePhase.Shop || !todayShop.Contains(item)) return;
-            if (!session.Portfolio.Withdraw(item.price))
+            if (item.price > 0f && !session.Portfolio.Withdraw(item.price)) // 사채업자 명함은 무료
             {
                 Say("현금이 부족해요");
                 return;
@@ -509,39 +545,47 @@ namespace BurningAnt.Core
             var usedOn = target;
             switch (item.kind)
             {
-                // 예지: 틀리지 않는다. 뉴스 종목이면 숨겨진 결과를, 아니면 템플릿을 하나 꺼내 고정하고 보여준다.
+                // ── 정보 (2단계): 오늘 종가 방향을 item.accuracy 확률로 맞게 알려준다. 틀릴 수 있다. ──
                 case ItemKind.Rumor:
-                {
                     usedOn = session.Stocks[rng.Next(session.Stocks.Count)];
-                    if (!Foresee(item, usedOn, false, out result)) return;
-                    hintCorrect = true;
+                    result = Predict(item, usedOn, false, out bool rumorOk);
+                    hintCorrect = rumorOk;
                     break;
-                }
                 case ItemKind.AnalystReport:
-                {
-                    if (!Foresee(item, target, false, out result)) return;
-                    hintCorrect = true;
+                    result = Predict(item, target, false, out bool analystOk);
+                    hintCorrect = analystOk;
                     break;
-                }
                 case ItemKind.InsiderMemo:
-                {
-                    if (!Foresee(item, target, true, out result)) return;
-                    hintCorrect = true;
+                    result = Predict(item, target, true, out bool insiderOk);
+                    hintCorrect = insiderOk;
                     break;
-                }
-                case ItemKind.ChainForecast: // 뉴스 결과 예측: 오늘 뉴스 하나의 결과를 미리 본다
+                case ItemKind.ChainForecast: // 수상한 전화: 아직 결과가 안 나온 오늘 뉴스 하나의 성공·실패
                 {
-                    var pending = todayNews.Where(n => !n.Foreseen).ToList();
+                    var pending = todayNews.Where(n => !n.Revealed).ToList();
                     if (pending.Count == 0)
                     {
-                        Say("미리 볼 뉴스가 없어요");
+                        Say("결과를 기다리는 뉴스가 없어요");
                         return;
                     }
-                    usedOn = pending[rng.Next(pending.Count)].Stock;
-                    if (!Foresee(item, usedOn, true, out result)) return;
-                    hintCorrect = true;
+                    var news = pending[rng.Next(pending.Count)];
+                    bool ok = rng.NextDouble() < item.accuracy;
+                    bool saySuccess = ok ? news.Success : !news.Success;
+                    usedOn = news.Stock;
+                    result = $"{item.displayName}: {news.Stock.Name} \"{news.Template.initialHeadline}\" → {(saySuccess ? "성공" : "실패")}할 것 같대요 (적중률 {item.accuracy * 100f:0}%)";
+                    hintCorrect = ok;
                     break;
                 }
+                case ItemKind.OpenLeak:
+                    result = $"{item.displayName}: {target.Name} 오늘 시가 {Money(target.OpenPrice)} (전일 대비 {Pct(target.OpenPrice / target.PrevClose - 1f)})";
+                    break;
+                case ItemKind.VolatilityRadar: // 오늘 하루 중 전일 종가에서 가장 멀리 가는 2종목 (방향은 비밀)
+                {
+                    var top = session.Stocks.OrderByDescending(s => s.Path.Max(p => Mathf.Abs(p / s.PrevClose - 1f))).Take(2).ToList();
+                    result = $"{item.displayName}: 오늘 크게 움직일 종목 → {string.Join(", ", top.Select(s => s.Name))} (방향은 몰라요)";
+                    break;
+                }
+
+                // ── 매매 보조 ──
                 case ItemKind.StopLoss:
                 case ItemKind.TakeProfit:
                 {
@@ -554,7 +598,7 @@ namespace BurningAnt.Core
                     var mode = stop ? AutoMode.StopLoss : AutoMode.TakeProfit;
                     autoSells.RemoveAll(a => a.Stock == target && a.Mode == mode);
                     autoSells.Add(new AutoSell { Stock = target, Item = item, Mode = mode });
-                    result = $"{item.displayName}: {target.Name} 평단 대비 {(stop ? "-" : "+")}{item.triggerRate * 100f:0}%(손익 기준)에 닿으면 전량 자동 매도";
+                    result = $"{item.displayName}: {target.Name} 손익 {(stop ? "-" : "+")}{item.triggerRate * 100f:0}%에 닿으면 전량 자동 매도";
                     break;
                 }
                 case ItemKind.TrailingStop:
@@ -567,7 +611,7 @@ namespace BurningAnt.Core
                     }
                     autoSells.RemoveAll(a => a.Stock == target && a.Mode == AutoMode.Trailing);
                     autoSells.Add(new AutoSell { Stock = target, Item = item, Mode = AutoMode.Trailing, Peak = h.ReturnRate(session.CurrentPrice(target)) });
-                    result = $"{item.displayName}: {target.Name} 최고 수익률에서 {item.triggerRate * 100f:0}%p 밀리면 전량 자동 매도";
+                    result = $"{item.displayName}: {target.Name} 최고 손익률에서 {item.triggerRate * 100f:0}%p 밀리면 전량 자동 매도";
                     break;
                 }
                 case ItemKind.TargetBuy:
@@ -578,103 +622,37 @@ namespace BurningAnt.Core
                     result = $"{item.displayName}: {target.Name}이 {Money(buyAt)}(-{item.triggerRate * 100f:0}%) 이하가 되면 현금 전부로 자동 매수";
                     break;
                 }
-                case ItemKind.SoulAllIn:
-                {
-                    bool before = session.Portfolio.FeeWaived;
-                    session.Portfolio.FeeWaived = true;
-                    var r = session.Trade(new OrderRequest(target, OrderSide.Buy, 0, true));
-                    session.Portfolio.FeeWaived = before;
-                    if (!r.Success)
+                case ItemKind.BankruptAlarm:
+                    if (alarm != null)
                     {
-                        Say(r.Error == TradeError.TooManyHoldings ? "보유 종목이 꽉 찼어요" : "살 현금이 없어요");
+                        Say("오늘은 이미 경보기를 켰어요");
                         return;
                     }
-                    result = $"{item.displayName}: {target.Name} {r.Shares}주 풀매수 @ {Money(r.Price)} (수수료 없음)";
+                    alarm = item;
+                    alarmOn = false;
+                    result = $"{item.displayName}: 오늘 현금+주식이 {Money(item.amount)} 밑으로 내려가면 경보가 울려요";
                     break;
-                }
-                case ItemKind.SectorRumor:
+                case ItemKind.EmergencyExit:
                 {
-                    var sector = target.Definition.sector;
-                    var pool = session.Stocks.Where(s => s.Definition.sector == sector).OrderBy(_ => rng.Next()).Take(2).ToList();
-                    var lines = new List<string>();
-                    foreach (var s in pool)
-                        if (Foresee(item, s, true, out string line)) lines.Add(line);
-                    if (lines.Count == 0) return;
-                    result = string.Join("\n", lines);
-                    hintCorrect = true;
-                    break;
-                }
-                case ItemKind.OpenLeak:
-                    result = $"{item.displayName}: {target.Name} 오늘 시가 {Money(target.OpenPrice)} (전일 대비 {Pct(target.OpenPrice / target.PrevClose - 1f)})";
-                    break;
-                case ItemKind.VolatilityRadar:
-                {
-                    var intraday = todayNews.Concat(foresights).Where(n => !n.RevealAtClose && !n.Revealed).OrderBy(n => n.RevealTick).ToList();
-                    result = intraday.Count == 0
-                        ? $"{item.displayName}: 오늘 장 중 특보는 없어요 (결과는 모두 장 마감에)"
-                        : $"{item.displayName}: " + string.Join(", ", intraday.Select(n => $"{n.Stock.Name} {n.RevealTick * session.Settings.secondsPerTick:0}초"));
-                    break;
-                }
-                case ItemKind.FeeWaiver:
-                    if (session.Portfolio.FeeWaived)
+                    var held = session.Portfolio.HeldStocks.ToList();
+                    if (held.Count == 0)
                     {
-                        Say("오늘은 이미 수수료가 면제예요");
+                        Say("보유한 종목이 없어요");
                         return;
                     }
-                    session.Portfolio.FeeWaived = true;
-                    result = $"{item.displayName}: 오늘 매매 수수료 0%";
-                    break;
-                case ItemKind.LossInsurance:
-                    if (insurance != null)
-                    {
-                        Say("오늘은 이미 보험에 들었어요");
-                        return;
-                    }
-                    insurance = item;
-                    result = $"{item.displayName}: 오늘 손실이 나면 장 마감에 {item.amount * 100f:0}% 돌려받아요";
-                    break;
-                case ItemKind.DevilContract:
-                    session.Portfolio.Deposit(item.amount);
-                    Loan.AddDebt(item.debtAmount);
-                    Today.ItemCash += item.amount;
-                    Today.ItemDebt += item.debtAmount;
-                    result = $"{item.displayName}: 현금 +{Money(item.amount)}, 빚 +{Money(item.debtAmount)}";
-                    break;
-                case ItemKind.InterestDeferral:
-                    interestDeferrals++;
-                    result = $"{item.displayName}: 다음 이자 1번 면제";
-                    break;
-                case ItemKind.DebtAdjustment:
-                {
-                    float cut = Loan.ReduceRate(item.amount);
-                    if (cut <= 0f)
-                    {
-                        Say("이자율이 이미 가장 낮아요");
-                        return;
-                    }
-                    result = $"{item.displayName}: 이자율 -{cut * 100f:0.#}%p → {Loan.InterestRate * 100f:0.#}%";
+                    int sold = held.Count(s => session.Trade(new OrderRequest(s, OrderSide.Sell, 0, true)).Success);
+                    result = $"{item.displayName}: 보유 {held.Count}종목 중 {sold}종목 전량 매도" + (sold < held.Count ? " (마이너스를 메울 현금이 없어 못 판 종목 있음)" : "");
                     break;
                 }
-                case ItemKind.SunshineLoan:
-                    if (!Loan.RestoreEmergency())
+                case ItemKind.DualMonitor:
+                    if (session.Portfolio.BonusHoldings > 0)
                     {
-                        Say("아직 긴급 대출 기회가 남아 있어요");
+                        Say("오늘은 이미 듀얼 모니터를 켰어요");
                         return;
                     }
-                    result = $"{item.displayName}: 긴급 대출 기회가 다시 생겼어요";
+                    session.Portfolio.BonusHoldings = 1;
+                    result = $"{item.displayName}: 오늘 보유 가능 종목 {session.Portfolio.MaxHoldings - 1}개 → {session.Portfolio.MaxHoldings}개";
                     break;
-                case ItemKind.Lottery:
-                {
-                    double roll = rng.NextDouble();
-                    float prize = roll < 0.02 ? 200_000_000f : roll < 0.12 ? 20_000_000f : roll < 0.42 ? 3_000_000f : 0f;
-                    if (prize > 0f)
-                    {
-                        session.Portfolio.Deposit(prize);
-                        Today.ItemCash += prize;
-                    }
-                    result = prize > 0f ? $"{item.displayName}: 당첨! +{Money(prize)}" : $"{item.displayName}: 꽝…";
-                    break;
-                }
                 case ItemKind.SlowMotion:
                     slowRemaining = item.durationSeconds;
                     slowMultiplier = item.speedMultiplier;
@@ -686,13 +664,111 @@ namespace BurningAnt.Core
                     stopRemaining = item.durationSeconds;
                     result = $"{item.displayName}: {item.durationSeconds:0}초간 차트 멈춤 (매매 가능)";
                     break;
-                case ItemKind.Telescope:
+                case ItemKind.Telescope: // 고른 종목의 앞으로 몇 초를 따로 창에 보여준다 (실제 차트는 그대로)
                 {
                     int ticks = Mathf.RoundToInt(item.durationSeconds / session.Settings.secondsPerTick);
+                    TelescopeStock = target;
+                    TelescopeFromTick = session.Tick;
                     telescopeUntilTick = Mathf.Min(session.Tick + ticks, session.Settings.ticksPerDay);
-                    result = $"{item.displayName}: 다음 {item.durationSeconds:0}초 구간 차트 미리보기";
+                    result = $"{item.displayName}: {target.Name} 앞으로 {item.durationSeconds:0}초 가격을 미리 봐요";
                     break;
                 }
+
+                // ── 대출·빚 관리 (2단계) ──
+                case ItemKind.InterestCoupon:
+                    if (vipCoupon)
+                    {
+                        Say("이미 쿠폰을 걸어 뒀어요");
+                        return;
+                    }
+                    vipCoupon = true;
+                    result = $"{item.displayName}: 다음 이자 30% 감면";
+                    break;
+                case ItemKind.InterestDeferral:
+                    if (deferralUsed)
+                    {
+                        Say("이자 유예는 게임당 한 번만 쓸 수 있어요");
+                        return;
+                    }
+                    deferralUsed = deferNext = true;
+                    result = $"{item.displayName}: 다음 이자를 하루 미뤄요 (그다음 날 이자에 더해짐)";
+                    break;
+                case ItemKind.CreditLaunder:
+                    if (Loan.HalveNextRate)
+                    {
+                        Say("이미 세탁기를 돌려 뒀어요");
+                        return;
+                    }
+                    Loan.HalveNextRate = true;
+                    result = $"{item.displayName}: 다음 대출 1회 이자율 절반 (기본 대출 5%에는 안 됨)";
+                    break;
+                case ItemKind.DebtAdjustment:
+                {
+                    if (debtAdjustUsed)
+                    {
+                        Say("채무 조정은 게임당 한 번만 쓸 수 있어요");
+                        return;
+                    }
+                    debtAdjustUsed = true;
+                    float cut = Loan.ReduceBasePrincipal(item.amount);
+                    result = $"{item.displayName}: 기본 대출 원금 {Money(cut)} 감면";
+                    break;
+                }
+
+                // ── 고위험 · 대출 아이템 ──
+                case ItemKind.SoulAllIn:
+                    if (session.Portfolio.NextBuyLeverage > 0f)
+                    {
+                        Say("이미 다음 매수에 걸려 있어요");
+                        return;
+                    }
+                    session.Portfolio.NextBuyLeverage = item.speedMultiplier;
+                    result = $"{item.displayName}: 다음 매수 1회 레버리지 {item.speedMultiplier:0}배";
+                    break;
+                case ItemKind.DevilTrade:
+                    if (!Mathf.Approximately(session.Portfolio.NextSellMultiplier, 1f))
+                    {
+                        Say("이미 다음 매도에 걸려 있어요");
+                        return;
+                    }
+                    session.Portfolio.NextSellMultiplier = item.speedMultiplier;
+                    result = $"{item.displayName}: 다음 매도 1회 손익 {item.speedMultiplier:0.#}배 (이익도 손해도)";
+                    break;
+                case ItemKind.LossInsurance:
+                    if (insurance != null)
+                    {
+                        Say("이미 보험에 들어 있어요");
+                        return;
+                    }
+                    insurance = item;
+                    result = $"{item.displayName}: 다음 매도 1회가 손해면 손실의 {item.amount * 100f:0}% 보상 (최대 {Money(item.debtAmount)})";
+                    break;
+                case ItemKind.CashLoan:
+                {
+                    session.Portfolio.Deposit(item.amount);
+                    Today.ItemCash += item.amount;
+                    Today.ItemDebt += item.debtAmount;
+                    if (item.loanRate > 0f)
+                    {
+                        float rate = Loan.AddLoan(item.displayName, item.debtAmount, item.loanRate, Day + 1);
+                        result = $"{item.displayName}: 현금 +{Money(item.amount)}, 빚 +{Money(item.debtAmount)} (하루 이자 {rate * 100f:0.#}%, 내일부터)";
+                    }
+                    else
+                    {
+                        Loan.AddDebt(item.debtAmount);
+                        result = $"{item.displayName}: 현금 +{Money(item.amount)}, 기본 대출 원금 +{Money(item.debtAmount)}";
+                    }
+                    break;
+                }
+                case ItemKind.Lottery:
+                    if (lottery != null)
+                    {
+                        Say("오늘은 이미 복권을 샀어요");
+                        return;
+                    }
+                    lottery = item;
+                    result = $"{item.displayName}: 오늘 장 결과 때 추첨 ({item.debtAmount * 100f:0}% 확률로 {Money(item.amount)})";
+                    break;
                 default:
                     return;
             }
@@ -712,30 +788,52 @@ namespace BurningAnt.Core
             Changed?.Invoke();
         }
 
-        /// <summary>
-        /// 예지: 그 종목의 오늘 템플릿과 결과를 보여준다 (틀리지 않음). 뉴스가 있으면 숨겨진 결과를, 없으면 템플릿을 새로 꺼내
-        /// 오늘 경로를 그 값으로 고정한다. withTiming이면 결과가 뜨는 시점도 알려준다.
-        /// </summary>
-        bool Foresee(ItemDefinition item, StockState stock, bool withTiming, out string text)
+        /// <summary>정보 아이템: 그 종목 오늘 종가 방향을 accuracy 확률로 맞게 알려준다. withSize면 예상 등락폭도.</summary>
+        string Predict(ItemDefinition item, StockState s, bool withSize, out bool correct)
         {
-            text = null;
-            var n = todayNews.FirstOrDefault(x => x.Stock == stock) ?? foresights.FirstOrDefault(x => x.Stock == stock);
-            if (n == null)
+            float change = s.Path[s.Path.Length - 1] / s.PrevClose - 1f;
+            correct = rng.NextDouble() < item.accuracy;
+            bool up = (change >= 0f) == correct;
+            string text = $"{item.displayName}: {s.Name} 오늘 {(up ? "오를" : "내릴")} 것 같아요";
+            if (withSize)
             {
-                n = newsGenerator.CreateForesight(stock, session.Settings);
-                if (n == null)
-                {
-                    Say($"{stock.Name}: 예지할 기사가 없어요");
-                    return false;
-                }
-                foresights.Add(n);
+                // 맞으면 실제 폭 근처, 틀리면 엉뚱한 폭 (둘 다 ±20% 흔들기)
+                float size = correct ? Mathf.Abs(change) : s.DailyLimit * (0.3f + 0.7f * (float)rng.NextDouble());
+                size *= 0.8f + 0.4f * (float)rng.NextDouble();
+                text += $" (약 {(up ? "+" : "-")}{size * 100f:0}%)";
             }
-            n.Foreseen = true;
+            return text + $" · 적중률 {item.accuracy * 100f:0}%";
+        }
 
-            text = $"{item.displayName}: {stock.Name} — \"{n.Template.initialHeadline}\" → {(n.Success ? "성공" : "실패")} {Pct(n.Effect)}";
-            if (withTiming)
-                text += n.RevealAtClose ? " · 장 마감에 발표" : $" · 장 시작 {n.RevealTick * session.Settings.secondsPerTick:0}초 뒤 특보";
-            return true;
+        /// <summary>인생역전 복권: 장 결과 때 debtAmount 확률로 amount.</summary>
+        void DrawLottery()
+        {
+            if (lottery == null) return;
+            bool win = rng.NextDouble() < lottery.debtAmount;
+            if (win)
+            {
+                session.Portfolio.Deposit(lottery.amount);
+                Today.ItemCash += lottery.amount;
+            }
+            string line = win ? $"{lottery.displayName}: 당첨! +{Money(lottery.amount)}" : $"{lottery.displayName}: 꽝…";
+            hints.Add(line);
+            Say(line);
+            lottery = null;
+        }
+
+        /// <summary>파산 경보기: 현금+주식이 위험 금액 밑으로 내려가면 한 번 울리고, 다시 올라오면 다음에 또 울린다.</summary>
+        void CheckAlarm()
+        {
+            if (alarm == null) return;
+            float total = TotalAssets();
+            bool danger = total < alarm.amount;
+            if (danger && !alarmOn)
+            {
+                alarmOn = true;
+                Say($"[파산 경보] 현금+주식 {Money(total)} — {Money(alarm.amount)} 밑으로 떨어졌어요!");
+                AlarmFired?.Invoke();
+            }
+            else if (!danger) alarmOn = false;
         }
 
         static string Pct(float change) => (change >= 0f ? "+" : "") + (change * 100f).ToString("0") + "%";
@@ -759,6 +857,7 @@ namespace BurningAnt.Core
         void OnTicked()
         {
             RevealDueNews();
+            CheckAlarm();
             if (autoSells.Count == 0 || session.Phase != MarketPhase.Open) return;
 
             for (int i = autoSells.Count - 1; i >= 0; i--)
@@ -812,22 +911,6 @@ namespace BurningAnt.Core
                     AutoMode.Trailing => $"{a.Stock.Name} 추적 손절 (최고 {a.Peak * 100f:+0;-0}%에서 -{a.Item.triggerRate * 100f:0}%p)",
                     _ => $"{a.Stock.Name} 목표가 매수 {Money(a.BuyPrice)}",
                 };
-        }
-
-        /// <summary>손실 보험 증서: 오늘 매매 손실이 있으면 그 일부를 현금으로 돌려준다.</summary>
-        void ApplyInsurance()
-        {
-            if (insurance == null) return;
-            float loss = -Today.Stocks.Values.Sum(l => l.ProfitLoss); // 매매 손익만 (아이템 현금은 빼고)
-            if (loss > 0f)
-            {
-                float refund = loss * Mathf.Clamp01(insurance.amount);
-                session.Portfolio.Deposit(refund);
-                Today.InsuranceRefund = refund;
-                Today.ItemCash += refund;
-                Say($"{insurance.displayName}: 손실 보상 +{Money(refund)}");
-            }
-            insurance = null;
         }
 
         void ResetMarketEffects()

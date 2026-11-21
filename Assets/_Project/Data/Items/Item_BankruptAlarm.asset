@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ed2c906fd971364a97236656d11d5d5, type: 3}
+  m_Name: Item_BankruptAlarm
+  m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
+  kind: 23
+  displayName: "\uD30C\uC0B0 \uACBD\uBCF4\uAE30"
+  price: 300000
+  description: "[\uC7A5 \uC804\xB7\uC7A5 \uC911] \uC624\uB298 \uD604\uAE08+\uC8FC\uC2DD\uC774 2,000\uB9CC\uC6D0 \uBC11\uC73C\uB85C \uB0B4\uB824\uAC00\uBA74 \uD654\uBA74\uACFC \uC18C\uB9AC\uB85C \uAC15\uD558\uAC8C \uACBD\uACE0\uD574\uC694."
+  icon: {fileID: 0}
+  accuracy: 1
+  triggerRate: 0
+  durationSeconds: 0
+  speedMultiplier: 0
+  amount: 20000000
+  debtAmount: 0
+  loanRate: 0

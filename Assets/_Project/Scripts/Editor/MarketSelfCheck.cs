@@ -83,6 +83,20 @@ namespace BurningAnt.Editor
             for (int i = 0; i < 4; i++) Expect(p.Buy(s[i], 1, 10f).Success, "4종목까지 매수");
             Expect(p.Buy(s[4], 1, 10f).Error == TradeError.TooManyHoldings, "5번째 종목 매수 불가");
             Expect(p.Buy(s[0], 1, 10f).Success, "이미 보유한 종목은 추가 매수 가능");
+            p.BonusHoldings = 1;
+            Expect(p.MaxHoldings == 5 && p.Buy(s[4], 1, 10f).Success, "듀얼 모니터: 그날 5종목까지");
+
+            // 영혼의 풀매수(다음 매수 10배) · 악마의 계약서(다음 매도 손익 1.5배)
+            var q = new Portfolio(10000f, 0f, 4, 3f);
+            q.NextBuyLeverage = 10f;
+            Expect(q.Buy(s[0], 10, 100f).Success && Mathf.Approximately(q.GetHolding(s[0]).Leverage, 10f) && q.NextBuyLeverage == 0f, "풀매수: 다음 매수 1회만 10배");
+            Expect(q.Buy(s[1], 10, 100f).Success && Mathf.Approximately(q.GetHolding(s[1]).Leverage, 3f), "그다음 매수는 다시 3배");
+            q.NextSellMultiplier = 1.5f;
+            float before = q.Cash;
+            Expect(q.Sell(s[0], 10, 110f).Success, "풀매수 종목 매도");
+            Near(q.LastRealized, 100f * 10f * 1.5f, "손익 = 가격 차 100 × 10배 × 1.5");
+            Near(q.Cash - before, 1000f + 1500f, "받는 돈 = 넣은 돈 + 손익");
+            Expect(Mathf.Approximately(q.NextSellMultiplier, 1f), "악마의 계약서는 매도 1회만");
         }
 
         static void CheckMaxOrders(StockState s)

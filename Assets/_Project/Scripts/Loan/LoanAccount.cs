@@ -1,25 +1,41 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace BurningAnt.Loan
 {
     /// <summary>
-    /// 빚 = 일반 대출(시작 1억 + 햇살론 + 안 낸 이자 + 악마의 계약서) + 추가 대출(30%, 다다음 날부터 이자).
+    /// 빚 = 대출 여러 개. 대출마다 원금 · 하루 이자율 · 이자가 붙기 시작하는 날이 따로 있다.
+    /// 0번 = 기본 대출(5%, 3일차부터). 안 낸 이자 · 사채업자 명함 · 더 강한 악마의 계약서는 기본 대출에 더한다.
+    /// 그 밖: 추가 대출(30%, 다다음 날부터), 무대출·콩대출(20%), 햇살론(30%) (각각 다음 날부터).
     /// 현금 이동은 호출하는 쪽(Portfolio)이 한다.
     /// </summary>
     public class LoanAccount
     {
-        readonly LoanSettings settings;
+        public class Loan
+        {
+            public string Name;
+            public float Principal;
+            public float Rate;
+            public int StartDay;
+        }
 
-        public float MainDebt { get; private set; }
-        public float ExtraDebt { get; private set; }
-        public float Debt => MainDebt + ExtraDebt;
-        public float InterestRate { get; private set; }
-        public float ExtraRate => settings.extraLoanRate;
+        readonly LoanSettings settings;
+        readonly List<Loan> loans = new();
+
+        public IReadOnlyList<Loan> Loans => loans;
+        Loan Base => loans[0];
+
+        public float MainDebt => Base.Principal;
+        public float Debt => loans.Sum(l => l.Principal);
+        /// <summary>기본 대출 이자율.</summary>
+        public float InterestRate => Base.Rate;
         public bool ExtraLoanUsed { get; private set; }
-        public int ExtraLoanDay { get; private set; }
+        public bool EmergencyUsed { get; private set; }
+        /// <summary>신용등급 세탁기: 다음 대출 1회(기본 대출 제외)의 이자율 절반.</summary>
+        public bool HalveNextRate { get; set; }
         /// <summary>지금까지 갚은 금액 합계 (빚 상환 게이지용, 이자 포함).</summary>
         public float TotalRepaid { get; private set; }
-        public bool EmergencyUsed { get; private set; }
 
         public bool IsPaidOff => Debt <= 0.5f;
         public bool CanTakeExtraLoan => !ExtraLoanUsed;
@@ -27,25 +43,21 @@ namespace BurningAnt.Loan
         public LoanAccount(LoanSettings settings)
         {
             this.settings = settings;
-            MainDebt = settings.startingDebt;
-            InterestRate = settings.baseInterestRate;
+            loans.Add(new Loan { Name = "기본 대출", Principal = settings.startingDebt, Rate = settings.baseInterestRate, StartDay = settings.interestStartDay });
         }
 
-        public bool IsInterestDay(int day) => day >= settings.interestStartDay;
+        IEnumerable<Loan> ChargedOn(int day) => loans.Where(l => l.Principal > 0.5f && day >= l.StartDay);
 
-        /// <summary>그날 장 결과에서 낼 이자. 추가 대출은 빌린 날 + 2일부터.</summary>
-        public float InterestDue(int day)
-        {
-            if (!IsInterestDay(day)) return 0f;
-            float due = MainDebt * InterestRate;
-            if (ExtraLoanUsed && day >= ExtraLoanDay + settings.extraLoanGraceDays) due += ExtraDebt * settings.extraLoanRate;
-            return due;
-        }
+        /// <summary>그날 장 결과에서 낼 이자 = 이자가 붙기 시작한 대출들의 원금 × 이자율 합.</summary>
+        public float InterestDue(int day) => ChargedOn(day).Sum(l => l.Principal * l.Rate);
 
-        /// <summary>안 낸 이자는 일반 빚에 붙는다.</summary>
+        /// <summary>그날 이자가 붙는 이자율들 (화면 표시용, 높은 순).</summary>
+        public IEnumerable<float> RatesOn(int day) => ChargedOn(day).Select(l => l.Rate).Distinct().OrderByDescending(r => r);
+
+        /// <summary>안 낸 이자는 기본 대출에 붙는다.</summary>
         public void AddUnpaidInterest(float amount)
         {
-            if (amount > 0f) MainDebt += amount;
+            if (amount > 0f) Base.Principal += amount;
         }
 
         /// <summary>이자를 냈다 (상환 게이지에만 더함).</summary>
@@ -54,14 +66,26 @@ namespace BurningAnt.Loan
             if (amount > 0f) TotalRepaid += amount;
         }
 
-        /// <summary>추가 대출 (한 판에 1번, 최대 extraLoanMax). 성공하면 빌린 금액, 실패하면 0.</summary>
+        /// <summary>새 대출 하나. 세탁기가 걸려 있으면 이자율 절반. 실제로 붙은 이자율을 돌려준다.</summary>
+        public float AddLoan(string name, float amount, float rate, int startDay)
+        {
+            if (amount <= 0f) return 0f;
+            if (HalveNextRate)
+            {
+                rate *= 0.5f;
+                HalveNextRate = false;
+            }
+            loans.Add(new Loan { Name = name, Principal = amount, Rate = rate, StartDay = startDay });
+            return rate;
+        }
+
+        /// <summary>추가 대출 (한 판에 1번, 최대 extraLoanMax, 다다음 날부터 이자). 성공하면 빌린 금액, 실패하면 0.</summary>
         public float TakeExtraLoan(float amount, int day)
         {
             amount = Mathf.Min(amount, settings.extraLoanMax);
             if (ExtraLoanUsed || amount <= 0f) return 0f;
             ExtraLoanUsed = true;
-            ExtraLoanDay = day;
-            ExtraDebt += amount;
+            AddLoan("추가 대출", amount, settings.extraLoanRate, day + settings.extraLoanGraceDays);
             return amount;
         }
 
@@ -72,49 +96,45 @@ namespace BurningAnt.Loan
             return Mathf.Min(shortfall + settings.emergencyLoanBuffer, settings.emergencyLoanMax);
         }
 
-        /// <summary>햇살론 (한 판에 1번). 실패하면 0.</summary>
-        public float TakeEmergencyLoan(float shortfall)
+        /// <summary>햇살론 (한 판에 1번, 파산 직전에만). 다음 날부터 이자. 실패하면 0.</summary>
+        public float TakeEmergencyLoan(float shortfall, int day = 0)
         {
             float amount = EmergencyAmount(shortfall);
             if (amount <= 0f) return 0f;
             EmergencyUsed = true;
-            MainDebt += amount;
-            InterestRate += settings.emergencyRateStep;
+            AddLoan("햇살론", amount, settings.emergencyRate, day + 1);
             return amount;
         }
 
-        /// <summary>악마의 계약서: 빚을 늘린다.</summary>
+        /// <summary>기본 대출 원금을 늘린다 (사채업자 명함, 더 강한 악마의 계약서).</summary>
         public void AddDebt(float amount)
         {
-            if (amount > 0f) MainDebt += amount;
+            if (amount > 0f) Base.Principal += amount;
         }
 
-        /// <summary>채무 조정: 이자율을 내린다 (시작 이자율 밑으로는 안 내려감). 실제로 내린 폭을 돌려준다.</summary>
-        public float ReduceRate(float step)
+        /// <summary>채무 조정: 기본 대출 원금을 ratio만큼 줄인다. 줄인 금액을 돌려준다.</summary>
+        public float ReduceBasePrincipal(float ratio)
         {
-            float before = InterestRate;
-            InterestRate = Mathf.Max(settings.baseInterestRate, InterestRate - step);
-            return before - InterestRate;
+            float cut = Base.Principal * Mathf.Clamp01(ratio);
+            Base.Principal -= cut;
+            return cut;
         }
 
-        /// <summary>햇살론(회생): 이미 쓴 긴급 대출 기회를 되살린다. 아직 안 썼으면 false.</summary>
-        public bool RestoreEmergency()
-        {
-            if (!EmergencyUsed) return false;
-            EmergencyUsed = false;
-            return true;
-        }
-
-        /// <summary>최대 amount만큼 갚고 실제로 갚은 금액을 돌려준다. 이자 높은 추가 대출부터 갚는다.</summary>
+        /// <summary>최대 amount만큼 갚고 실제로 갚은 금액을 돌려준다. 이자율 높은 대출부터 갚는다.</summary>
         public float Repay(float amount)
         {
-            float paid = Mathf.Clamp(amount, 0f, Debt);
-            float toExtra = Mathf.Min(paid, ExtraDebt);
-            ExtraDebt -= toExtra;
-            MainDebt -= paid - toExtra;
+            float left = Mathf.Clamp(amount, 0f, Debt);
+            float paid = left;
+            foreach (var l in loans.OrderByDescending(x => x.Rate))
+            {
+                float p = Mathf.Min(left, l.Principal);
+                l.Principal -= p;
+                left -= p;
+                if (l.Principal < 0.5f) l.Principal = 0f;
+            }
+            var basis = Base;
+            loans.RemoveAll(l => l != basis && l.Principal <= 0f); // 다 갚은 대출은 지운다 (기본 대출은 0원으로 남김)
             TotalRepaid += paid;
-            if (ExtraDebt < 0.5f) ExtraDebt = 0f;
-            if (MainDebt < 0.5f) MainDebt = 0f;
             return paid;
         }
     }

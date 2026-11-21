@@ -13,13 +13,14 @@ MonoBehaviour:
   m_Name: Item_LoanRadish
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
   kind: 14
-  displayName: "\uBB34"
-  price: 2000000
-  description: "\uBB34\uB2F4\uBCF4 \uB300\uCD9C. \uC9C0\uAE08 \uBC14\uB85C \uD604\uAE08 5,000\uB9CC\uC6D0. \uB300\uC2E0 \uBE5A\uC774 5,500\uB9CC\uC6D0 \uB298\uC5B4\uB098\uC694. \uC7A5 \uC804\xB7\uC7A5 \uC911 \uC5B8\uC81C\uB4E0."
+  displayName: "\uBB34\uB300\uCD9C"
+  price: 200000
+  description: "[\uC7A5 \uC804\xB7\uC7A5 \uC911] \uC989\uC2DC 5,000\uB9CC\uC6D0 \uB300\uCD9C. \uD558\uB8E8 \uC774\uC790 20% (\uB2E4\uC74C \uB0A0\uBD80\uD130)."
   icon: {fileID: 2800000, guid: 0dc79c9caea7b4a46a60b919e7c00dc0, type: 3}
-  accuracy: 0.75
+  accuracy: 1
   triggerRate: 0
   durationSeconds: 0
   speedMultiplier: 0
   amount: 50000000
-  debtAmount: 55000000
+  debtAmount: 50000000
+  loanRate: 0.2

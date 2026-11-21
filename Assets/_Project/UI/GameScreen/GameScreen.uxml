@@ -93,7 +93,6 @@
             <ui:VisualElement class="news-paper">
                 <ui:Label name="news-paper-date" text="1일차 아침" class="news-paper-date" />
                 <ui:ScrollView name="news-paper-list" class="news-paper-list" />
-                <ui:Label text="뉴스가 뜬 종목은 오늘 크게 움직여요. 오를지 내릴지는 예지 아이템으로!" class="news-paper-note" />
                 <ui:Button name="news-paper-button" text="확인 · 아이템 단계로" class="news-paper-button" />
             </ui:VisualElement>
         </ui:VisualElement>
@@ -124,6 +123,7 @@
                         <ui:Label text="빚 갚기" class="pay-box-title" />
                         <ui:VisualElement class="row">
                             <ui:FloatField name="repay-field" value="0" class="repay-field" />
+                            <ui:Label text="만원" class="caption" />
                             <ui:Button name="repay-button" text="빚 갚기" />
                             <ui:Button name="repay-all-button" text="현금 전부" />
                         </ui:VisualElement>
@@ -201,6 +201,17 @@
                 <ui:Button name="loan-confirm-button" text="빌리기" class="modal-button" />
                 <ui:Button name="loan-cancel-button" text="취소" class="modal-button modal-button--sub" />
             </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- 망원경: 고른 종목의 앞으로 몇 초 가격 (장 중, 따로 창) -->
+        <ui:VisualElement name="telescope-panel" class="telescope-panel" picking-mode="Ignore">
+            <ui:Label name="telescope-title" class="telescope-title" picking-mode="Ignore" />
+            <BurningAnt.UI.PriceChartElement name="telescope-chart" class="telescope-chart" picking-mode="Ignore" />
+        </ui:VisualElement>
+
+        <!-- 파산 경보기: 울리면 화면 테두리가 빨갛게 깜빡인다 -->
+        <ui:VisualElement name="alarm-overlay" class="alarm-overlay" picking-mode="Ignore">
+            <ui:Label name="alarm-text" text="파산 경보!" class="alarm-text" picking-mode="Ignore" />
         </ui:VisualElement>
 
         <!-- 튜토리얼: 1일차 각 단계에서 설명 + 대상 강조 (TutorialRunner) -->
