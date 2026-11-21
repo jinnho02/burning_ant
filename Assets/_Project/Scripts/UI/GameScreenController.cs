@@ -48,6 +48,9 @@ namespace BurningAnt.UI
         string lastMessage = "";
         float hintTimer;
         VisualElement titleOverlay;
+        VisualElement newsOverlay;
+        ScrollView newsPaperList;
+        Label newsPaperDate;
         Label titleStart;
         float titleBlinkTimer;
 
@@ -137,6 +140,9 @@ namespace BurningAnt.UI
             newsBandTitle = root.Q<Label>("news-band-title");
             newsBandList = root.Q("news-band-list");
             newsConfirmButton = root.Q<Button>("news-confirm-button");
+            newsOverlay = root.Q("news-overlay");
+            newsPaperList = root.Q<ScrollView>("news-paper-list");
+            newsPaperDate = root.Q<Label>("news-paper-date");
 
             pickerOverlay = root.Q("picker-overlay");
             pickerTitle = root.Q<Label>("picker-title");
@@ -161,6 +167,7 @@ namespace BurningAnt.UI
         void Bind(VisualElement root)
         {
             newsConfirmButton.clicked += game.ConfirmNews;
+            root.Q<Button>("news-paper-button").clicked += game.ConfirmNews;
             root.Q<Button>("picker-cancel-button").clicked += () => Show(pickerOverlay, false);
             root.Q<Button>("repay-button").clicked += () => game.Repay(repayField.value);
             root.Q<Button>("repay-all-button").clicked += () => game.Repay(Session.Portfolio.Cash);
@@ -230,6 +237,8 @@ namespace BurningAnt.UI
             Show(pickerOverlay, false);
             Show(settlementOverlay, game.Phase == GamePhase.Settlement);
             Show(shopOverlay, game.Phase == GamePhase.Shop);
+            Show(newsOverlay, game.Phase == GamePhase.News);
+            if (game.Phase == GamePhase.News) BuildNewsPaper();
             Show(endOverlay, game.Phase == GamePhase.GameOver);
             chart.SetPreview(0);
 
@@ -318,6 +327,20 @@ namespace BurningAnt.UI
         }
 
         /// <summary>뉴스 띠와 종목 리스트의 "뉴스" 표시. 1단계엔 오늘 뉴스 전체, 그 뒤엔 선택한 종목의 뉴스만.</summary>
+        /// <summary>하루 시작 전 신문 화면에 오늘 뉴스를 적는다.</summary>
+        void BuildNewsPaper()
+        {
+            newsPaperDate.text = $"{game.Day}일차 아침";
+            newsPaperList.Clear();
+            foreach (var n in game.TodayNews)
+            {
+                var line = new Label(n.Text);
+                line.AddToClassList("news-paper-item");
+                line.EnableInClassList("news-paper-item--chain", n.Kind != NewsKind.Normal);
+                newsPaperList.Add(line);
+            }
+        }
+
         void RefreshNews()
         {
             if (stockWindow != null)
@@ -407,7 +430,7 @@ namespace BurningAnt.UI
         }
 
         bool AnyOverlayOpen() =>
-            new[] { pickerOverlay, settlementOverlay, shopOverlay, endOverlay, titleOverlay }.Any(o => o != null && o.resolvedStyle.display == DisplayStyle.Flex);
+            new[] { pickerOverlay, settlementOverlay, shopOverlay, endOverlay, titleOverlay, newsOverlay }.Any(o => o != null && o.resolvedStyle.display == DisplayStyle.Flex);
 
         bool IsTyping() =>
             itemBarList.panel?.focusController?.focusedElement is VisualElement focused &&

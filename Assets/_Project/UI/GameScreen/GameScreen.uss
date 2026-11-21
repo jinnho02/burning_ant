@@ -200,3 +200,70 @@
     transition-duration: 0.8s;
 }
 .title-start--dim { opacity: 0.25; }
+
+/* 하루 시작 전 뉴스 확인: 신문 그림 오른쪽 면(그림 폭 25~74%, 높이 21~92%) 안에 글을 둔다 */
+.news-overlay {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    display: none;
+    background-color: #3A2418;
+    background-image: url("../../Art/UI/news.png");
+    -unity-background-scale-mode: scale-and-crop;
+}
+.news-paper {
+    position: absolute;
+    left: 28%;
+    width: 43%;
+    top: 22%;
+    bottom: 10%;
+    color: #3B2A20;
+}
+.news-paper-date { font-size: 22px; -unity-font-style: bold; -unity-text-align: middle-center; color: #5A4030; margin-bottom: 14px; }
+.news-paper-list { flex-grow: 1; }
+.news-paper-item {
+    font-size: 24px;
+    -unity-font-style: bold;
+    white-space: normal;
+    color: #2E1F16;
+    padding: 10px 4px;
+    border-bottom-width: 1px;
+    border-color: rgba(59, 42, 32, 0.35);
+}
+.news-paper-item--chain { color: #9C2A1E; }
+.news-paper-note { font-size: 15px; color: #6B5040; white-space: normal; -unity-text-align: middle-center; margin: 8px 0; }
+.news-paper-button {
+    height: 52px;
+    font-size: 20px;
+    -unity-font-style: bold;
+    border-radius: 10px;
+    border-width: 0;
+    background-color: #3B2A20;
+    color: #F6EBDD;
+}
+.news-paper-button:hover { background-color: #5A4030; }
+
+/* 상점: 서류가방 그림 안쪽 붉은 천 부분(그림 폭 4~79%, 높이 31~83%) 안에 진열 */
+.shop-overlay {
+    background-color: #1A0B12;
+    background-image: url("../../Art/UI/store.png");
+    -unity-background-scale-mode: scale-and-crop;
+}
+.shop-case {
+    position: absolute;
+    left: 6%;
+    width: 71%;
+    top: 32%;
+    bottom: 18%;
+    color: #F6E7D8;
+}
+.shop-case .modal-title { color: #F6E7D8; font-size: 24px; margin-bottom: 6px; }
+.shop-case .shop-cash { color: #F2C14E; font-size: 20px; }
+.shop-case .shop-list { flex-grow: 1; max-height: none; }
+.shop-case .shop-row { background-color: rgba(15, 4, 8, 0.6); border-width: 1px; border-color: rgba(242, 193, 78, 0.35); padding: 6px 12px; margin-bottom: 5px; }
+.shop-case .shop-name { color: #FFFFFF; }
+.shop-case .shop-desc { color: #E0C9B8; }
+.shop-case .shop-tag { background-color: rgba(242, 193, 78, 0.2); color: #F2C14E; }
+.shop-case .shop-price { color: #F2C14E; }
+.shop-case .shop-owned { color: #E0C9B8; }
+.shop-case .message { color: #F6E7D8; }
+.shop-case .modal-button { background-color: #F2C14E; color: #2A0E16; -unity-font-style: bold; border-width: 0; }

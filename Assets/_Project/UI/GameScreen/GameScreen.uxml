@@ -74,6 +74,16 @@
             <ui:VisualElement name="news-band-list" />
         </ui:VisualElement>
 
+        <!-- 하루 시작 전 뉴스 확인: 신문 그림(Art/UI/news.png) 오른쪽 면에 뉴스를 적는다 -->
+        <ui:VisualElement name="news-overlay" class="news-overlay">
+            <ui:VisualElement class="news-paper">
+                <ui:Label name="news-paper-date" text="1일차 아침" class="news-paper-date" />
+                <ui:ScrollView name="news-paper-list" class="news-paper-list" />
+                <ui:Label text="뉴스는 정확하지만 폭이 작아요. 아이템 힌트는 틀릴 수 있어요." class="news-paper-note" />
+                <ui:Button name="news-paper-button" text="확인 · 아이템 단계로" class="news-paper-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <!-- 단계별 창 -->
         <ui:VisualElement name="picker-overlay" class="overlay">
             <ui:VisualElement class="modal">
@@ -99,8 +109,9 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:VisualElement name="shop-overlay" class="overlay">
-            <ui:VisualElement class="modal modal--wide">
+        <!-- 상점: 서류가방 그림(Art/UI/store.png) 안쪽에 진열 -->
+        <ui:VisualElement name="shop-overlay" class="overlay shop-overlay">
+            <ui:VisualElement class="shop-case">
                 <ui:VisualElement class="row row--spread">
                     <ui:Label text="상점 · 내일 쓸 아이템 고르기" class="modal-title" />
                     <ui:Label name="shop-cash" text="현금 $0.00" class="shop-cash" />
