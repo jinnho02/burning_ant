@@ -926,6 +926,17 @@ namespace BurningAnt.UI
         {
             if (characterArea == null || portrait == null) return;
             if (!force && Mathf.Approximately(appliedCharacterScale, characterScale)) return;
+
+            // 1배: USS 배치 그대로 (말풍선 · 그림 · 표정 문구가 위아래로 나뉘어 겹치지 않음)
+            if (characterScale <= 1.01f)
+            {
+                portrait.style.position = StyleKeyword.Null;
+                portrait.style.top = portrait.style.left = portrait.style.bottom = portrait.style.right = StyleKeyword.Null;
+                portrait.style.width = portrait.style.height = StyleKeyword.Null;
+                characterArea.style.overflow = StyleKeyword.Null;
+                appliedCharacterScale = characterScale;
+                return;
+            }
             float areaH = characterArea.layout.height, areaW = characterArea.layout.width;
             if (float.IsNaN(areaH) || areaH <= 0f) return;
 
@@ -939,13 +950,14 @@ namespace BurningAnt.UI
             float w = areaW * (h / baseH);
             characterArea.style.overflow = characterScale > 1.01f ? Overflow.Visible : Overflow.Hidden;
 
+            portrait.style.position = Position.Absolute;
             portrait.style.top = StyleKeyword.Auto;
             portrait.style.left = StyleKeyword.Auto;
             portrait.style.bottom = 0f;
             portrait.style.right = 0f;
             portrait.style.height = h;
             portrait.style.width = w;
-            portrait.SendToBack(); // 말풍선·표정 라벨이 그림 위에 오도록
+            portrait.SendToBack(); // 1배보다 크면 그림이 영역을 넘으므로 말풍선·표정 라벨이 그 위에 온다
             appliedCharacterScale = characterScale;
         }
 

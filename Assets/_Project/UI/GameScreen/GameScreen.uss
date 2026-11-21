@@ -421,7 +421,9 @@
 .body--areas .hint-card { margin-top: 8px; padding: 8px 0 0 0; max-height: none; border-width: 0; border-top-width: 1px; border-color: var(--gs-border); background-color: rgba(0, 0, 0, 0); }
 .body--areas .hint-list { max-height: 160px; }
 
-.body--areas .character-area { flex-grow: 1; flex-basis: 0; margin-right: 0; overflow: hidden; }
-.body--areas .mood-box { left: 0; right: 0; bottom: 10px; }
-.body--areas .speech { top: 8px; left: 8px; right: 8px; max-width: none; font-size: 14px; }
-.body--areas .face { right: 0; }
+/* 주인공 영역: 말풍선(위) · 그림(가운데) · 표정·옷(아래)을 위아래로 나눠 그림 위에 아무것도 겹치지 않게 */
+.body--areas .character-area { flex-grow: 1; flex-basis: 0; margin-right: 0; overflow: hidden; flex-direction: column; padding: 8px; }
+.body--areas .speech { position: relative; top: auto; left: auto; right: auto; max-width: none; font-size: 14px; flex-shrink: 0; align-self: flex-start; }
+.body--areas .portrait { position: relative; left: auto; right: auto; top: auto; bottom: auto; flex-grow: 1; min-height: 0; margin: 4px 0; }
+.body--areas .mood-box { position: relative; left: auto; right: auto; bottom: auto; flex-shrink: 0; }
+.body--areas .face { position: relative; bottom: auto; right: auto; flex-grow: 1; }

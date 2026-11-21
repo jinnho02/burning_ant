@@ -70,9 +70,9 @@
 
                 <!-- 주인공: 그림은 CharacterSettings, 그림이 없으면 글자 얼굴 -->
                 <ui:VisualElement name="character-area" class="area area--warm character-area" picking-mode="Ignore">
+                    <ui:Label name="speech-label" text="오늘은 뭘 살까~?" class="speech" />
                     <ui:VisualElement name="portrait" class="portrait" picking-mode="Ignore" />
                     <ui:Label name="face-label" text="(-_-)" class="face" />
-                    <ui:Label name="speech-label" text="오늘은 뭘 살까~?" class="speech" />
                     <ui:VisualElement class="mood-box" picking-mode="Ignore">
                         <ui:Label name="mood-label" text="보합 · 오늘 +0.00%" class="mood" />
                         <ui:Label name="outfit-label" text="평범 · 깔끔한 셔츠" class="outfit" />
