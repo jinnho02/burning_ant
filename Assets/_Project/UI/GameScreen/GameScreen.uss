@@ -190,13 +190,12 @@
     position: absolute;
     left: 58%;
     width: 34%;
-    top: 73%;
+    top: 81%;
     -unity-text-align: middle-center;
     font-size: 40px;
     -unity-font-style: bold;
     color: #FFFFFF;
-    -unity-text-outline-width: 3px;
-    -unity-text-outline-color: #C2185B;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
     transition-property: opacity;
     transition-duration: 0.4s;
 }
