@@ -103,6 +103,8 @@ namespace BurningAnt.Core
         public event Action Changed;
         public event Action PhaseChanged;
         public event Action<string> Message;
+        /// <summary>상점에서 아이템을 산 순간 (골드 효과음).</summary>
+        public event Action<ItemDefinition> ItemBought;
 
         void Awake()
         {
@@ -274,15 +276,13 @@ namespace BurningAnt.Core
             lastClosed.Clear();
             LastSettlementCharge = session.Portfolio.SettleNegatives(session.CurrentPrice, lastClosed);
             ApplyInsurance();
-            LastInterest = 0f;
-            if (Loan.IsInterestDay(Day))
+            // 오늘 이자: 3일차부터 매일. 장 결과에서 '이자 갚기'로 내고, 안 내면 상점으로 갈 때 빚에 붙는다
+            LastInterest = Loan.InterestDue(Day);
+            if (LastInterest > 0f && interestDeferrals > 0)
             {
-                if (interestDeferrals > 0)
-                {
-                    interestDeferrals--;
-                    Today.InterestDeferred = true;
-                }
-                else LastInterest = Loan.ApplyInterest();
+                interestDeferrals--;
+                Today.InterestDeferred = true;
+                LastInterest = 0f;
             }
             Today.SettlementCharge = LastSettlementCharge;
             Today.ClosedStocks.AddRange(lastClosed);
@@ -290,17 +290,55 @@ namespace BurningAnt.Core
 
             if (session.Portfolio.Cash < 0f)
             {
-                if (Loan.EmergencyUsed)
+                // 햇살론은 한 판에 1번, 모자란 돈이 한도(1억)를 넘으면 못 받는다 → 파산
+                if (Loan.EmergencyAmount(-session.Portfolio.Cash) <= 0f)
                 {
                     GoBankrupt();
                     return;
                 }
-                NeedsEmergency = true; // 4단계 직전: 긴급 대출을 받을지 고른다
+                NeedsEmergency = true; // 4단계 직전: 햇살론을 받을지 고른다
             }
             SetPhase(GamePhase.Settlement);
         }
 
-        /// <summary>긴급 대출 수락: 모자란 금액 + 여유분을 빌려 잔고를 0 이상으로 만든다 (한 판에 1번).</summary>
+        /// <summary>오늘 아직 안 낸 이자.</summary>
+        public float InterestLeft => Today == null ? 0f : Mathf.Max(0f, Today.Interest - Today.InterestPaid);
+
+        /// <summary>장 결과에서 오늘 이자를 낸다 (현금이 모자라면 있는 만큼).</summary>
+        public void PayInterest()
+        {
+            if (Phase != GamePhase.Settlement || NeedsEmergency) return;
+            float pay = Mathf.Min(InterestLeft, session.Portfolio.Cash);
+            if (InterestLeft <= 0f)
+            {
+                Say(Today.Interest > 0f ? "오늘 이자는 다 냈어요" : "오늘은 낼 이자가 없어요");
+                return;
+            }
+            if (pay <= 0f)
+            {
+                Say("이자를 낼 현금이 없어요");
+                return;
+            }
+            session.Portfolio.Withdraw(pay);
+            Loan.RecordInterestPaid(pay);
+            Today.InterestPaid += pay;
+            Say($"이자 {Money(pay)} 냈어요");
+            if (CheckWin()) return;
+            Changed?.Invoke();
+        }
+
+        /// <summary>승리: 빚(원금 + 이자)을 다 갚고 자산이 목표(5억) 이상.</summary>
+        bool CheckWin()
+        {
+            if (!Loan.IsPaidOff || InterestLeft > 0f || TotalAssets() < loanSettings.winAssets) return false;
+            Won = true;
+            SetPhase(GamePhase.GameOver);
+            return true;
+        }
+
+        static string Money(float v) => BurningAnt.UI.Format.Money(v);
+
+        /// <summary>햇살론 수락: 모자란 금액 + 여유분을 빌려 잔고를 0 이상으로 만든다 (한 판에 1번).</summary>
         public void AcceptEmergencyLoan()
         {
             if (!NeedsEmergency) return;
@@ -313,7 +351,7 @@ namespace BurningAnt.Core
             }
             session.Portfolio.Deposit(amount);
             Today.EmergencyLoan += amount;
-            Say($"긴급 대출 ${amount:N0} (이자율 {Loan.InterestRate * 100f:0}%)");
+            Say($"햇살론 {Money(amount)} (이자율 {Loan.InterestRate * 100f:0}%)");
             Changed?.Invoke();
         }
 
@@ -322,6 +360,13 @@ namespace BurningAnt.Core
             if (!NeedsEmergency) return;
             NeedsEmergency = false;
             GoBankrupt();
+        }
+
+        /// <summary>시연·테스트용 (-autoplay-win / -autoplay-bankrupt): 바로 엔딩으로.</summary>
+        public void EndForDemo(bool won)
+        {
+            Won = won;
+            SetPhase(GamePhase.GameOver);
         }
 
         void GoBankrupt()
@@ -333,6 +378,14 @@ namespace BurningAnt.Core
         public void GoToShop()
         {
             if (Phase != GamePhase.Settlement || NeedsEmergency) return;
+            float unpaid = InterestLeft;
+            if (unpaid > 0f)
+            {
+                Loan.AddUnpaidInterest(unpaid);
+                Today.InterestUnpaid = unpaid;
+                Today.InterestPaid = Today.Interest; // 빚에 붙었으니 오늘 이자는 끝
+            }
+            if (CheckWin()) return;
             RollShop();
             SetPhase(GamePhase.Shop);
         }
@@ -365,34 +418,30 @@ namespace BurningAnt.Core
             session.Portfolio.Withdraw(pay);
             Loan.Repay(pay);
             Today.Repaid += pay;
-            Say($"${pay:N2} 갚았어요");
-
-            if (Loan.IsPaidOff)
-            {
-                Won = true;
-                SetPhase(GamePhase.GameOver);
-                return;
-            }
+            Say(Loan.IsPaidOff && TotalAssets() < loanSettings.winAssets
+                ? $"{Money(pay)} 갚아서 빚 0원! 자산 {Money(loanSettings.winAssets)}을 모으면 성공"
+                : $"{Money(pay)} 갚았어요");
+            if (CheckWin()) return;
             Changed?.Invoke();
         }
 
-        /// <summary>추가 대출은 2단계(아이템·예약)에서만.</summary>
-        public void TakeExtraLoan()
+        /// <summary>추가 대출은 2단계(아이템·예약)에서만, 한 판에 1번, 최대 2억. 이자는 다다음 날부터.</summary>
+        public void TakeExtraLoan(float amount)
         {
             if (Phase != GamePhase.Prep)
             {
                 Say("추가 대출은 아이템 단계(2단계)에서만 받을 수 있어요");
                 return;
             }
-            float amount = Loan.TakeExtraLoan();
-            if (amount <= 0f)
+            float got = Loan.TakeExtraLoan(amount, Day);
+            if (got <= 0f)
             {
-                Say("추가 대출을 모두 썼어요");
+                Say(Loan.ExtraLoanUsed ? "추가 대출은 한 번만 받을 수 있어요" : "빌릴 금액을 입력하세요");
                 return;
             }
-            session.Portfolio.Deposit(amount);
-            Today.ExtraLoan += amount;
-            Say($"추가 대출 ${amount:N0} (이자율 {Loan.InterestRate * 100f:0}%)");
+            session.Portfolio.Deposit(got);
+            Today.ExtraLoan += got;
+            Say($"추가 대출 {Money(got)} (하루 이자 {Loan.ExtraRate * 100f:0}%, {Day + loanSettings.extraLoanGraceDays}일차부터)");
             Changed?.Invoke();
         }
 
@@ -423,6 +472,7 @@ namespace BurningAnt.Core
                 return;
             }
             Inventory.Add(item);
+            ItemBought?.Invoke(item);
             Say($"{item.displayName} 구매");
             Changed?.Invoke();
         }
@@ -513,7 +563,7 @@ namespace BurningAnt.Core
                     float buyAt = session.CurrentPrice(target) * (1f - item.triggerRate);
                     autoSells.RemoveAll(a => a.Stock == target && a.Mode == AutoMode.TargetBuy);
                     autoSells.Add(new AutoSell { Stock = target, Item = item, Mode = AutoMode.TargetBuy, BuyPrice = buyAt });
-                    result = $"{item.displayName}: {target.Name}이 ${buyAt:N2}(-{item.triggerRate * 100f:0}%) 이하가 되면 현금 전부로 자동 매수";
+                    result = $"{item.displayName}: {target.Name}이 {Money(buyAt)}(-{item.triggerRate * 100f:0}%) 이하가 되면 현금 전부로 자동 매수";
                     break;
                 }
                 case ItemKind.SoulAllIn:
@@ -527,7 +577,7 @@ namespace BurningAnt.Core
                         Say(r.Error == TradeError.TooManyHoldings ? "보유 종목이 꽉 찼어요" : "살 현금이 없어요");
                         return;
                     }
-                    result = $"{item.displayName}: {target.Name} {r.Shares}주 풀매수 @ ${r.Price:N2} (수수료 없음)";
+                    result = $"{item.displayName}: {target.Name} {r.Shares}주 풀매수 @ {Money(r.Price)} (수수료 없음)";
                     break;
                 }
                 case ItemKind.SectorRumor:
@@ -543,7 +593,7 @@ namespace BurningAnt.Core
                     break;
                 }
                 case ItemKind.OpenLeak:
-                    result = $"{item.displayName}: {target.Name} 오늘 시가 ${target.OpenPrice:N2} (전일 대비 {Pct(target.OpenPrice / target.PrevClose - 1f)})";
+                    result = $"{item.displayName}: {target.Name} 오늘 시가 {Money(target.OpenPrice)} (전일 대비 {Pct(target.OpenPrice / target.PrevClose - 1f)})";
                     break;
                 case ItemKind.VolatilityRadar:
                 {
@@ -576,11 +626,11 @@ namespace BurningAnt.Core
                     Loan.AddDebt(item.debtAmount);
                     Today.ItemCash += item.amount;
                     Today.ItemDebt += item.debtAmount;
-                    result = $"{item.displayName}: 현금 +${item.amount:N0}, 빚 +${item.debtAmount:N0}";
+                    result = $"{item.displayName}: 현금 +{Money(item.amount)}, 빚 +{Money(item.debtAmount)}";
                     break;
                 case ItemKind.InterestDeferral:
                     interestDeferrals++;
-                    result = $"{item.displayName}: 다음 이자일({Loan.NextInterestDay(Day)}일차) 이자 면제";
+                    result = $"{item.displayName}: 다음 이자 1번 면제";
                     break;
                 case ItemKind.DebtAdjustment:
                 {
@@ -604,13 +654,13 @@ namespace BurningAnt.Core
                 case ItemKind.Lottery:
                 {
                     double roll = rng.NextDouble();
-                    float prize = roll < 0.02 ? 20000f : roll < 0.12 ? 2000f : roll < 0.42 ? 300f : 0f;
+                    float prize = roll < 0.02 ? 200_000_000f : roll < 0.12 ? 20_000_000f : roll < 0.42 ? 3_000_000f : 0f;
                     if (prize > 0f)
                     {
                         session.Portfolio.Deposit(prize);
                         Today.ItemCash += prize;
                     }
-                    result = prize > 0f ? $"{item.displayName}: 당첨! +${prize:N0}" : $"{item.displayName}: 꽝…";
+                    result = prize > 0f ? $"{item.displayName}: 당첨! +{Money(prize)}" : $"{item.displayName}: 꽝…";
                     break;
                 }
                 case ItemKind.SlowMotion:
@@ -708,7 +758,7 @@ namespace BurningAnt.Core
                     var b = session.Trade(new OrderRequest(a.Stock, OrderSide.Buy, 0, true));
                     autoSells.RemoveAt(i);
                     Say(b.Success
-                        ? $"{a.Item.displayName} 발동: {a.Stock.Name} {b.Shares}주 매수 @ ${b.Price:N2}"
+                        ? $"{a.Item.displayName} 발동: {a.Stock.Name} {b.Shares}주 매수 @ {Money(b.Price)}"
                         : $"{a.Item.displayName}: {a.Stock.Name} 목표가에 닿았지만 살 수 없었어요");
                     continue;
                 }
@@ -735,7 +785,7 @@ namespace BurningAnt.Core
                 autoSells.RemoveAt(i);
                 if (r.Success) Today.AutoSellsFired++;
                 if (r.Success)
-                    Say($"{a.Item.displayName} 발동: {a.Stock.Name} {r.Shares}주 매도 @ ${r.Price:N2}");
+                    Say($"{a.Item.displayName} 발동: {a.Stock.Name} {r.Shares}주 매도 @ {Money(r.Price)}");
             }
         }
 
@@ -748,7 +798,7 @@ namespace BurningAnt.Core
                     AutoMode.StopLoss => $"{a.Stock.Name} 손절 -{a.Item.triggerRate * 100f:0}%",
                     AutoMode.TakeProfit => $"{a.Stock.Name} 익절 +{a.Item.triggerRate * 100f:0}%",
                     AutoMode.Trailing => $"{a.Stock.Name} 추적 손절 (최고 {a.Peak * 100f:+0;-0}%에서 -{a.Item.triggerRate * 100f:0}%p)",
-                    _ => $"{a.Stock.Name} 목표가 매수 ${a.BuyPrice:N2}",
+                    _ => $"{a.Stock.Name} 목표가 매수 {Money(a.BuyPrice)}",
                 };
         }
 
@@ -763,7 +813,7 @@ namespace BurningAnt.Core
                 session.Portfolio.Deposit(refund);
                 Today.InsuranceRefund = refund;
                 Today.ItemCash += refund;
-                Say($"{insurance.displayName}: 손실 보상 +${refund:N2}");
+                Say($"{insurance.displayName}: 손실 보상 +{Money(refund)}");
             }
             insurance = null;
         }

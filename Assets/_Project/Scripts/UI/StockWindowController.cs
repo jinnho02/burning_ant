@@ -62,6 +62,11 @@ namespace BurningAnt.UI
         {
             holdingCountLabel = root.Q<Label>("holding-count");
             listContainer = root.Q("stock-list");
+            if (listContainer is ScrollView sv)
+            {
+                sv.mode = ScrollViewMode.Vertical;
+                sv.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+            }
             nameLabel = root.Q<Label>("stock-name");
             typeBadge = root.Q<Label>("stock-type");
             phaseBadge = root.Q<Label>("phase-badge");
@@ -87,15 +92,26 @@ namespace BurningAnt.UI
             messageLabel = root.Q<Label>("message");
         }
 
+        readonly Dictionary<Sector, Label> groupHeaders = new();
+        Sector? openSector;
+
+        /// <summary>업종 이름만 보이고, 업종을 누르면 그 업종 종목이 펼쳐진다 (한 번에 한 업종).</summary>
         void BuildStockList()
         {
             listContainer.Clear();
             listItems.Clear();
-            // 업종별로 묶어 제목을 단다
+            groupHeaders.Clear();
             foreach (var group in session.Stocks.GroupBy(s => s.Definition.sector).OrderBy(g => g.Key))
             {
-                var header = new Label(group.Key.ToKorean());
+                var sector = group.Key;
+                var header = new Label();
                 header.AddToClassList("stock-group");
+                header.RegisterCallback<ClickEvent>(_ =>
+                {
+                    openSector = openSector == sector ? null : sector;
+                    RefreshGroups();
+                });
+                groupHeaders[sector] = header;
                 listContainer.Add(header);
                 foreach (var stock in group)
                 {
@@ -104,6 +120,22 @@ namespace BurningAnt.UI
                     listContainer.Add(item);
                 }
             }
+            openSector = session.Stocks[0].Definition.sector;
+        }
+
+        void RefreshGroups()
+        {
+            foreach (var (sector, header) in groupHeaders)
+            {
+                bool open = openSector == sector;
+                bool news = listItems.Any(i => i.Stock.Definition.sector == sector && i.HasBadge);
+                bool held = listItems.Any(i => i.Stock.Definition.sector == sector && session.Portfolio.GetHolding(i.Stock).Shares > 0);
+                string marks = (news ? "<color=#D85A30>● 뉴스</color>  " : "") + (held ? "<color=#378ADD>● 보유</color>" : "");
+                header.text = (open ? "▾ " : "▸ ") + sector.ToKorean() + (marks.Length > 0 ? "\n<size=12>" + marks + "</size>" : "");
+                header.EnableInClassList("stock-group--open", open);
+            }
+            foreach (var item in listItems)
+                item.style.display = openSector == item.Stock.Definition.sector ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         void Update()
@@ -195,6 +227,7 @@ namespace BurningAnt.UI
             foreach (var item in listItems)
                 item.Refresh(session.CurrentPrice(item.Stock), pre, portfolio.GetHolding(item.Stock).Shares > 0, item.Stock == selected);
             holdingCountLabel.text = $"보유 {portfolio.HoldingCount}/{portfolio.MaxHoldings}";
+            RefreshGroups();
 
             RefreshHeader(phase, pre);
             RefreshChart(pre);

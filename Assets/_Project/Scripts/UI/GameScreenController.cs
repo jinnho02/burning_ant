@@ -44,22 +44,29 @@ namespace BurningAnt.UI
         MarketSession Session => game.Session;
         StockWindowController stockWindow;
 
-        Label dayLabel, repayLabel, cashLabel, stockValueLabel, debtLabel, interestLabel, loanCountLabel, netWorthLabel;
+        Label dayLabel, repayLabel, cashLabel, stockValueLabel, interestLabel, loanCountLabel, netWorthLabel;
         readonly Label[] steps = new Label[5];
         VisualElement repayFill, itemBarList;
         ScrollView hintList;
-        Label faceLabel, speechLabel, moodLabel, outfitLabel, itemBarHint;
+        Label faceLabel, speechLabel, moodLabel, itemBarHint;
         VisualElement newsBand, newsBandList;
         Label newsBandTitle;
         Button newsConfirmButton, buyButton, sellButton, startButton;
         VisualElement pickerOverlay, settlementOverlay, shopOverlay, endOverlay, emergencyOverlay;
         Label emergencyBody;
         Button loanButton;
-        Label pickerTitle, settlementTitle, settlementSummary, settlementMessage, shopCash, shopMessage, endTitle, endBody;
+        Label pickerTitle, settlementTitle, settlementSummary, settlementMessage, shopCash, shopMessage;
+        VisualElement loanOverlay, interestBox, endingStage, endingEnd;
+        FloatField loanField;
+        Label loanBody, interestDueLabel, endingAmount, endingHint, endingSummary;
+        Button interestPayButton;
+        int endingIndex;
+        float autoTimer;
+        GamePhase autoPhase = GamePhase.GameOver;
         VisualElement pickerList;
         FloatField repayField;
         PriceChartElement chart;
-        VisualElement portrait, endPortrait, characterArea;
+        VisualElement portrait, characterArea;
         float appliedCharacterScale = -1f;
         string lastMessage = "";
         float hintTimer;
@@ -69,7 +76,7 @@ namespace BurningAnt.UI
         int prologuePage, prologueCut;
         float prologueTimer, warningShownAt;
         static bool warningShownThisRun; // 경고창은 실행할 때 한 번만 (다시 하기로 씬을 다시 열면 생략)
-        const string ProloguePrefKey = "BurningAnt.ImagePrologueSeen";
+        static bool prologueShownThisRun;
         VisualElement shopStage, shopGrid, shopTooltip;
         Label shopTipName, shopTipTag, shopTipDesc, shopTipPrice, shopTipOwned;
         ItemDefinition hoveredShopItem;
@@ -105,6 +112,7 @@ namespace BurningAnt.UI
             game.Changed += RefreshAll;
             game.PhaseChanged += OnPhaseChanged;
             game.Message += OnMessage;
+            gameObject.AddComponent<GameAudio>().Init(game, root);
             game.Inventory.Changed += RefreshItemBar;
             Session.Portfolio.Changed += RefreshAll;
             if (stockWindow != null) stockWindow.SelectionChanged += RefreshNews;
@@ -133,6 +141,7 @@ namespace BurningAnt.UI
             LayoutCharacter(false);
             UpdateIntro();
             tutorial?.Update(IntroShowing());
+            AutoPlay();
             RefreshStatus();
             HandleItemKeys();
             if (game.Phase == GamePhase.Market)
@@ -156,7 +165,6 @@ namespace BurningAnt.UI
 
             cashLabel = root.Q<Label>("cash-label");
             stockValueLabel = root.Q<Label>("stock-value-label");
-            debtLabel = root.Q<Label>("debt-label");
             interestLabel = root.Q<Label>("interest-label");
             loanCountLabel = root.Q<Label>("loan-count-label");
             netWorthLabel = root.Q<Label>("networth-label");
@@ -172,8 +180,6 @@ namespace BurningAnt.UI
             faceLabel = root.Q<Label>("face-label");
             speechLabel = root.Q<Label>("speech-label");
             moodLabel = root.Q<Label>("mood-label");
-            outfitLabel = root.Q<Label>("outfit-label");
-            endPortrait = root.Q("end-portrait");
 
             itemBarList = root.Q("item-bar-list");
             itemBarHint = root.Q<Label>("item-bar-hint");
@@ -217,8 +223,20 @@ namespace BurningAnt.UI
             shopMessage = root.Q<Label>("shop-message");
 
             endOverlay = root.Q("end-overlay");
-            endTitle = root.Q<Label>("end-title");
-            endBody = root.Q<Label>("end-body");
+            endingStage = root.Q("ending-stage");
+            endingAmount = root.Q<Label>("ending-amount");
+            endingHint = root.Q<Label>("ending-hint");
+            endingEnd = root.Q("ending-end");
+            endingSummary = root.Q<Label>("ending-summary");
+            endOverlay.RegisterCallback<GeometryChangedEvent>(_ => LayoutEnding());
+            endOverlay.RegisterCallback<ClickEvent>(_ => AdvanceEnding());
+
+            loanOverlay = root.Q("loan-overlay");
+            loanField = root.Q<FloatField>("loan-field");
+            loanBody = root.Q<Label>("loan-body");
+            interestBox = root.Q("interest-box");
+            interestDueLabel = root.Q<Label>("interest-due-label");
+            interestPayButton = root.Q<Button>("interest-pay-button");
         }
 
         void Bind(VisualElement root)
@@ -228,7 +246,14 @@ namespace BurningAnt.UI
             root.Q<Button>("picker-cancel-button").clicked += () => Show(pickerOverlay, false);
             root.Q<Button>("repay-button").clicked += () => game.Repay(repayField.value);
             root.Q<Button>("repay-all-button").clicked += () => game.Repay(Session.Portfolio.Cash);
-            loanButton.clicked += game.TakeExtraLoan;
+            loanButton.clicked += OpenLoan;
+            root.Q<Button>("loan-cancel-button").clicked += () => Show(loanOverlay, false);
+            root.Q<Button>("loan-confirm-button").clicked += () =>
+            {
+                Show(loanOverlay, false);
+                game.TakeExtraLoan(loanField.value);
+            };
+            interestPayButton.clicked += game.PayInterest;
             root.Q<Button>("emergency-accept-button").clicked += game.AcceptEmergencyLoan;
             root.Q<Button>("emergency-decline-button").clicked += game.DeclineEmergencyLoan;
             root.Q<Button>("to-shop-button").clicked += game.GoToShop;
@@ -270,7 +295,8 @@ namespace BurningAnt.UI
         void OnTitleClicked()
         {
             Show(titleOverlay, false);
-            if (alwaysShowPrologue || PlayerPrefs.GetInt(ProloguePrefKey, 0) == 0) StartPrologue();
+            // 실행할 때마다 한 번 (다시 하기로 씬을 다시 열면 생략)
+            if (alwaysShowPrologue || !prologueShownThisRun) StartPrologue();
         }
 
         // ───────── 경고창 · 프롤로그 ─────────
@@ -362,8 +388,7 @@ namespace BurningAnt.UI
 
         void EndPrologue()
         {
-            PlayerPrefs.SetInt(ProloguePrefKey, 1);
-            PlayerPrefs.Save();
+            prologueShownThisRun = true;
             Show(prologueOverlay, false);
         }
 
@@ -420,10 +445,18 @@ namespace BurningAnt.UI
             Show(shopOverlay, game.Phase == GamePhase.Shop);
             Show(newsOverlay, game.Phase == GamePhase.News);
             if (game.Phase == GamePhase.News) BuildNewsPaper();
-            Show(endOverlay, game.Phase == GamePhase.GameOver);
+            Show(loanOverlay, false);
+            if (game.Phase == GamePhase.GameOver) StartEnding();
+            else Show(endOverlay, false);
             chart.SetPreview(0);
 
-            if (game.Phase == GamePhase.Settlement) repayField.value = 0f;
+            if (game.Phase == GamePhase.Settlement)
+            {
+                repayField.value = 0f;
+                settlementMessage.text = "";
+            }
+            // 상점 안내: 장 마감 속보 같은 지난 메시지가 남아 겹치지 않게 상점에 들어올 때 새로 쓴다
+            if (game.Phase == GamePhase.Shop) shopMessage.text = "칸에 마우스를 올리면 설명, 클릭하면 구매";
             RefreshNews();
             RefreshAll();
             tutorial?.OnPhaseChanged();
@@ -432,9 +465,20 @@ namespace BurningAnt.UI
         void OnMessage(string text)
         {
             lastMessage = text;
-            settlementMessage.text = text;
-            shopMessage.text = text;
+            if (game.Phase == GamePhase.Settlement) settlementMessage.text = text;
+            if (game.Phase == GamePhase.Shop) shopMessage.text = text;
             RefreshItemBar();
+        }
+
+        void OpenLoan()
+        {
+            var s = game.LoanSettings;
+            loanBody.text =
+                $"한 판에 한 번, 최대 {Format.Money(s.extraLoanMax)}까지 빌릴 수 있어요.\n" +
+                $"일반 대출과 따로 하루 이자 {s.extraLoanRate * 100f:0}%가 붙고, 이자는 {game.Day + s.extraLoanGraceDays}일차(다다음 날)부터예요.";
+            loanField.value = s.extraLoanMax;
+            Show(loanOverlay, true);
+            loanOverlay.BringToFront();
         }
 
         // ───────── 갱신 ─────────
@@ -451,7 +495,6 @@ namespace BurningAnt.UI
             if (game.NeedsEmergency) RefreshEmergency();
             if (game.Phase == GamePhase.Settlement) RefreshSettlement();
             if (game.Phase == GamePhase.Shop) RefreshShop();
-            if (game.Phase == GamePhase.GameOver) RefreshEnd();
         }
 
         void RefreshStatus()
@@ -474,7 +517,9 @@ namespace BurningAnt.UI
                 steps[i].EnableInClassList("step--done", i < now);
                 steps[i].EnableInClassList("step--now", i == now);
             }
-            steps[2].text = now == 2 ? $"3 장 · {Mathf.CeilToInt(Mathf.Max(0f, Session.RemainingSeconds))}초" : "3 장";
+            // 단계 이름에 번호는 없이, 장은 제한 시간을 함께 (장 중엔 남은 시간)
+            float marketSeconds = now == 2 ? Session.RemainingSeconds : Session.Settings.ticksPerDay * Session.Settings.secondsPerTick;
+            steps[2].text = $"장 · {Mathf.CeilToInt(Mathf.Max(0f, marketSeconds))}초";
 
             // 빚 상환 게이지 = 갚은 돈 / (갚은 돈 + 남은 빚)
             float repaid = loan.TotalRepaid;
@@ -484,11 +529,12 @@ namespace BurningAnt.UI
 
             cashLabel.text = Format.Money(Session.Portfolio.Cash);
             stockValueLabel.text = Format.Money(game.StockValue());
-            debtLabel.text = Format.Money(loan.Debt);
-            int daysLeft = loan.NextInterestDay(game.Day) - game.Day;
-            interestLabel.text = $"{(daysLeft == 0 ? "오늘" : $"D-{daysLeft}")} · {loan.InterestRate * 100f:0}%";
-            loanCountLabel.text = $"{loan.ExtraLoansLeft}회 남음";
-            loanButton.SetEnabled(game.Phase == GamePhase.Prep && loan.CanTakeExtraLoan); // 추가 대출은 2단계에서만
+            int startDay = game.LoanSettings.interestStartDay;
+            interestLabel.text = game.Day < startDay
+                ? $"{startDay}일차부터 · 매일 {loan.InterestRate * 100f:0}%"
+                : $"매일 {loan.InterestRate * 100f:0}%" + (loan.ExtraDebt > 0f ? $" · 추가 {loan.ExtraRate * 100f:0}%" : "");
+            loanCountLabel.text = loan.CanTakeExtraLoan ? "1회 남음" : Format.Money(loan.ExtraDebt);
+            loanButton.SetEnabled(game.Phase == GamePhase.Prep && loan.CanTakeExtraLoan); // 추가 대출은 2단계에서만, 한 판에 1번
 
             float netWorth = game.NetWorth();
             netWorthLabel.text = Format.SignedMoney(netWorth);
@@ -505,7 +551,6 @@ namespace BurningAnt.UI
             speechLabel.text = beforeMarket ? game.Character.prepLine : game.Character.MoodLine(mood);
             moodLabel.text = $"{CharacterSettings.MoodName(mood)} · 오늘 {Format.SignedPercent(today)}";
             Format.SetTrendClass(moodLabel, today);
-            outfitLabel.text = game.Character.OutfitName(netWorth);
 
             // 뉴스를 확인하기 전(1단계)에는 예약·장 시작을 막는다 (예전엔 뉴스 팝업이 화면을 가렸다)
             bool newsPhase = game.Phase == GamePhase.News;
@@ -627,10 +672,8 @@ namespace BurningAnt.UI
 
             string guide = game.Phase switch
             {
-                GamePhase.News => "뉴스를 읽고 '확인'을 누르세요",
-                GamePhase.Prep => "정보 아이템을 쓰고, 매수·매도 예약 후 '장 시작'",
                 GamePhase.Market => "장 중 아이템 사용 가능 · 매수 Q · 매도 W",
-                _ => owned.Count == 0 ? "아이템은 장이 끝난 뒤 상점에서 살 수 있어요" : "",
+                _ => "",
             };
             itemBarHint.text = string.IsNullOrEmpty(lastMessage) ? guide : lastMessage;
         }
@@ -650,7 +693,7 @@ namespace BurningAnt.UI
 
         bool AnyOverlayOpen() =>
             (tutorial != null && tutorial.IsShowing) || IntroShowing() ||
-            new[] { pickerOverlay, settlementOverlay, shopOverlay, endOverlay, titleOverlay, newsOverlay, emergencyOverlay }.Any(o => o != null && o.resolvedStyle.display == DisplayStyle.Flex);
+            new[] { pickerOverlay, settlementOverlay, shopOverlay, endOverlay, titleOverlay, newsOverlay, emergencyOverlay, loanOverlay }.Any(o => o != null && o.resolvedStyle.display == DisplayStyle.Flex);
 
         bool IsTyping() =>
             itemBarList.panel?.focusController?.focusedElement is VisualElement focused &&
@@ -695,7 +738,7 @@ namespace BurningAnt.UI
             emergencyBody.text =
                 $"장 마감 정산에서 마이너스 종목({string.Join(", ", game.LastClosedStocks.Select(s => s.Name))}) 때문에 " +
                 $"잔고에서 {Format.Money(game.LastSettlementCharge)}이 빠져, 현금이 {Format.SignedMoney(-shortfall)}이에요.\n\n" +
-                $"햇살론을 받으면 {Format.Money(shortfall + game.LoanSettings.emergencyLoanBuffer)}을 빌려 살아남지만, " +
+                $"햇살론을 받으면 {Format.Money(loan.EmergencyAmount(shortfall))}을 빌려 살아남지만 (최대 {Format.Money(game.LoanSettings.emergencyLoanMax)}), " +
                 $"이자율이 {loan.InterestRate * 100f:0}% → {(loan.InterestRate + game.LoanSettings.emergencyRateStep) * 100f:0}%로 올라요.\n" +
                 "한 판에 한 번뿐이에요. 안 받으면 파산이에요.";
         }
@@ -759,7 +802,8 @@ namespace BurningAnt.UI
         {
             var r = game.Today;
             settlementTitle.text = $"{game.Day}일차 장 결과";
-            settlementSummary.text = "보유 주식은 다음 날로 이어져요. 원하는 만큼 갚을 수 있어요.";
+            settlementSummary.text = $"보유 주식은 다음 날로 이어져요. 성공 = 빚 0원 + 자산 {Format.Money(game.LoanSettings.winAssets)} 이상";
+            RefreshPayBoxes();
             settlementReport.Clear();
             if (r == null) return;
 
@@ -784,18 +828,18 @@ namespace BurningAnt.UI
                 var row = Row(money, false, name, Format.SignedMoney(v));
                 Format.SetTrendClass(row.ElementAt(1), v);
             }
-            MoneyRow("매매 손익 (3배·수수료 포함)", r.TradingProfit);
-            MoneyRow("  └ 그중 수수료", -r.TotalFees);
+            MoneyRow("매매 손익 (3배)", r.TradingProfit);
             MoneyRow("아이템으로 들어온 돈", r.ItemCash - r.InsuranceRefund);
             MoneyRow("손실 보험 환급", r.InsuranceRefund);
             MoneyRow("추가 대출", r.ExtraLoan);
-            MoneyRow("긴급 대출", r.EmergencyLoan);
+            MoneyRow("햇살론", r.EmergencyLoan);
             MoneyRow("빚 상환", -r.Repaid);
+            MoneyRow("이자 낸 돈", -(r.InterestPaid - r.InterestUnpaid));
             MoneyRow("마이너스 정산 (잔고 차감)", -r.SettlementCharge);
             if (money.childCount <= 2) Note(money, "오늘은 돈이 움직이지 않았어요.");
 
             // 2. 내 종목: 주식 창처럼 매수·매도·평가·손익
-            var stocks = Section("내 종목 (손익 = 주가 변동 × 3, 수수료 포함)");
+            var stocks = Section("내 종목 (손익 = 주가 변동 × 3, 수수료 없음)");
             var lines = r.Stocks.Values.Where(l => l.Active).OrderByDescending(l => l.ProfitLoss).ToList();
             if (lines.Count == 0) Note(stocks, "오늘은 거래도 보유도 없었어요.");
             else
@@ -817,7 +861,7 @@ namespace BurningAnt.UI
                 if (worst.ProfitLoss < 0f) Note(stocks, $"오늘의 불효자: {worst.Stock.Name} {Format.SignedMoney(worst.ProfitLoss)}");
             }
             int trades = lines.Sum(l => l.Buys + l.Sells);
-            Note(stocks, $"체결 {trades}건 · 수수료 {Format.Money(r.TotalFees)} · 예약 체결 {r.ReservationsFilled}/{r.ReservationsPlaced}건" +
+            Note(stocks, $"체결 {trades}건 · 예약 체결 {r.ReservationsFilled}/{r.ReservationsPlaced}건" +
                          (r.AutoSellsFired > 0 ? $" · 자동 매도 발동 {r.AutoSellsFired}회" : ""));
 
             // 2-2. 시장 한눈에: 오늘 전 종목의 시가 갭 · 고가 · 저가 · 종가 (전일 종가 대비)
@@ -875,15 +919,31 @@ namespace BurningAnt.UI
             var loan = Section("빚 · 대출");
             if (r.SettlementCharge > 0f)
                 Note(loan, $"마이너스 정산: {string.Join(", ", r.ClosedStocks.Select(s => s.Name))} 정리, 잔고에서 {Format.Money(r.SettlementCharge)} 빠짐");
-            if (r.EmergencyLoan > 0f) Note(loan, $"긴급 대출 {Format.Money(r.EmergencyLoan)}");
+            if (r.EmergencyLoan > 0f) Note(loan, $"햇살론 {Format.Money(r.EmergencyLoan)}");
             if (r.ExtraLoan > 0f) Note(loan, $"추가 대출 {Format.Money(r.ExtraLoan)}");
             if (r.InterestDeferred) Note(loan, "오늘은 이자일이지만 이자 유예 신청서로 면제됐어요");
             if (r.ItemDebt > 0f) Note(loan, $"악마의 계약서로 빚 +{Format.Money(r.ItemDebt)}");
             Note(loan, r.Interest > 0f
-                ? $"오늘은 이자일: 빚에 {Format.Money(r.Interest)} 추가됨"
-                : $"다음 이자일: {game.Loan.NextInterestDay(game.Day + 1)}일차");
+                ? $"오늘 이자 {Format.Money(r.Interest)} (왼쪽 '이자 갚기'로 내요. 안 내면 상점으로 갈 때 빚에 붙어요)"
+                : game.Day < game.LoanSettings.interestStartDay ? $"이자는 {game.LoanSettings.interestStartDay}일차부터 매일 붙어요" : "오늘은 낼 이자가 없어요");
+            if (game.Loan.ExtraDebt > 0f) Note(loan, $"추가 대출 남은 빚 {Format.Money(game.Loan.ExtraDebt)} (하루 {game.Loan.ExtraRate * 100f:0}%, {game.Loan.ExtraLoanDay + game.LoanSettings.extraLoanGraceDays}일차부터)");
             if (r.Repaid > 0f) Note(loan, $"오늘 갚은 돈 {Format.Money(r.Repaid)}");
             Note(loan, $"현금 {Format.Money(Session.Portfolio.Cash)} · 남은 빚 {Format.Money(game.Loan.Debt)} (이자율 {game.Loan.InterestRate * 100f:0}%)");
+        }
+
+        /// <summary>왼쪽 이자 갚기 (3일차부터 보임) · 오른쪽 빚 갚기.</summary>
+        void RefreshPayBoxes()
+        {
+            var r = game.Today;
+            bool interestDays = game.Day >= game.LoanSettings.interestStartDay;
+            Show(interestBox, interestDays);
+            if (!interestDays || r == null) return;
+            float left = game.InterestLeft;
+            interestDueLabel.text = r.InterestDeferred ? "오늘 이자는 이자 유예 신청서로 면제"
+                : r.Interest <= 0f ? "오늘은 낼 이자가 없어요"
+                : left <= 0f ? $"오늘 이자 {Format.Money(r.Interest)} 다 냈어요"
+                : $"오늘 이자 {Format.Money(left)} 남음 (안 내면 빚에 붙음)";
+            interestPayButton.SetEnabled(left > 0f);
         }
 
         VisualElement Section(string title)
@@ -929,9 +989,9 @@ namespace BurningAnt.UI
         const float FloorDepthCurve = 1.2f; // 1보다 크면 안쪽(위) 줄이 납작해져 멀어 보인다
 
         // 바닥면 위 칸 자리 (바닥 기준 u: 왼→오, v: 안쪽→앞쪽, 0~1)
-        static readonly float[] ShopColumnsU = { 0.07f, 0.305f, 0.54f, 0.775f };
-        static readonly float[] ShopRowsV = { 0.12f, 0.55f };
-        const float ShopSlotU = 0.185f, ShopSlotV = 0.27f, ShopNameGap = 0.006f, ShopNameHeight = 0.04f;
+        static readonly float[] ShopColumnsU = { 0.03f, 0.275f, 0.52f, 0.765f };
+        static readonly float[] ShopRowsV = { 0.06f, 0.52f };
+        const float ShopSlotU = 0.2f, ShopSlotV = 0.3f, ShopNameGap = 0.006f, ShopNameHeight = 0.045f;
 
         static float FloorY(float v) => Mathf.Lerp(FloorTopY, FloorBottomY, Mathf.Pow(Mathf.Clamp01(v), FloorDepthCurve));
 
@@ -1015,7 +1075,8 @@ namespace BurningAnt.UI
                 }
 
                 if (item.icon != null) icon.style.backgroundImage = new StyleBackground(item.icon);
-                slot.EnableInClassList("shop-slot--poor", Session.Portfolio.Cash < item.price);
+                bool poor = Session.Portfolio.Cash < item.price;
+                slot.EnableInClassList("shop-slot--poor", poor);
                 int owned = game.Inventory.Count(item);
                 if (owned > 0)
                 {
@@ -1080,21 +1141,102 @@ namespace BurningAnt.UI
             Show(shopTooltip, false);
         }
 
-        void RefreshEnd()
+        // ───────── 시연용 자동 진행 (실행 인자 -autoplay. -autoplay-win / -autoplay-bankrupt면 2일차 결과 뒤 엔딩) ─────────
+
+        static bool HasArg(string arg) => System.Array.IndexOf(System.Environment.GetCommandLineArgs(), arg) >= 0;
+
+        void AutoPlay()
         {
-            SetImage(endPortrait, game.Won
-                ? game.Character.winImage
-                : game.Character.MoodImage(Mood.Crash));
-            if (game.Won)
+            if (!Prologue.PrologueController.AutoplayArg) return;
+            if (warningOverlay != null && warningOverlay.resolvedStyle.display == DisplayStyle.Flex) Show(warningOverlay, false);
+            if (game.Phase != autoPhase)
             {
-                endTitle.text = "빚 청산! 무리가 아니었다?!";
-                endBody.text = $"{game.Day}일 만에 빚을 모두 갚았어요.\n점수: {game.Day}일 (적을수록 좋아요)\n남은 현금 {Format.Money(Session.Portfolio.Cash)}";
+                // 단계가 바뀌면 잠시 보여 준 뒤 진행 (결과창·상점은 더 오래, 스크린샷용)
+                autoPhase = game.Phase;
+                autoTimer = game.Phase is GamePhase.Settlement or GamePhase.Shop ? 6f : 3f;
             }
-            else
+            autoTimer -= Time.unscaledDeltaTime;
+            if (autoTimer > 0f || IntroShowing() || (tutorial != null && tutorial.IsShowing)) return;
+            autoTimer = 3f;
+            switch (game.Phase)
             {
-                endTitle.text = "파산…";
-                endBody.text = $"{game.Day}일차 장 마감 정산 뒤 잔고가 {Format.SignedMoney(Session.Portfolio.Cash)}인데 긴급 대출을 받을 수 없었어요.\n남은 빚 {Format.Money(game.Loan.Debt)} · 버틴 날 {game.Day}일";
+                case GamePhase.News:
+                    game.ConfirmNews();
+                    break;
+                case GamePhase.Prep:
+                    var pick = Session.Stocks[game.Day % Session.Stocks.Count];
+                    Session.Reserve(new OrderRequest(pick, OrderSide.Buy, 0, true));
+                    Session.StartMarket();
+                    break;
+                case GamePhase.Settlement:
+                    if (game.NeedsEmergency) { game.AcceptEmergencyLoan(); break; }
+                    if (game.Day >= 2 && (HasArg("-autoplay-win") || HasArg("-autoplay-bankrupt")))
+                    {
+                        game.EndForDemo(HasArg("-autoplay-win"));
+                        break;
+                    }
+                    game.PayInterest();
+                    game.GoToShop();
+                    break;
+                case GamePhase.Shop:
+                    game.StartNextDay();
+                    break;
+                case GamePhase.GameOver:
+                    AdvanceEnding();
+                    break;
             }
+        }
+
+        // ───────── 엔딩 (파산 3장 · 성공 4장, 클릭하면 다음, 다 보면 다시 하기) ─────────
+
+        const float EndingAspect = 1672f / 941f;
+        const int BankruptImages = 3, SuccessImages = 4;
+        int EndingCount => game.Won ? SuccessImages : BankruptImages;
+
+        void StartEnding()
+        {
+            endingIndex = 0;
+            Show(pickerOverlay, false);
+            Show(settlementOverlay, false);
+            Show(emergencyOverlay, false);
+            Show(endOverlay, true);
+            endOverlay.BringToFront();
+            // 파산2 말풍선 "드디어 n억 돌파!": n = 파산할 때의 빚 (억 단위, 버림, 최소 1)
+            endingAmount.text = Mathf.Max(1, Mathf.FloorToInt(game.Loan.Debt / 100_000_000f)).ToString();
+            endingSummary.text = game.Won
+                ? $"{game.Day}일 만에 성공! 빚 0원 · 자산 {Format.Money(game.TotalAssets())}"
+                : $"{game.Day}일차 파산 · 빚 {Format.Money(game.Loan.Debt)} · 잔고 {Format.SignedMoney(Session.Portfolio.Cash)}";
+            ShowEndingImage();
+        }
+
+        void ShowEndingImage()
+        {
+            int last = EndingCount - 1;
+            int shown = Mathf.Min(endingIndex, last);
+            for (int i = 1; i <= SuccessImages; i++)
+            {
+                endingStage.EnableInClassList($"ending-success-{i}", game.Won && i == shown + 1);
+                if (i <= BankruptImages) endingStage.EnableInClassList($"ending-bankrupt-{i}", !game.Won && i == shown + 1);
+            }
+            Show(endingAmount, !game.Won && shown == 1);
+            bool done = endingIndex >= last;
+            Show(endingEnd, done);
+            Show(endingHint, !done);
+            LayoutEnding();
+        }
+
+        void AdvanceEnding()
+        {
+            if (game.Phase != GamePhase.GameOver || endingIndex >= EndingCount - 1) return;
+            endingIndex++;
+            ShowEndingImage();
+        }
+
+        void LayoutEnding()
+        {
+            FitToImage(endingStage, endOverlay, EndingAspect);
+            float h = endingStage.style.height.value.value;
+            if (!float.IsNaN(h) && h > 0f) endingAmount.style.fontSize = h * 0.1f; // 그림 속 "억" 글자 크기
         }
 
         /// <summary>

@@ -46,7 +46,9 @@ namespace BurningAnt.Core
         public int ReservationsFilled;     // 시가에 체결된 예약 수
         public int AutoSellsFired;         // 손절·익절 발동 횟수
 
-        public float Interest;             // 오늘 붙은 이자
+        public float Interest;             // 오늘 낼 이자 (3일차부터 매일)
+        public float InterestPaid;         // 그중 낸 이자
+        public float InterestUnpaid;       // 안 내서 빚에 붙은 이자
         public float SettlementCharge;     // 마이너스 정산으로 잔고에서 빠진 돈
         public readonly List<StockState> ClosedStocks = new();
         public float ExtraLoan;            // 오늘 받은 추가 대출

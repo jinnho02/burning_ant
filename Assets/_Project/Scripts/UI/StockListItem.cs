@@ -50,8 +50,11 @@ namespace BurningAnt.UI
         }
 
         /// <summary>이름 옆 작은 표시 (예: "뉴스"). null이면 숨김. kind는 USS 클래스 접미사.</summary>
+        public bool HasBadge { get; private set; }
+
         public void SetBadge(string text, string kind = "news")
         {
+            HasBadge = !string.IsNullOrEmpty(text);
             badgeLabel.style.display = string.IsNullOrEmpty(text) ? DisplayStyle.None : DisplayStyle.Flex;
             badgeLabel.text = text ?? "";
             badgeLabel.EnableInClassList("stock-item__badge--news", kind == "news");

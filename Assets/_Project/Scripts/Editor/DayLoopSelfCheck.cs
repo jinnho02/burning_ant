@@ -48,6 +48,7 @@ namespace BurningAnt.Editor
 
             try
             {
+                CheckMood();
                 CheckLoan(loanSettings);
                 CheckNews(newsSettings, market, stocks);
                 Debug.Log("[DayLoopSelfCheck] 모두 통과");
@@ -62,32 +63,53 @@ namespace BurningAnt.Editor
             }
         }
 
+        static void CheckMood()
+        {
+            var c = ScriptableObject.CreateInstance<BurningAnt.Character.CharacterSettings>();
+            try
+            {
+                (float r, BurningAnt.Character.Mood m)[] cases =
+                {
+                    (-0.5f, BurningAnt.Character.Mood.Crash), (-0.30f, BurningAnt.Character.Mood.Crash), (-0.25f, BurningAnt.Character.Mood.Bad),
+                    (-0.10f, BurningAnt.Character.Mood.Loss), (-0.09f, BurningAnt.Character.Mood.Flat), (0f, BurningAnt.Character.Mood.Flat),
+                    (0.099f, BurningAnt.Character.Mood.Flat), (0.10f, BurningAnt.Character.Mood.Gain), (0.2f, BurningAnt.Character.Mood.Great),
+                    (0.3f, BurningAnt.Character.Mood.Jackpot), (1.5f, BurningAnt.Character.Mood.Jackpot),
+                };
+                foreach (var (r, m) in cases) Expect(c.GetMood(r) == m, $"표정 경계 {r:P0} → {m}");
+            }
+            finally { Object.DestroyImmediate(c); }
+        }
+
         static void CheckLoan(LoanSettings settings)
         {
             var loan = new LoanAccount(settings);
-            Near(loan.Debt, 10000f, "시작 빚 $10,000");
-            Expect(!loan.IsInterestDay(6) && loan.IsInterestDay(7) && loan.IsInterestDay(14), "이자일 = 7의 배수");
-            Expect(loan.NextInterestDay(1) == 7 && loan.NextInterestDay(7) == 7 && loan.NextInterestDay(8) == 14, "다음 이자일");
+            // 금액은 만 원 단위로 비교 (float이라 억 단위에서 몇 원 오차)
+            void Won(float actual, float expected, string what) => Near(actual / 10000f, expected / 10000f, what);
 
-            Near(loan.ApplyInterest(), 500f, "이자 5% = $500");
-            Near(loan.Debt, 10500f, "이자 후 빚");
+            Won(loan.Debt, 100_000_000f, "시작 빚 1억");
+            Expect(loan.InterestDue(1) == 0f && loan.InterestDue(2) == 0f, "1·2일차는 이자 없음");
+            Won(loan.InterestDue(3), 5_000_000f, "3일차부터 매일 이자 5% = 500만");
 
-            Near(loan.TakeExtraLoan(), 5000f, "추가 대출 $5,000");
-            Near(loan.InterestRate, 0.07f, "추가 대출 1회 후 이자율 7%");
-            loan.TakeExtraLoan();
-            loan.TakeExtraLoan();
-            Near(loan.InterestRate, 0.11f, "3회 후 이자율 11%");
-            Expect(!loan.CanTakeExtraLoan && loan.TakeExtraLoan() == 0f, "4번째 추가 대출 불가");
+            Won(loan.TakeExtraLoan(500_000_000f, 3), 200_000_000f, "추가 대출은 최대 2억");
+            Expect(!loan.CanTakeExtraLoan && loan.TakeExtraLoan(1f, 3) == 0f, "추가 대출은 한 번만");
+            Won(loan.InterestDue(4), 5_000_000f, "추가 대출 다음 날은 추가 대출 이자 없음");
+            Won(loan.InterestDue(5), 5_000_000f + 60_000_000f, "다다음 날부터 추가 대출 이자 30%");
 
-            Near(loan.Repay(1000f), 1000f, "일부 상환");
-            Near(loan.Repay(1e9f), 24500f, "빚보다 많이 갚으면 남은 빚만");
-            Near(loan.TotalRepaid, 25500f, "갚은 금액 합계 (상환 게이지)");
-            Expect(loan.IsPaidOff, "전액 상환");
+            loan.AddUnpaidInterest(5_000_000f);
+            Won(loan.MainDebt, 105_000_000f, "안 낸 이자는 빚에 붙음");
+            Won(loan.Repay(50_000_000f), 50_000_000f, "일부 상환");
+            Won(loan.ExtraDebt, 150_000_000f, "이자 높은 추가 대출부터 갚음");
+            Won(loan.Repay(1e12f), 255_000_000f, "빚보다 많이 갚으면 남은 빚만");
+            Won(loan.TotalRepaid, 305_000_000f, "갚은 금액 합계 (상환 게이지)");
+            Expect(loan.IsPaidOff && loan.InterestDue(9) == 0f, "전액 상환하면 이자 없음");
 
             var rescue = new LoanAccount(settings);
-            Near(rescue.TakeEmergencyLoan(800f), 800f + settings.emergencyLoanBuffer, "긴급 대출 = 모자란 금액 + 여유분");
-            Near(rescue.InterestRate, settings.baseInterestRate + settings.emergencyRateStep, "긴급 대출 후 이자율 크게 오름");
-            Expect(rescue.EmergencyUsed && rescue.TakeEmergencyLoan(500f) == 0f, "긴급 대출은 한 판에 한 번");
+            Expect(rescue.EmergencyAmount(settings.emergencyLoanMax + 1_000_000f) == 0f, "모자란 돈이 햇살론 한도(1억)를 넘으면 못 받음");
+            Won(rescue.TakeEmergencyLoan(8_000_000f), 8_000_000f + settings.emergencyLoanBuffer, "햇살론 = 모자란 금액 + 여유분");
+            Near(rescue.InterestRate, settings.baseInterestRate + settings.emergencyRateStep, "햇살론 후 이자율 크게 오름");
+            Expect(rescue.EmergencyUsed && rescue.TakeEmergencyLoan(500f) == 0f, "햇살론은 한 판에 한 번");
+            var big = new LoanAccount(settings);
+            Won(big.TakeEmergencyLoan(95_000_000f), settings.emergencyLoanMax, "햇살론은 최대 1억 (총 2억)");
         }
 
         static void CheckNews(NewsSettings settings, MarketSettings market, StockState[] stocks)

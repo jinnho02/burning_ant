@@ -496,3 +496,96 @@
     background-color: #F2C14E; color: #2A0E16;
 }
 .shop-next:hover { background-color: #FFD56B; }
+
+/* ───────── 화면 개선 (업종 접기 · 아이템 띠 두 칸 너비 · 주인공 크게 · 빚 상환 빨강) ───────── */
+/* 왼쪽 [업종 | 주식 창] 줄, 그 아래 아이템 띠가 두 칸 너비 */
+.main-top { flex-grow: 1; flex-direction: row; min-height: 0; }
+.left-column { width: 13%; min-width: 170px; }
+.main-top .stock-area { flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; }
+.stock-group {
+    font-size: 15px; color: var(--gs-text); -unity-font-style: bold; white-space: normal;
+    margin: 4px 0; padding: 8px 8px; border-radius: 8px; background-color: var(--gs-panel);
+}
+.stock-group:hover { background-color: #E4E1D6; }
+.stock-group--open { background-color: rgba(55, 138, 221, 0.14); color: #185FA5; }
+
+/* 빚 상환 게이지: 글씨·숫자 빨강 */
+.repay-text { color: var(--gs-up); -unity-font-style: bold; }
+.repay-fill { background-color: var(--gs-up); }
+
+/* 주인공: 말풍선 없이 더 크게 */
+.body--areas .speech { display: none; }
+.body--areas .side-top { flex-grow: 0.8; }
+.body--areas .character-area { flex-grow: 1.25; padding: 0; }
+.body--areas .portrait { margin: 0; }
+
+/* 추가 대출 금액 입력 */
+.loan-row { margin: 6px 0 4px 0; }
+.loan-field { width: 220px; margin-right: 6px; }
+
+/* 장 결과: 이자 갚기(왼쪽) · 빚 갚기(오른쪽) */
+.pay-row { flex-direction: row; margin-top: 6px; }
+.pay-box { flex-grow: 1; flex-basis: 0; padding: 8px 12px; border-radius: 10px; background-color: var(--gs-panel); }
+.pay-box--interest { margin-right: 10px; border-width: 2px; border-color: #F2C14E; }
+.pay-box-title { -unity-font-style: bold; font-size: 15px; margin-bottom: 4px; }
+.pay-box .row { flex-wrap: wrap; }
+.pay-box .repay-field { width: 170px; }
+
+/* 상점: 흐리지 않게, 칸·그림·글씨 크게 */
+.shop-slot--poor { opacity: 1; }
+.shop-slot-icon { top: 4%; bottom: 4%; }
+.shop-slot-name { font-size: 20px; text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9); }
+.shop-slot-count { font-size: 15px; }
+.shop-tooltip { width: 480px; }
+.shop-tip-name { font-size: 24px; }
+.shop-tip-desc { font-size: 18px; }
+.shop-message { max-width: 520px; white-space: normal; }
+
+/* 엔딩: 그림이 순서대로, 다 보면 다시 하기 */
+.ending-overlay { background-color: #000000; overflow: hidden; }
+.ending-stage { position: absolute; -unity-background-scale-mode: scale-to-fit; }
+.ending-bankrupt-1 { background-image: url("../../Art/Ending/파산1.png"); }
+.ending-bankrupt-2 { background-image: url("../../Art/Ending/파산2.png"); }
+.ending-bankrupt-3 { background-image: url("../../Art/Ending/파산3.png"); }
+.ending-success-1 { background-image: url("../../Art/Ending/성공1.png"); }
+.ending-success-2 { background-image: url("../../Art/Ending/성공2.png"); }
+.ending-success-3 { background-image: url("../../Art/Ending/성공3.png"); }
+.ending-success-4 { background-image: url("../../Art/Ending/성공4.png"); }
+/* 파산2 말풍선 "드디어 [n]억 돌파!"의 빈 자리 (그림 1672×941 기준) */
+.ending-amount {
+    position: absolute; left: 22%; top: 16.5%; width: 10%; height: 11%;
+    -unity-text-align: middle-right; -unity-font-style: bold; color: #C8103E; padding: 0; margin: 0;
+    font-size: 64px; display: none;
+}
+.ending-end {
+    position: absolute; left: 0; right: 0; bottom: 6%;
+    align-items: center; display: none;
+}
+.ending-summary {
+    font-size: 22px; color: #FFFFFF; -unity-text-align: middle-center; white-space: normal;
+    padding: 8px 18px; margin-bottom: 10px; border-radius: 10px; background-color: rgba(0, 0, 0, 0.6);
+}
+.ending-restart {
+    width: 280px; height: 72px; font-size: 28px; -unity-font-style: bold;
+    border-width: 2px; border-color: #FFFFFF; border-radius: 14px;
+    background-color: #F2C14E; color: #2A0E16;
+}
+.ending-restart:hover { background-color: #FFD56B; }
+
+/* 왼쪽 업종 칸 조금 넓게, 오른쪽 열 넓혀 주인공 크게 (그림 양옆 빈 곳은 잘라 꽉 차게) */
+.left-column { width: 15%; min-width: 200px; }
+.body--areas .side-col { width: 22%; min-width: 330px; }
+.body--areas .portrait { -unity-background-scale-mode: scale-and-crop; background-position-y: bottom; background-position-x: center; }
+
+/* 주인공: 네모 칸 없이 오른쪽 아래 화면 끝까지, 그림을 더 크게 (잘림 없이 높이에 맞춤, 왼쪽으로 넘쳐도 됨) */
+.body--areas .side-top { flex-grow: 0.62; }
+.body--areas .character-area {
+    flex-grow: 1.4; padding: 0; overflow: visible;
+    border-width: 0; background-color: rgba(0, 0, 0, 0);
+    margin-right: -16px; margin-bottom: -16px;
+}
+.body--areas .portrait {
+    position: absolute; top: 0; bottom: 0; right: 0; left: -90px; margin: 0;
+    -unity-background-scale-mode: scale-to-fit; background-position-x: right; background-position-y: bottom;
+}
+.body--areas .mood-box { position: absolute; left: 0; right: 0; bottom: 18px; }

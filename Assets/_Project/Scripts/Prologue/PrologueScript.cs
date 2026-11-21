@@ -41,9 +41,9 @@ namespace BurningAnt.Prologue
             text = text.Replace("{hero}", heroName);
             if (loanSettings == null) return text;
             return text
-                .Replace("{debt}", "$" + loanSettings.startingDebt.ToString("N0", System.Globalization.CultureInfo.InvariantCulture))
+                .Replace("{debt}", BurningAnt.UI.Format.Money(loanSettings.startingDebt))
                 .Replace("{rate}", (loanSettings.baseInterestRate * 100f).ToString("0") + "%")
-                .Replace("{period}", loanSettings.interestPeriodDays + "일");
+                .Replace("{period}", "매일");
         }
     }
 }

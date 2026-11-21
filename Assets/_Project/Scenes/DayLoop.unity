@@ -154,6 +154,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: BurningAnt::BurningAnt.UI.GameScreenController
   game: {fileID: 1848083951}
   characterScale: 1
+  alwaysShowPrologue: 0
+  prologueCutSeconds: 2.5
   tutorialScale: 2
   tutorialScript: {fileID: 0}
   alwaysShowTutorial: 0

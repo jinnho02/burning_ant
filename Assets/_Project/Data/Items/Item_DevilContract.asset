@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
   kind: 14
   displayName: "\uC545\uB9C8\uC758 \uACC4\uC57D\uC11C"
-  price: 100
-  description: "\uC9C0\uAE08 \uBC14\uB85C \uD604\uAE08 $3,000. \uB300\uC2E0 \uBE5A\uC774 $4,500 \uB298\uC5B4\uB098\uC694."
+  price: 1000000
+  description: "\uC9C0\uAE08 \uBC14\uB85C \uD604\uAE08 3,000\uB9CC\uC6D0. \uB300\uC2E0 \uBE5A\uC774 4,500\uB9CC\uC6D0 \uB298\uC5B4\uB098\uC694."
   icon: {fileID: 2800000, guid: 13d770a5de126a1439de001b35c83c1b, type: 3}
   accuracy: 0.75
   triggerRate: 0
   durationSeconds: 0
   speedMultiplier: 0
-  amount: 3000
-  debtAmount: 4500
+  amount: 30000000
+  debtAmount: 45000000

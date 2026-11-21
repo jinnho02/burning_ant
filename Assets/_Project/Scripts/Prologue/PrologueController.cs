@@ -202,6 +202,6 @@ namespace BurningAnt.Prologue
         static bool IsButton(IEventHandler target) =>
             target is VisualElement ve && ve.GetFirstOfType<Button>() != null;
 
-        static string Money(float value) => "$" + value.ToString("N0", CultureInfo.InvariantCulture);
+        static string Money(float value) => BurningAnt.UI.Format.Money(value);
     }
 }

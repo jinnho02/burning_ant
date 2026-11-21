@@ -39,7 +39,7 @@ namespace BurningAnt.UI
             Add(GamePhase.Market, "chart", "(임시) 60초 장", "가격이 실시간으로 움직여요. 설명이 떠 있는 동안은 시간이 멈춰 있어요.");
             Add(GamePhase.Market, "buy-button", "(임시) 매수·매도", "Q 매수, W 매도. 손익은 넣은 돈의 3배로 움직여요.");
             Add(GamePhase.Settlement, "settlement-report", "(임시) 하루 결과", "오늘 손익을 종목·아이템·뉴스·대출별로 보여 줘요.");
-            Add(GamePhase.Settlement, "repay-button", "(임시) 빚 갚기", "원하는 만큼 갚을 수 있어요. 빚을 다 갚으면 승리!");
+            Add(GamePhase.Settlement, "repay-button", "(임시) 빚 갚기", "빚 갚기로 빚을 갚아요. 3일차부터는 왼쪽 '이자 갚기'로 그날 이자도 내요 (안 내면 빚에 붙어요). 빚 0원 + 자산 5억이면 성공!");
             Add(GamePhase.Shop, "shop-grid", "(임시) 상점", "매일 8개가 무작위로 나와요. 마우스를 올리면 설명, 클릭하면 구매.");
             return s;
         }

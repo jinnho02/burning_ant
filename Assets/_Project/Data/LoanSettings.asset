@@ -12,10 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf800578f81b54141b74c5f652d66ec9, type: 3}
   m_Name: LoanSettings
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Loan.LoanSettings
-  startingDebt: 10000
+  startingDebt: 100000000
   baseInterestRate: 0.05
-  interestPeriodDays: 7
-  extraLoanAmount: 5000
-  maxExtraLoans: 3
-  extraLoanRateStep: 0.02
-  bankruptcyThreshold: 100
+  interestStartDay: 3
+  extraLoanMax: 200000000
+  extraLoanRate: 0.3
+  extraLoanGraceDays: 2
+  emergencyLoanBuffer: 10000000
+  emergencyLoanMax: 100000000
+  emergencyRateStep: 0.1
+  winAssets: 500000000

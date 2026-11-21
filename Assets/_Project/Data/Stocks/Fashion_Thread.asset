@@ -15,5 +15,5 @@ MonoBehaviour:
   displayName: "\uC2E4\uBC25\uD640\uB529\uC2A4"
   sector: 2
   concept: "\uC758\uB958 \uC81C\uC870\xB7\uC720\uD1B5"
-  startPrice: 15
+  startPrice: 15000
   baseRange: 0.1

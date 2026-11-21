@@ -80,7 +80,7 @@ namespace BurningAnt.Editor
                         loop.UseItem(it, session.Stocks[rng.Next(session.Stocks.Count)]);
                         itemUses++;
                     }
-                    if (days == 2 && loop.Loan.CanTakeExtraLoan) loop.TakeExtraLoan();
+                    if (days == 2 && loop.Loan.CanTakeExtraLoan) loop.TakeExtraLoan(50_000_000f);
 
                     // 예약: 무작위 2종목 매수
                     foreach (var s in session.Stocks.OrderBy(_ => rng.Next()).Take(2))
@@ -110,13 +110,23 @@ namespace BurningAnt.Editor
 
                     if (forceWin)
                     {
-                        // 승리 경로: 빚만큼 현금을 넣고 전부 갚으면 게임 끝 + 승리
+                        // 승리 경로: 빚을 다 갚아도 자산이 5억 미만이면 계속, 5억 이상이면 승리
+                        loop.PayInterest();
                         session.Portfolio.Deposit(loop.Loan.Debt + 1f);
                         loop.Repay(loop.Loan.Debt);
-                        Expect(loop.Phase == GamePhase.GameOver && loop.Won, "빚을 다 갚으면 승리");
+                        Expect(loop.Loan.IsPaidOff && loop.Phase != GamePhase.GameOver, "빚 0원이어도 자산 5억 전에는 계속");
+                        session.Portfolio.Deposit(loop.LoanSettings.winAssets);
+                        loop.GoToShop();
+                        Expect(loop.Phase == GamePhase.GameOver && loop.Won, "빚 0원 + 자산 5억이면 승리");
                         break;
                     }
-                    if (session.Portfolio.Cash > 3000f) loop.Repay(session.Portfolio.Cash * 0.3f);
+                    if (loop.Today.Interest > 0f)
+                    {
+                        loop.PayInterest();
+                        Expect(loop.InterestLeft <= 0.5f || session.Portfolio.Cash <= 0.5f, "이자 갚기");
+                    }
+                    else Expect(days < 3 || loop.Today.InterestDeferred || loop.Loan.IsPaidOff, "3일차부터 매일 이자");
+                    if (session.Portfolio.Cash > 30_000_000f) loop.Repay(session.Portfolio.Cash * 0.3f);
                     if (loop.Phase == GamePhase.GameOver) break;
 
                     loop.GoToShop();
@@ -124,13 +134,13 @@ namespace BurningAnt.Editor
                     Expect(loop.TodayShop.Count == Math.Min(loop.ShopSlots, items.Count), "상점 진열 수");
                     Expect(loop.TodayShop.Distinct().Count() == loop.TodayShop.Count, "진열 중복 없음");
                     foreach (var it in loop.TodayShop.OrderBy(_ => rng.Next()).Take(3))
-                        if (session.Portfolio.Cash > it.price + 500f) loop.Buy(it);
+                        if (session.Portfolio.Cash > it.price + 5_000_000f) loop.Buy(it);
 
                     loop.StartNextDay();
                 }
 
                 Time.timeScale = 1f;
-                Debug.Log($"[FullLoopSelfCheck] seed {seed}: {days}일 진행, 아이템 {itemUses}번 사용, 결과 {(loop.Phase == GamePhase.GameOver ? (loop.Won ? "승리" : "파산") : "진행 중")}, 빚 ${loop.Loan.Debt:N0}");
+                Debug.Log($"[FullLoopSelfCheck] seed {seed}: {days}일 진행, 아이템 {itemUses}번 사용, 결과 {(loop.Phase == GamePhase.GameOver ? (loop.Won ? "승리" : "파산") : "진행 중")}, 빚 {loop.Loan.Debt:N0}원");
             }
             finally
             {

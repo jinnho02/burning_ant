@@ -7,24 +7,23 @@
         <ui:VisualElement class="top-bar">
             <ui:Label name="day-label" text="DAY 1" class="top-day" />
             <ui:VisualElement class="steps">
-                <ui:Label name="step-1" text="1 뉴스" class="step" />
-                <ui:Label name="step-2" text="2 아이템" class="step" />
-                <ui:Label name="step-3" text="3 장" class="step" />
-                <ui:Label name="step-4" text="4 결과" class="step" />
-                <ui:Label name="step-5" text="5 상점" class="step" />
+                <ui:Label name="step-1" text="뉴스" class="step" />
+                <ui:Label name="step-2" text="아이템" class="step" />
+                <ui:Label name="step-3" text="장 · 60초" class="step" />
+                <ui:Label name="step-4" text="결과" class="step" />
+                <ui:Label name="step-5" text="상점" class="step" />
             </ui:VisualElement>
             <ui:VisualElement class="top-stats">
                 <ui:VisualElement class="top-stat"><ui:Label text="현금" class="caption" /><ui:Label name="cash-label" class="status-value" /></ui:VisualElement>
                 <ui:VisualElement class="top-stat"><ui:Label text="주식 평가" class="caption" /><ui:Label name="stock-value-label" class="status-value" /></ui:VisualElement>
-                <ui:VisualElement class="top-stat"><ui:Label text="빚" class="caption" /><ui:Label name="debt-label" class="status-value price-up" /></ui:VisualElement>
                 <ui:VisualElement class="top-stat"><ui:Label text="다음 이자" class="caption" /><ui:Label name="interest-label" class="chip chip--warning" /></ui:VisualElement>
-                <ui:VisualElement class="top-stat"><ui:Label text="추가 대출" class="caption" /><ui:Label name="loan-count-label" class="status-value status-value--small" /><ui:Button name="loan-button" text="받기" class="loan-take" tooltip="추가 대출은 아이템 단계(2단계)에서만" /></ui:VisualElement>
+                <ui:VisualElement class="top-stat"><ui:Label text="추가 대출" class="caption" /><ui:Label name="loan-count-label" class="status-value status-value--small" /><ui:Button name="loan-button" text="받기" class="loan-take" tooltip="추가 대출은 아이템 단계에서만, 한 판에 1번, 최대 2억" /></ui:VisualElement>
                 <ui:VisualElement class="top-stat"><ui:Label text="순자산" class="caption" /><ui:Label name="networth-label" class="status-value status-value--big" /></ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="repay">
                 <ui:VisualElement class="row row--spread">
-                    <ui:Label text="빚 상환" class="caption" />
-                    <ui:Label name="repay-label" text="$0 / $10,000" class="caption" />
+                    <ui:Label text="빚 상환" class="caption repay-text" />
+                    <ui:Label name="repay-label" text="0원 / 1억원" class="caption repay-text" />
                 </ui:VisualElement>
                 <ui:VisualElement class="repay-track">
                     <ui:VisualElement name="repay-fill" class="repay-fill" />
@@ -32,15 +31,15 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- 몸통 5영역: 왼쪽 종목 | 가운데 주식 창 + 아이템 | 오른쪽 뉴스·흐름·힌트 + 주인공 -->
+        <!-- 몸통: 왼쪽 [종목(업종) | 주식 창] 아래로 아이템 띠가 두 칸 너비 | 오른쪽 뉴스·흐름·힌트 + 주인공 -->
         <ui:VisualElement class="body body--areas">
-            <!-- 왼쪽: 종목 목록 (전체 높이). StockWindow.uxml의 stock-list-panel을 GameScreenController가 여기로 옮긴다 -->
-            <ui:VisualElement name="left-column" class="area left-column" />
-
-            <!-- 가운데: 주식 창, 그 아래 아이템 띠 -->
             <ui:VisualElement class="main-col">
-                <ui:VisualElement class="stock-area">
-                    <ui:Instance template="StockWindow" class="stock-window-host" />
+                <ui:VisualElement class="main-top">
+                    <!-- 왼쪽: 업종 목록 (주식 창과 같은 높이). StockWindow.uxml의 stock-list-panel을 GameScreenController가 여기로 옮긴다 -->
+                    <ui:VisualElement name="left-column" class="area left-column" />
+                    <ui:VisualElement class="stock-area">
+                        <ui:Instance template="StockWindow" class="stock-window-host" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
 
                 <ui:VisualElement class="item-bar area">
@@ -69,13 +68,12 @@
                 </ui:ScrollView>
 
                 <!-- 주인공: 그림은 CharacterSettings, 그림이 없으면 글자 얼굴 -->
-                <ui:VisualElement name="character-area" class="area area--warm character-area" picking-mode="Ignore">
+                <ui:VisualElement name="character-area" class="character-area" picking-mode="Ignore">
                     <ui:Label name="speech-label" text="오늘은 뭘 살까~?" class="speech" />
                     <ui:VisualElement name="portrait" class="portrait" picking-mode="Ignore" />
                     <ui:Label name="face-label" text="(-_-)" class="face" />
                     <ui:VisualElement class="mood-box" picking-mode="Ignore">
                         <ui:Label name="mood-label" text="보합 · 오늘 +0.00%" class="mood" />
-                        <ui:Label name="outfit-label" text="평범 · 깔끔한 셔츠" class="outfit" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
@@ -115,11 +113,21 @@
                 <!-- 하루 결과: 손익 요약 · 종목별 · 아이템 · 뉴스 · 대출 (GameScreenController.RefreshSettlement가 채움) -->
                 <ui:ScrollView name="settlement-report" class="settlement-report" />
                 <ui:Label name="settlement-summary" class="caption settlement-summary" />
-                <ui:VisualElement class="row repay-row">
-                    <ui:Label text="상환" class="caption" />
-                    <ui:FloatField name="repay-field" value="0" class="repay-field" />
-                    <ui:Button name="repay-button" text="갚기" />
-                    <ui:Button name="repay-all-button" text="현금 전부" />
+                <!-- 왼쪽 이자 갚기 (3일차부터) · 오른쪽 빚 갚기 -->
+                <ui:VisualElement class="pay-row">
+                    <ui:VisualElement name="interest-box" class="pay-box pay-box--interest">
+                        <ui:Label text="이자 갚기" class="pay-box-title" />
+                        <ui:Label name="interest-due-label" class="caption" />
+                        <ui:Button name="interest-pay-button" text="이자 갚기" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="pay-box">
+                        <ui:Label text="빚 갚기" class="pay-box-title" />
+                        <ui:VisualElement class="row">
+                            <ui:FloatField name="repay-field" value="0" class="repay-field" />
+                            <ui:Button name="repay-button" text="빚 갚기" />
+                            <ui:Button name="repay-all-button" text="현금 전부" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:Label name="settlement-message" class="caption message" />
                 <ui:Button name="to-shop-button" text="상점으로" class="modal-button" />
@@ -163,12 +171,29 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:VisualElement name="end-overlay" class="overlay">
+        <!-- 엔딩: 파산(Art/Ending/파산1~3) · 성공(성공1~4) 그림이 클릭할 때마다 순서대로, 다 보면 다시 하기 -->
+        <ui:VisualElement name="end-overlay" class="intro-overlay ending-overlay">
+            <ui:VisualElement name="ending-stage" class="ending-stage" picking-mode="Ignore">
+                <ui:Label name="ending-amount" class="ending-amount" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:Label name="ending-hint" text="클릭하면 다음" class="intro-hint" picking-mode="Ignore" />
+            <ui:VisualElement name="ending-end" class="ending-end">
+                <ui:Label name="ending-summary" class="ending-summary" />
+                <ui:Button name="restart-button" text="다시 하기" class="ending-restart" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- 추가 대출: 한 판에 1번, 최대 2억 (2단계에서만) -->
+        <ui:VisualElement name="loan-overlay" class="overlay">
             <ui:VisualElement class="modal">
-                <ui:VisualElement name="end-portrait" class="end-portrait" />
-                <ui:Label name="end-title" text="빚 청산!" class="modal-title end-title" />
-                <ui:Label name="end-body" class="modal-body" />
-                <ui:Button name="restart-button" text="다시 하기" class="modal-button" />
+                <ui:Label text="추가 대출" class="modal-title" />
+                <ui:Label name="loan-body" class="modal-body" />
+                <ui:VisualElement class="row loan-row">
+                    <ui:FloatField name="loan-field" value="200000000" class="loan-field" />
+                    <ui:Label text="원" class="caption" />
+                </ui:VisualElement>
+                <ui:Button name="loan-confirm-button" text="빌리기" class="modal-button" />
+                <ui:Button name="loan-cancel-button" text="취소" class="modal-button modal-button--sub" />
             </ui:VisualElement>
         </ui:VisualElement>
 

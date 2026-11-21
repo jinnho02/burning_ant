@@ -125,19 +125,19 @@ namespace BurningAnt.Editor
 
         /// <summary>
         /// Art/Character의 good·bad·flex 그림을 표정에 연결한다 (비어 있는 칸만 채움).
-        /// 폭락 = bad3(패닉), 손해 = bad1(고민), 보합 = good1(미소), 이득 = good3(주먹), 대박 = flex,
-        /// 장 전 = bad2(기도), 승리 = good2(활짝 웃음).
+        /// 표정 7단계: -30% = bad3(패닉), -20% = bad2(기도), -10% = bad1(고민), 보합 = good1(미소), +10% = good3(주먹), +20% = good2(활짝), +30% = flex,
+        /// 장 전 = good1(기본 표정), 승리 = good2(활짝 웃음).
         /// </summary>
         static void AssignCharacterArt(CharacterSettings c)
         {
             const string art = Root + "/Art/Character/";
             Texture2D T(string path) => AssetDatabase.LoadAssetAtPath<Texture2D>(art + path);
 
-            var moods = new[] { "bad/bad3.png", "bad/bad1.png", "good/good1.png", "good/good3.png", "flex/flex.png" };
+            var moods = new[] { "bad/bad3.png", "bad/bad2.png", "bad/bad1.png", "good/good1.png", "good/good3.png", "good/good2.png", "flex/flex.png" };
             if (c.moodImages == null || c.moodImages.Length != moods.Length) c.moodImages = new Texture2D[moods.Length];
             for (int i = 0; i < moods.Length; i++)
                 if (c.moodImages[i] == null) c.moodImages[i] = T(moods[i]);
-            if (c.prepImage == null) c.prepImage = T("bad/bad2.png");
+            if (c.prepImage == null) c.prepImage = T("good/good1.png");
             if (c.winImage == null) c.winImage = T("good/good2.png");
             EditorUtility.SetDirty(c);
         }

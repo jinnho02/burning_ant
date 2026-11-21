@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Market.MarketSettings
   ticksPerDay: 120
   secondsPerTick: 0.5
-  startingCash: 10000
-  feeRate: 0.002
+  startingCash: 100000000
+  feeRate: 0
   maxHoldings: 4
   stableLimit: 0.05
   normalLimit: 0.12
