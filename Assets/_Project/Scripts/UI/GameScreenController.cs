@@ -34,7 +34,7 @@ namespace BurningAnt.UI
         Label dayLabel, repayLabel, cashLabel, stockValueLabel, debtLabel, interestLabel, loanCountLabel, netWorthLabel;
         readonly Label[] steps = new Label[5];
         VisualElement repayFill, itemBarList;
-        ScrollView hintList, shopList;
+        ScrollView hintList;
         Label faceLabel, speechLabel, moodLabel, outfitLabel, itemBarHint;
         VisualElement newsBand, newsBandList;
         Label newsBandTitle;
@@ -50,6 +50,9 @@ namespace BurningAnt.UI
         string lastMessage = "";
         float hintTimer;
         VisualElement titleOverlay;
+        VisualElement shopStage, shopGrid, shopTooltip;
+        Label shopTipName, shopTipTag, shopTipDesc, shopTipPrice, shopTipOwned;
+        ItemDefinition hoveredShopItem;
         VisualElement newsOverlay;
         ScrollView newsPaperList;
         Label newsPaperDate;
@@ -160,7 +163,15 @@ namespace BurningAnt.UI
             repayField = root.Q<FloatField>("repay-field");
 
             shopOverlay = root.Q("shop-overlay");
-            shopList = root.Q<ScrollView>("shop-list");
+            shopStage = root.Q("shop-stage");
+            shopGrid = root.Q("shop-grid");
+            shopTooltip = root.Q("shop-tooltip");
+            shopTipName = root.Q<Label>("shop-tip-name");
+            shopTipTag = root.Q<Label>("shop-tip-tag");
+            shopTipDesc = root.Q<Label>("shop-tip-desc");
+            shopTipPrice = root.Q<Label>("shop-tip-price");
+            shopTipOwned = root.Q<Label>("shop-tip-owned");
+            shopOverlay.RegisterCallback<GeometryChangedEvent>(_ => FitToImage(shopStage, shopOverlay, StoreAspect));
             shopCash = root.Q<Label>("shop-cash");
             shopMessage = root.Q<Label>("shop-message");
 
@@ -531,44 +542,106 @@ namespace BurningAnt.UI
                 "\n\n보유 주식은 다음 날로 이어져요. 원하는 만큼 갚을 수 있어요.";
         }
 
+        // 상점 그림(store.png, 1672×941) 기준 칸 자리: 열 4개 왼쪽 끝, 행 2개 위쪽 끝, 칸 크기 (모두 그림 대비 비율)
+        const float StoreAspect = 1672f / 941f;
+        static readonly float[] ShopColumns = { 0.121f, 0.273f, 0.441f, 0.605f };
+        static readonly float[] ShopRows = { 0.367f, 0.581f };
+        const float ShopSlotWidth = 0.117f, ShopSlotHeight = 0.115f, ShopNameGap = 0.008f, ShopNameHeight = 0.04f;
+
+        /// <summary>stage를 container 안에서 scale-and-crop으로 그려진 그림 영역과 같은 위치·크기로 맞춘다.</summary>
+        static void FitToImage(VisualElement stage, VisualElement container, float aspect)
+        {
+            var rect = container.contentRect;
+            if (stage == null || rect.width <= 0f || rect.height <= 0f) return;
+            float w = rect.width, h = rect.width / aspect;
+            if (h < rect.height)
+            {
+                h = rect.height;
+                w = rect.height * aspect;
+            }
+            stage.style.left = (rect.width - w) * 0.5f;
+            stage.style.top = (rect.height - h) * 0.5f;
+            stage.style.width = w;
+            stage.style.height = h;
+        }
+
+        /// <summary>오늘 진열된 아이템을 2×4 칸에 놓는다. 칸 아래에는 이름만, 설명은 마우스를 올렸을 때 가운데 창에.</summary>
         void RefreshShop()
         {
             shopCash.text = "현금 " + Format.Money(Session.Portfolio.Cash);
-            shopList.Clear();
-            foreach (var item in game.ShopItems)
+            shopGrid.Clear();
+
+            var items = game.TodayShop;
+            int slots = ShopColumns.Length * ShopRows.Length;
+            for (int i = 0; i < slots; i++)
             {
-                var row = new VisualElement();
-                row.AddToClassList("shop-row");
+                float left = ShopColumns[i % ShopColumns.Length];
+                float top = ShopRows[i / ShopColumns.Length];
+                var item = i < items.Count ? items[i] : null;
 
-                var info = new VisualElement();
-                info.AddToClassList("shop-info");
-                var title = new VisualElement();
-                title.AddToClassList("row");
-                var name = new Label(item.displayName);
-                name.AddToClassList("shop-name");
-                var tag = new Label(item.Timing == ItemTiming.Prep ? "아이템 시간용" : "장 시간용");
-                tag.AddToClassList("shop-tag");
-                title.Add(name);
-                title.Add(tag);
-                var desc = new Label(item.description);
-                desc.AddToClassList("shop-desc");
-                info.Add(title);
-                info.Add(desc);
+                var slot = new VisualElement();
+                slot.AddToClassList("shop-slot");
+                SetPercentRect(slot, left, top, ShopSlotWidth, ShopSlotHeight);
+                shopGrid.Add(slot);
 
-                var price = new Label(Format.Money(item.price));
-                price.AddToClassList("shop-price");
-                var owned = new Label($"보유 {game.Inventory.Count(item)}");
-                owned.AddToClassList("shop-owned");
-                var buy = new Button(() => game.Buy(item)) { text = "구매" };
-                buy.AddToClassList("shop-buy");
-                buy.SetEnabled(Session.Portfolio.Cash >= item.price);
+                var name = new Label(item != null ? item.displayName : "");
+                name.AddToClassList("shop-slot-name");
+                name.pickingMode = PickingMode.Ignore;
+                SetPercentRect(name, left - 0.01f, top + ShopSlotHeight + ShopNameGap, ShopSlotWidth + 0.02f, ShopNameHeight);
+                shopGrid.Add(name);
 
-                row.Add(info);
-                row.Add(price);
-                row.Add(owned);
-                row.Add(buy);
-                shopList.Add(row);
+                if (item == null)
+                {
+                    slot.AddToClassList("shop-slot--empty"); // 오늘 진열할 아이템이 모자라면 빈 칸
+                    slot.pickingMode = PickingMode.Ignore;
+                    continue;
+                }
+
+                if (item.icon != null) slot.style.backgroundImage = new StyleBackground(item.icon);
+                slot.EnableInClassList("shop-slot--poor", Session.Portfolio.Cash < item.price);
+                int owned = game.Inventory.Count(item);
+                if (owned > 0)
+                {
+                    var count = new Label($"보유 {owned}") { pickingMode = PickingMode.Ignore };
+                    count.AddToClassList("shop-slot-count");
+                    slot.Add(count);
+                }
+
+                slot.RegisterCallback<PointerEnterEvent>(_ => ShowShopTooltip(item));
+                slot.RegisterCallback<PointerLeaveEvent>(_ => HideShopTooltip(item));
+                slot.RegisterCallback<ClickEvent>(_ => game.Buy(item));
             }
+
+            if (hoveredShopItem != null && items.Contains(hoveredShopItem)) ShowShopTooltip(hoveredShopItem);
+            else HideShopTooltip(null);
+        }
+
+        static void SetPercentRect(VisualElement e, float left, float top, float width, float height)
+        {
+            e.style.left = Length.Percent(left * 100f);
+            e.style.top = Length.Percent(top * 100f);
+            e.style.width = Length.Percent(width * 100f);
+            e.style.height = Length.Percent(height * 100f);
+        }
+
+        void ShowShopTooltip(ItemDefinition item)
+        {
+            hoveredShopItem = item;
+            shopTipName.text = item.displayName;
+            shopTipTag.text = item.Timing == ItemTiming.Prep ? "아이템 시간용" : "장 시간용";
+            shopTipDesc.text = string.IsNullOrEmpty(item.description) ? "(설명 없음)" : item.description;
+            shopTipPrice.text = Format.Money(item.price) + (Session.Portfolio.Cash < item.price ? " · 현금 부족" : " · 클릭하면 구매");
+            shopTipOwned.text = $"보유 {game.Inventory.Count(item)}개";
+            shopTooltip.BringToFront();
+            Show(shopTooltip, true);
+        }
+
+        /// <summary>item이 지금 보이는 설명의 아이템일 때만 닫는다 (칸 사이를 옮겨 다닐 때 깜빡임 방지). null이면 무조건 닫는다.</summary>
+        void HideShopTooltip(ItemDefinition item)
+        {
+            if (item != null && item != hoveredShopItem) return;
+            hoveredShopItem = null;
+            Show(shopTooltip, false);
         }
 
         void RefreshEnd()

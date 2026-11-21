@@ -30,6 +30,7 @@ namespace BurningAnt.Items
         public string displayName = "새 아이템";
         public float price = 100f;
         [TextArea] public string description;
+        [Tooltip("상점 칸에 보일 그림. 비우면 빈 칸으로 보인다.")] public Texture2D icon;
 
         [Header("정보 아이템")]
         [Range(0f, 1f), Tooltip("힌트가 맞을 확률")] public float accuracy = 0.75f;

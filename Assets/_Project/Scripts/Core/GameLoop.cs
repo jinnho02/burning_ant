@@ -31,8 +31,9 @@ namespace BurningAnt.Core
         [SerializeField] LoanSettings loanSettings;
         [SerializeField] NewsSettings newsSettings;
         [SerializeField] CharacterSettings characterSettings;
-        [SerializeField, Tooltip("상점에 진열할 아이템. 변경점: 랜덤 진열 대신 전부 진열하고 플레이어가 골라 산다.")]
+        [SerializeField, Tooltip("상점 아이템 전체 목록(예정 20종). 매일 이 중에서 Shop Slots 개를 무작위로 진열한다.")]
         List<ItemDefinition> shopItems = new();
+        [SerializeField, Tooltip("하루에 진열하는 아이템 수 (상점 화면 칸 수, 2×4 = 8)")] int shopSlots = 8;
         [SerializeField, Tooltip("0이면 매번 무작위")] int seed;
 
         class AutoSell
@@ -53,6 +54,10 @@ namespace BurningAnt.Core
         public MarketSession Session => session;
         public CharacterSettings Character => characterSettings;
         public IReadOnlyList<ItemDefinition> ShopItems => shopItems;
+        readonly List<ItemDefinition> todayShop = new();
+        /// <summary>오늘 상점에 진열된 아이템 (상점 단계에 들어갈 때 새로 뽑는다).</summary>
+        public IReadOnlyList<ItemDefinition> TodayShop => todayShop;
+        public int ShopSlots => shopSlots;
         public LoanAccount Loan { get; private set; }
         public LoanSettings LoanSettings => loanSettings;
         public Inventory Inventory { get; private set; }
@@ -224,6 +229,7 @@ namespace BurningAnt.Core
         public void GoToShop()
         {
             if (Phase != GamePhase.Settlement || NeedsEmergency) return;
+            RollShop();
             SetPhase(GamePhase.Shop);
         }
 
@@ -286,9 +292,25 @@ namespace BurningAnt.Core
 
         // ───────── 상점 · 아이템 ─────────
 
+        /// <summary>전체 목록에서 겹치지 않게 shopSlots개를 무작위로 고른다. 목록이 더 적으면 전부 진열.</summary>
+        void RollShop()
+        {
+            todayShop.Clear();
+            var pool = new List<ItemDefinition>();
+            foreach (var item in shopItems)
+                if (item != null) pool.Add(item);
+            int count = Mathf.Min(shopSlots, pool.Count);
+            for (int i = 0; i < count; i++)
+            {
+                int pick = rng.Next(i, pool.Count);
+                (pool[i], pool[pick]) = (pool[pick], pool[i]);
+                todayShop.Add(pool[i]);
+            }
+        }
+
         public void Buy(ItemDefinition item)
         {
-            if (Phase != GamePhase.Shop) return;
+            if (Phase != GamePhase.Shop || !todayShop.Contains(item)) return;
             if (!session.Portfolio.Withdraw(item.price))
             {
                 Say("현금이 부족해요");

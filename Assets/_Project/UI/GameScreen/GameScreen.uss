@@ -248,25 +248,76 @@
     background-image: url("../../Art/UI/store.png");
     -unity-background-scale-mode: scale-and-crop;
 }
-.shop-case {
+/* 그림(1672×941)이 그려진 영역. 위치·크기는 GameScreenController.FitToImage가 정한다 */
+.shop-stage { position: absolute; color: #F6E7D8; }
+
+/* 가방 안감 위쪽 접힌 선 바로 아래: 제목과 현금 */
+.shop-header {
     position: absolute;
-    left: 6%;
-    width: 71%;
-    top: 32%;
-    bottom: 18%;
-    color: #F6E7D8;
+    left: 12.1%; width: 60.1%; top: 30.5%; height: 4.5%;
+    flex-direction: row; justify-content: space-between; align-items: center;
 }
-.shop-case .modal-title { color: #F6E7D8; font-size: 24px; margin-bottom: 6px; }
-.shop-case .shop-cash { color: #F2C14E; font-size: 20px; }
-.shop-case .shop-list { flex-grow: 1; max-height: none; }
-.shop-case .shop-row { background-color: rgba(15, 4, 8, 0.6); border-width: 1px; border-color: rgba(242, 193, 78, 0.35); padding: 6px 12px; margin-bottom: 5px; }
-.shop-case .shop-name { color: #FFFFFF; }
-.shop-case .shop-desc { color: #E0C9B8; }
-.shop-case .shop-tag { background-color: rgba(242, 193, 78, 0.2); color: #F2C14E; }
-.shop-case .shop-price { color: #F2C14E; }
-.shop-case .shop-owned { color: #E0C9B8; }
-.shop-case .message { color: #F6E7D8; }
-.shop-case .modal-button { background-color: #F2C14E; color: #2A0E16; -unity-font-style: bold; border-width: 0; }
+.shop-title { font-size: 22px; -unity-font-style: bold; color: #F6E7D8; }
+.shop-cash { font-size: 20px; -unity-font-style: bold; color: #F2C14E; }
+
+/* 2×4 칸: 위치는 코드(ShopSlotRect)에서 그림 기준 %로 정한다 */
+.shop-grid { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.shop-slot {
+    position: absolute;
+    border-width: 2px;
+    border-color: rgba(242, 193, 78, 0.55);
+    border-radius: 8px;
+    background-color: rgba(15, 4, 8, 0.45);
+    -unity-background-scale-mode: scale-to-fit;
+}
+.shop-slot:hover { border-color: #F2C14E; background-color: rgba(242, 193, 78, 0.18); }
+.shop-slot--empty { border-color: rgba(246, 231, 216, 0.35); }
+.shop-slot--poor { opacity: 0.45; }
+.shop-slot-count {
+    position: absolute; right: 4px; bottom: 2px;
+    font-size: 13px; color: #F2C14E; -unity-font-style: bold;
+}
+.shop-slot-name {
+    position: absolute;
+    font-size: 16px;
+    -unity-font-style: bold;
+    -unity-text-align: upper-center;
+    color: #FFFFFF;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* 아래: 안내/메시지와 다음 날 버튼 */
+.shop-footer {
+    position: absolute;
+    left: 12.1%; width: 60.1%; top: 75%; height: 6.5%;
+    flex-direction: row; align-items: center; justify-content: space-between;
+}
+.shop-message { font-size: 15px; color: #E0C9B8; white-space: normal; flex-shrink: 1; }
+.shop-next {
+    width: 180px; height: 44px; font-size: 18px; -unity-font-style: bold;
+    border-width: 0; border-radius: 8px;
+    background-color: #F2C14E; color: #2A0E16;
+}
+
+/* 설명창: 화면 가운데, 반투명 */
+.shop-tooltip {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 460px;
+    translate: -50% -50%;
+    padding: 16px 20px;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(242, 193, 78, 0.6);
+    background-color: rgba(10, 3, 6, 0.82);
+    display: none;
+}
+.shop-tip-name { font-size: 22px; -unity-font-style: bold; color: #FFFFFF; }
+.shop-tip-tag { font-size: 13px; padding: 2px 8px; border-radius: 6px; background-color: rgba(242, 193, 78, 0.2); color: #F2C14E; }
+.shop-tip-desc { font-size: 16px; color: #E0C9B8; white-space: normal; margin: 10px 0; }
+.shop-tip-price { font-size: 18px; -unity-font-style: bold; color: #F2C14E; }
+.shop-tip-owned { font-size: 14px; color: #E0C9B8; }
 
 /* 추가 대출 버튼 (2단계에서만 켜짐) */
 .loan-take { height: 26px; font-size: 13px; padding: 0 10px; margin-left: 8px; border-radius: 7px; }
