@@ -8,11 +8,12 @@ namespace BurningAnt.UI
     /// <summary>
     /// 튜토리얼 진행: 1일차에 각 단계에 처음 들어가면 그 단계의 설명을 차례로 띄우고 대상 요소를 강조한다.
     /// 설명이 떠 있는 동안은 화면 클릭을 막고, 장 중이면 시간을 멈춘다 (GameLoop.ExternalPause).
-    /// 한 번 끝까지 보거나 건너뛰면 PlayerPrefs에 기록해 다음 판부터는 안 뜬다.
+    /// 게임을 실행할 때마다 1일차에 한 번 나온다 (끝까지 보거나 건너뛰면, 다시 하기로 새 판을 시작해도 그 실행 동안은 안 뜸).
     /// </summary>
     public class TutorialRunner
     {
-        public const string DoneKey = "BurningAnt.TutorialDone";
+        // 예전에는 PlayerPrefs에 "봤음"을 저장해서 한 번 본 PC에서는 다시 실행해도 안 떴다 → 실행마다로 바꿈
+        static bool doneThisRun;
 
         readonly VisualElement root, overlay, highlight, box;
         readonly Label stepLabel, titleLabel, textLabel;
@@ -57,7 +58,7 @@ namespace BurningAnt.UI
             nextButton.style.width = 110f * this.scale;
             nextButton.style.height = 38f * this.scale;
 
-            active = overlay != null && script != null && (forceShow || PlayerPrefs.GetInt(DoneKey, 0) == 0);
+            active = overlay != null && script != null && (forceShow || !doneThisRun);
             Hide();
         }
 
@@ -114,13 +115,15 @@ namespace BurningAnt.UI
             if (game.Phase == GamePhase.Shop) Finish();
         }
 
+        /// <summary>시연용 자동 진행에서 건너뛰기.</summary>
+        public void Skip() => Finish();
+
         void Finish()
         {
             queue.Clear();
             current = null;
             active = false;
-            PlayerPrefs.SetInt(DoneKey, 1);
-            PlayerPrefs.Save();
+            doneThisRun = true;
             Hide();
         }
 

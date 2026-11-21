@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ed2c906fd971364a97236656d11d5d5, type: 3}
+  m_Name: Item_LoanKidney
+  m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
+  kind: 14
+  displayName: "\uCF69\uD325"
+  price: 3000000
+  description: "\uCF69\uD325 \uB2F4\uBCF4 \uB300\uCD9C. \uC9C0\uAE08 \uBC14\uB85C \uD604\uAE08 1\uC5B5\uC6D0. \uB300\uC2E0 \uBE5A\uC774 1\uC5B5 2,000\uB9CC\uC6D0 \uB298\uC5B4\uB098\uC694. \uC7A5 \uC804\xB7\uC7A5 \uC911 \uC5B8\uC81C\uB4E0."
+  icon: {fileID: 2800000, guid: c3a4df1919a7f26489cedf042e7ba38c, type: 3}
+  accuracy: 0.75
+  triggerRate: 0
+  durationSeconds: 0
+  speedMultiplier: 0
+  amount: 100000000
+  debtAmount: 120000000

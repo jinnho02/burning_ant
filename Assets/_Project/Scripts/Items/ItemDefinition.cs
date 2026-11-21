@@ -34,6 +34,7 @@ namespace BurningAnt.Items
     {
         Prep,   // 아이템 시간용 (장 전)
         Market, // 장 시간용
+        Anytime, // 2단계·3단계 둘 다 (대출 아이템)
     }
 
     /// <summary>아이템 하나. Data/Items에 에셋으로 만든다.</summary>
@@ -64,6 +65,7 @@ namespace BurningAnt.Items
         {
             ItemKind.StopLoss or ItemKind.TakeProfit or ItemKind.SlowMotion or ItemKind.TimeStop or ItemKind.Telescope
                 or ItemKind.SoulAllIn or ItemKind.TrailingStop or ItemKind.TargetBuy => ItemTiming.Market,
+            ItemKind.DevilContract => ItemTiming.Anytime, // 아이템으로 받는 대출은 2·3단계 어느 때든
             _ => ItemTiming.Prep,
         };
 

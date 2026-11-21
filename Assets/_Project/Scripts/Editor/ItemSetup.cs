@@ -9,7 +9,7 @@ using UnityEngine;
 namespace BurningAnt.Editor
 {
     /// <summary>
-    /// v0.2.1 아이템 21종을 만든다/고친다. 이름·그림은 Art/Item의 이미지 파일 이름을 기준으로 한다.
+    /// v0.2.1 아이템 (햇살론 빼고 무·콩팥 넣어 22종)을 만든다/고친다. 이름·그림은 Art/Item의 이미지 파일 이름을 기준으로 한다.
     /// 효과 수치는 기획서에 없는 것은 단순한 값으로 정한 제안값 (에셋에서 고치면 된다).
     /// DayLoop 씬의 GameLoop 상점 목록도 이 21종으로 바꾼다. 메뉴: BurningAnt > Setup > Items (v0.2.1)
     /// </summary>
@@ -32,9 +32,11 @@ namespace BurningAnt.Editor
             ("Item_LossInsurance", ItemKind.LossInsurance, "손실 보험 증서", 10000000f, "오늘 매매로 손해를 보면 장 마감에 손실의 50%를 돌려받아요.", 0, 0, 0, 0.5f, 0),
             ("Item_DevilContract", ItemKind.DevilContract, "악마의 계약서", 1000000f, "지금 바로 현금 3,000만원. 대신 빚이 4,500만원 늘어나요.", 0, 0, 0, 30000000f, 45000000f),
             ("Item_StrongDevilContract", ItemKind.DevilContract, "더 강한 악마의 계약서", 2000000f, "지금 바로 현금 8,000만원. 대신 빚이 1억 3,000만원 늘어나요.", 0, 0, 0, 80000000f, 130000000f),
+            // 아이템으로 받는 대출 (2·3단계 어느 때든): 무 · 콩팥
+            ("Item_LoanRadish", ItemKind.DevilContract, "무", 2000000f, "무담보 대출. 지금 바로 현금 5,000만원. 대신 빚이 5,500만원 늘어나요. 장 전·장 중 언제든.", 0, 0, 0, 50000000f, 55000000f),
+            ("Item_LoanKidney", ItemKind.DevilContract, "콩팥", 3000000f, "콩팥 담보 대출. 지금 바로 현금 1억원. 대신 빚이 1억 2,000만원 늘어나요. 장 전·장 중 언제든.", 0, 0, 0, 100000000f, 120000000f),
             ("Item_InterestDeferral", ItemKind.InterestDeferral, "이자 유예 신청서", 5000000f, "다음 이자(매일, 3일차부터)를 한 번 면제받아요.", 0, 0, 0, 0, 0),
             ("Item_DebtAdjustment", ItemKind.DebtAdjustment, "채무 조정 신청서", 12000000f, "이자율을 2%p 내려요. 시작 이자율(5%) 밑으로는 안 내려가요.", 0, 0, 0, 0.02f, 0),
-            ("Item_SunshineLoan", ItemKind.SunshineLoan, "햇살론(회생)", 8000000f, "이미 쓴 긴급 대출 기회를 한 번 되살려요.", 0, 0, 0, 0, 0),
             ("Item_Lottery", ItemKind.Lottery, "인생역전 복권", 2000000f, "2% 2억원 · 10% 2,000만원 · 30% 300만원 · 나머지는 꽝.", 0, 0, 0, 0, 0),
             // ── 장 중 ──
             ("Item_StopLoss", ItemKind.StopLoss, "손절 예약권", 2000000f, "보유 종목의 손익이 -15%(주가 약 -5%)가 되면 전량 자동 매도.", 0.15f, 0, 0, 0, 0),
@@ -48,7 +50,7 @@ namespace BurningAnt.Editor
         };
 
         // v0.2.1에 없는 예전 아이템
-        static readonly string[] Obsolete = { "Item_InsiderMemo", "Item_ChainForecast" };
+        static readonly string[] Obsolete = { "Item_InsiderMemo", "Item_ChainForecast", "Item_SunshineLoan" }; // 햇살론은 아이템이 아니라 파산 직전에만
 
         [MenuItem("BurningAnt/Setup/Items (v0.2.1)")]
         public static void Run()

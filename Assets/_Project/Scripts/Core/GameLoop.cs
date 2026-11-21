@@ -425,12 +425,14 @@ namespace BurningAnt.Core
             Changed?.Invoke();
         }
 
-        /// <summary>추가 대출은 2단계(아이템·예약)에서만, 한 판에 1번, 최대 2억. 이자는 다다음 날부터.</summary>
+        /// <summary>추가 대출은 2단계(아이템·예약)·3단계(장 중)에서, 한 판에 1번, 최대 2억. 이자는 다다음 날부터.</summary>
+        public bool CanTakeExtraLoanNow => Loan.CanTakeExtraLoan && (Phase == GamePhase.Prep || (Phase == GamePhase.Market && session.Phase == MarketPhase.Open));
+
         public void TakeExtraLoan(float amount)
         {
-            if (Phase != GamePhase.Prep)
+            if (Phase != GamePhase.Prep && !(Phase == GamePhase.Market && session.Phase == MarketPhase.Open))
             {
-                Say("추가 대출은 아이템 단계(2단계)에서만 받을 수 있어요");
+                Say("추가 대출은 아이템 시간(2단계)이나 장 시간(3단계)에만 받을 수 있어요");
                 return;
             }
             float got = Loan.TakeExtraLoan(amount, Day);
@@ -479,14 +481,24 @@ namespace BurningAnt.Core
 
         public bool CanUseNow(ItemDefinition item) =>
             Inventory.Count(item) > 0 &&
-            (item.Timing == ItemTiming.Prep ? Phase == GamePhase.Prep : Phase == GamePhase.Market && session.Phase == MarketPhase.Open);
+            item.Timing switch
+            {
+                ItemTiming.Prep => Phase == GamePhase.Prep,
+                ItemTiming.Market => Phase == GamePhase.Market && session.Phase == MarketPhase.Open,
+                _ => Phase == GamePhase.Prep || (Phase == GamePhase.Market && session.Phase == MarketPhase.Open),
+            };
 
         /// <summary>아이템 사용. 대상이 필요 없는 아이템은 target = null.</summary>
         public void UseItem(ItemDefinition item, StockState target)
         {
             if (!CanUseNow(item))
             {
-                Say(item.Timing == ItemTiming.Prep ? "장 전(아이템 시간)에만 쓸 수 있어요" : "장 시간에만 쓸 수 있어요");
+                Say(item.Timing switch
+                {
+                    ItemTiming.Prep => "장 전(아이템 시간)에만 쓸 수 있어요",
+                    ItemTiming.Market => "장 시간에만 쓸 수 있어요",
+                    _ => "아이템 시간이나 장 시간에만 쓸 수 있어요",
+                });
                 return;
             }
             if (item.NeedsTarget && target == null) return;

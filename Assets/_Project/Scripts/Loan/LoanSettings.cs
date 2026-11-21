@@ -12,7 +12,7 @@ namespace BurningAnt.Loan
         [Tooltip("하루 이자율 (0.05 = 남은 빚의 5%)")] public float baseInterestRate = 0.05f;
         [Tooltip("이 일차부터 이자가 붙음 (3 = 1·2일차는 없음)")] public int interestStartDay = 3;
 
-        [Header("추가 대출 (2단계에서만, 한 판에 1번)")]
+        [Header("추가 대출 (2·3단계에서, 한 판에 1번)")]
         [Tooltip("한 번에 빌릴 수 있는 최대 금액")] public float extraLoanMax = 200_000_000f;
         [Tooltip("추가 대출 하루 이자율 (일반 대출과 따로)")] public float extraLoanRate = 0.30f;
         [Tooltip("빌린 날로부터 며칠 뒤부터 이자 (2 = 다다음 날)")] public int extraLoanGraceDays = 2;
@@ -20,7 +20,7 @@ namespace BurningAnt.Loan
         // shortcut: 금액·이자율은 팀 결정 전 제안값.
         [Header("햇살론 = 긴급 대출 (한 판에 1번, 장 마감 정산 후 현금이 0 밑이면 제안. 거절하면 파산)")]
         [Tooltip("모자란 금액에 더 얹어 주는 돈")] public float emergencyLoanBuffer = 10_000_000f;
-        [Tooltip("햇살론 최대 금액 (시작 대출 1억 + 햇살론 = 총 2억). 모자란 돈이 이보다 크면 파산")] public float emergencyLoanMax = 100_000_000f;
+        [Tooltip("햇살론 최대 금액 (파산 직전에만 1회). 모자란 돈이 이보다 크면 파산")] public float emergencyLoanMax = 200_000_000f;
         [Tooltip("햇살론을 받으면 오르는 이자율 (0.10 = +10%p)")] public float emergencyRateStep = 0.10f;
 
         [Header("승리")]

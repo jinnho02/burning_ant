@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9ed2c906fd971364a97236656d11d5d5, type: 3}
-  m_Name: Item_SunshineLoan
+  m_Name: Item_LoanRadish
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
-  kind: 17
-  displayName: "\uD587\uC0B4\uB860(\uD68C\uC0DD)"
-  price: 8000000
-  description: "\uC774\uBBF8 \uC4F4 \uAE34\uAE09 \uB300\uCD9C \uAE30\uD68C\uB97C \uD55C \uBC88 \uB418\uC0B4\uB824\uC694."
-  icon: {fileID: 2800000, guid: aaeb74f3146cf994c9dde5c73960cd80, type: 3}
+  kind: 14
+  displayName: "\uBB34"
+  price: 2000000
+  description: "\uBB34\uB2F4\uBCF4 \uB300\uCD9C. \uC9C0\uAE08 \uBC14\uB85C \uD604\uAE08 5,000\uB9CC\uC6D0. \uB300\uC2E0 \uBE5A\uC774 5,500\uB9CC\uC6D0 \uB298\uC5B4\uB098\uC694. \uC7A5 \uC804\xB7\uC7A5 \uC911 \uC5B8\uC81C\uB4E0."
+  icon: {fileID: 2800000, guid: 0dc79c9caea7b4a46a60b919e7c00dc0, type: 3}
   accuracy: 0.75
   triggerRate: 0
   durationSeconds: 0
   speedMultiplier: 0
-  amount: 0
-  debtAmount: 0
+  amount: 50000000
+  debtAmount: 55000000

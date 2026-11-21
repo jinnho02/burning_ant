@@ -17,7 +17,7 @@
                 <ui:VisualElement class="top-stat"><ui:Label text="현금" class="caption" /><ui:Label name="cash-label" class="status-value" /></ui:VisualElement>
                 <ui:VisualElement class="top-stat"><ui:Label text="주식 평가" class="caption" /><ui:Label name="stock-value-label" class="status-value" /></ui:VisualElement>
                 <ui:VisualElement class="top-stat"><ui:Label text="다음 이자" class="caption" /><ui:Label name="interest-label" class="chip chip--warning" /></ui:VisualElement>
-                <ui:VisualElement class="top-stat"><ui:Label text="추가 대출" class="caption" /><ui:Label name="loan-count-label" class="status-value status-value--small" /><ui:Button name="loan-button" text="받기" class="loan-take" tooltip="추가 대출은 아이템 단계에서만, 한 판에 1번, 최대 2억" /></ui:VisualElement>
+                <ui:VisualElement class="top-stat"><ui:Label text="추가 대출" class="caption" /><ui:Label name="loan-count-label" class="status-value status-value--small" /><ui:Button name="loan-button" text="받기" class="loan-take" tooltip="추가 대출은 아이템 시간·장 시간에, 한 판에 1번, 최대 2억" /></ui:VisualElement>
                 <ui:VisualElement class="top-stat"><ui:Label text="순자산" class="caption" /><ui:Label name="networth-label" class="status-value status-value--big" /></ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="repay">
@@ -61,7 +61,7 @@
                         <ui:VisualElement name="flow-list" />
                     </ui:VisualElement>
 
-                    <ui:VisualElement class="hint-card side-section">
+                    <ui:VisualElement name="hint-card" class="hint-card side-section">
                         <ui:Label text="받은 힌트 · 사용 중 효과" class="side-title" />
                         <ui:ScrollView name="hint-list" class="hint-list" />
                     </ui:VisualElement>
@@ -138,10 +138,11 @@
         <ui:VisualElement name="emergency-overlay" class="overlay">
             <ui:VisualElement class="modal emergency">
                 <ui:VisualElement class="emergency-art" picking-mode="Ignore" />
-                <ui:Label text="잔고 부족 · 이대로면 파산!" class="modal-title emergency-title" />
+                <ui:Label text="햇살론 대출하시겠습니까?" class="modal-title emergency-title" />
+                <ui:Label text="잔고 부족 · 이대로면 파산!" class="caption emergency-sub" />
                 <ui:Label name="emergency-body" class="modal-body" />
-                <ui:Button name="emergency-accept-button" text="햇살론 받기 (한 판에 한 번)" class="modal-button emergency-accept" />
-                <ui:Button name="emergency-decline-button" text="안 받을래… (파산)" class="modal-button modal-button--sub" />
+                <ui:Button name="emergency-accept-button" text="네, 대출받을게요" class="modal-button emergency-accept" />
+                <ui:Button name="emergency-decline-button" text="아니요… (파산)" class="modal-button modal-button--sub" />
             </ui:VisualElement>
         </ui:VisualElement>
 
@@ -151,12 +152,12 @@
                 <!-- 현금: 가방 맨 위쪽 가운데, 그 밑에 구매 메시지 -->
                 <ui:VisualElement class="shop-header">
                     <ui:Label name="shop-cash" text="현금 $0.00" class="shop-cash" />
-                    <ui:Label name="shop-message" text="칸에 마우스를 올리면 설명, 클릭하면 구매" class="shop-message" />
+                    <ui:Label name="shop-message" class="shop-message" />
                 </ui:VisualElement>
                 <ui:VisualElement name="shop-grid" class="shop-grid" picking-mode="Ignore" />
             </ui:VisualElement>
             <!-- 다음 날: 화면 오른쪽 위, 크게 -->
-            <ui:Button name="next-day-button" text="다음 날" class="shop-next" />
+            <ui:Button name="next-day-button" text="" tooltip="다음날로 넘어가기" class="shop-next" />
             <!-- 마우스를 올린 아이템 설명: 화면 가운데 반투명 창 -->
             <ui:VisualElement name="shop-tooltip" class="shop-tooltip" picking-mode="Ignore">
                 <ui:VisualElement class="row row--spread" picking-mode="Ignore">
@@ -175,6 +176,11 @@
         <ui:VisualElement name="end-overlay" class="intro-overlay ending-overlay">
             <ui:VisualElement name="ending-stage" class="ending-stage" picking-mode="Ignore">
                 <ui:Label name="ending-amount" class="ending-amount" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <!-- 파산 4: 어두운 배경 가운데 그림 + 경고 문구 -->
+            <ui:VisualElement name="ending-final" class="ending-final" picking-mode="Ignore">
+                <ui:VisualElement class="ending-final-image" picking-mode="Ignore" />
+                <ui:Label text="과도한 투자는 심각한 경제적 손실과 감당할 수 없는 채무를 초래할 수 있습니다" class="ending-final-text" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:Label name="ending-hint" text="클릭하면 다음" class="intro-hint" picking-mode="Ignore" />
             <ui:VisualElement name="ending-end" class="ending-end">

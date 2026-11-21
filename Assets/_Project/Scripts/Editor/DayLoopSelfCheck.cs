@@ -104,12 +104,12 @@ namespace BurningAnt.Editor
             Expect(loan.IsPaidOff && loan.InterestDue(9) == 0f, "전액 상환하면 이자 없음");
 
             var rescue = new LoanAccount(settings);
-            Expect(rescue.EmergencyAmount(settings.emergencyLoanMax + 1_000_000f) == 0f, "모자란 돈이 햇살론 한도(1억)를 넘으면 못 받음");
+            Expect(rescue.EmergencyAmount(settings.emergencyLoanMax + 1_000_000f) == 0f, "모자란 돈이 햇살론 한도(2억)를 넘으면 못 받음");
             Won(rescue.TakeEmergencyLoan(8_000_000f), 8_000_000f + settings.emergencyLoanBuffer, "햇살론 = 모자란 금액 + 여유분");
             Near(rescue.InterestRate, settings.baseInterestRate + settings.emergencyRateStep, "햇살론 후 이자율 크게 오름");
             Expect(rescue.EmergencyUsed && rescue.TakeEmergencyLoan(500f) == 0f, "햇살론은 한 판에 한 번");
             var big = new LoanAccount(settings);
-            Won(big.TakeEmergencyLoan(95_000_000f), settings.emergencyLoanMax, "햇살론은 최대 1억 (총 2억)");
+            Won(big.TakeEmergencyLoan(195_000_000f), settings.emergencyLoanMax, "햇살론은 최대 2억");
         }
 
         static void CheckNews(NewsSettings settings, MarketSettings market, StockState[] stocks)

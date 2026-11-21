@@ -75,7 +75,7 @@ namespace BurningAnt.Editor
                     Expect(loop.Phase == GamePhase.Prep, "뉴스 확인 → 2단계");
 
                     // 장 전 아이템: 가진 것 하나씩 써 본다
-                    foreach (var it in loop.Inventory.Owned.Select(o => o.item).Where(i => i.Timing == ItemTiming.Prep).ToList())
+                    foreach (var it in loop.Inventory.Owned.Select(o => o.item).Where(i => i.Timing != ItemTiming.Market).ToList())
                     {
                         loop.UseItem(it, session.Stocks[rng.Next(session.Stocks.Count)]);
                         itemUses++;

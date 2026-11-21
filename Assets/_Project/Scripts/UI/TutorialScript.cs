@@ -8,7 +8,7 @@ namespace BurningAnt.UI
     /// <summary>
     /// 튜토리얼 단계 목록. 1일차에 각 단계(뉴스·아이템·장·결과·상점)에 처음 들어갈 때 그 단계의 항목이 차례로 뜬다.
     /// target은 강조할 화면 요소의 name (UXML의 name). 비우거나 못 찾으면 화면 가운데에 설명만 뜬다.
-    /// 문구는 아직 임시 — Data/에 에셋을 만들어 고치거나, 에셋이 없으면 CreateDefault()의 임시 문구를 쓴다.
+    /// 문구를 바꾸려면 Data/에 에셋을 만들어 고치거나, 에셋이 없으면 CreateDefault()의 기본 문구를 쓴다.
     /// </summary>
     [CreateAssetMenu(menuName = "BurningAnt/Tutorial Script", fileName = "TutorialScript")]
     public class TutorialScript : ScriptableObject
@@ -30,17 +30,26 @@ namespace BurningAnt.UI
             void Add(GamePhase phase, string target, string title, string text) =>
                 s.steps.Add(new Step { phase = phase, target = target, title = title, text = text });
 
-            // shortcut: 임시 문구. 기획 확정 후 Data/TutorialScript 에셋으로 교체.
-            Add(GamePhase.News, "news-paper-list", "(임시) 아침 뉴스", "매일 아침 4종목에 뉴스가 떠요. 그 종목은 오늘 크게 움직이지만, 오를지 내릴지는 결과 기사(장 중 특보 또는 장 마감)가 나와야 알 수 있어요.");
-            Add(GamePhase.News, "news-paper-button", "(임시) 다음 단계로", "다 읽었으면 눌러서 아이템·예약 단계로 넘어가요.");
-            Add(GamePhase.Prep, "flow-card", "(임시) 오늘의 흐름", "오늘 한 일(뉴스, 예약, 쓴 아이템)과 아직 안 쓴 아이템이 여기에 정리돼요.");
-            Add(GamePhase.Prep, "item-bar-list", "(임시) 아이템", "상점에서 산 아이템이에요. '장 전' 아이템은 지금, '장 중' 아이템은 장이 열린 뒤에 써요.");
-            Add(GamePhase.Prep, "start-button", "(임시) 예약하고 장 시작", "매수·매도 예약은 장이 열릴 때 시가로 체결돼요. 준비가 끝나면 장을 시작해요.");
-            Add(GamePhase.Market, "chart", "(임시) 60초 장", "가격이 실시간으로 움직여요. 설명이 떠 있는 동안은 시간이 멈춰 있어요.");
-            Add(GamePhase.Market, "buy-button", "(임시) 매수·매도", "Q 매수, W 매도. 손익은 넣은 돈의 3배로 움직여요.");
-            Add(GamePhase.Settlement, "settlement-report", "(임시) 하루 결과", "오늘 손익을 종목·아이템·뉴스·대출별로 보여 줘요.");
-            Add(GamePhase.Settlement, "repay-button", "(임시) 빚 갚기", "빚 갚기로 빚을 갚아요. 3일차부터는 왼쪽 '이자 갚기'로 그날 이자도 내요 (안 내면 빚에 붙어요). 빚 0원 + 자산 5억이면 성공!");
-            Add(GamePhase.Shop, "shop-grid", "(임시) 상점", "매일 8개가 무작위로 나와요. 마우스를 올리면 설명, 클릭하면 구매.");
+            // 1단계 · 뉴스
+            Add(GamePhase.News, "news-paper-list", "아침 뉴스", "매일 아침 무작위 4종목에 뉴스가 떠요. 뉴스가 뜬 종목은 평소보다 훨씬 크게 움직여요.\n성공인지 실패인지는 숨겨져 있다가, 장 중 속보나 장 마감 때 결과 기사로 공개돼요.");
+            Add(GamePhase.News, "news-paper-button", "다음 단계로", "다 읽었으면 눌러서 2단계(아이템·예약)로 넘어가요.");
+            // 2단계 · 아이템 · 예약
+            Add(GamePhase.Prep, "left-column", "업종과 종목", "업종을 누르면 그 업종 종목이 펼쳐져요. ● 뉴스는 오늘 뉴스가 뜬 업종, ● 보유는 내가 가진 종목이 있는 업종이에요.");
+            Add(GamePhase.Prep, "item-bar-list", "아이템", "상점에서 산 아이템이에요. 모두 한 번 쓰면 사라져요.\n'장 전' 아이템은 지금, '장 중' 아이템은 장이 열린 뒤에, 무·콩팥 같은 대출 아이템은 둘 다 쓸 수 있어요.");
+            Add(GamePhase.Prep, "loan-button", "추가 대출", "아이템 시간(2단계)이나 장 시간(3단계)에 한 판에 한 번, 최대 2억까지 빌릴 수 있어요.\n대신 하루 이자 30%가 다다음 날부터 붙어요.");
+            Add(GamePhase.Prep, "buy-button", "예약 주문", "지금 거는 매수·매도는 장이 열리는 순간 시가로 체결돼요 (시가는 장이 시작돼야 보여요).\n손익은 넣은 돈의 3배로 움직이고, 수수료는 없어요.");
+            Add(GamePhase.Prep, "start-button", "장 시작", "준비가 끝나면 장을 시작해요. 장은 60초 동안 열리고 멈출 수 없어요.");
+            // 3단계 · 장
+            Add(GamePhase.Market, "chart", "60초 장", "가격이 실시간으로 움직여요. 뉴스 결과가 장 중에 나오면 속보로 떠요.\n(이 설명이 떠 있는 동안은 시간이 멈춰 있어요.)");
+            Add(GamePhase.Market, "buy-button", "매수 · 매도", "Q 매수, W 매도. 손익은 3배라서 많이 떨어지면 넣은 돈보다 더 잃을 수 있어요.\n장 마감 때 마이너스인 종목은 강제로 정리되고, 그 마이너스만큼 현금에서 빠져요.");
+            Add(GamePhase.Market, "interest-label", "이자율", "여기 숫자는 오늘 낼 이자율이에요.\n· 1·2일차는 이자 없음, 3일차부터 매일 남은 빚의 5%\n· 추가 대출은 따로 하루 30% (빌린 다다음 날부터)\n· 햇살론을 받으면 이자율 +10%p\n이자는 4단계 결과에서 내요.");
+            // 4단계 · 결과
+            Add(GamePhase.Settlement, "settlement-report", "하루 결과", "오늘 매매로 번 돈, 돈의 흐름, 내 종목, 시장 전체, 쓴 아이템, 뉴스 결과, 빚을 정리해서 보여줘요.");
+            Add(GamePhase.Settlement, "repay-button", "빚 갚기 · 이자 갚기", "빚 갚기로 원하는 만큼 갚아요 (이자 높은 추가 대출부터 갚아져요).\n3일차부터는 왼쪽 '이자 갚기'로 그날 이자를 내요. 안 내면 상점으로 갈 때 빚에 붙어요.\n빚 0원 + 자산 5억이면 성공!");
+            Add(GamePhase.Settlement, "", "파산과 햇살론", "장 마감 뒤 현금이 마이너스면 파산 직전이에요. 그때 한 번만 햇살론(최대 2억)을 받을 수 있어요.\n못 받거나 거절하면 파산이에요.");
+            // 5단계 · 상점
+            Add(GamePhase.Shop, "shop-grid", "상점", "매일 아이템 8개가 무작위로 나와요. 마우스를 올리면 설명과 가격, 클릭하면 구매예요.");
+            Add(GamePhase.Shop, "next-day-button", "다음 날", "다 샀으면 눌러서 다음 날 아침 뉴스로 넘어가요.");
             return s;
         }
     }
