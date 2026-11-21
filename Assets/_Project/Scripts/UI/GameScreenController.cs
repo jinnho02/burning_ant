@@ -753,37 +753,88 @@ namespace BurningAnt.UI
             settlementReport.Clear();
             if (r == null) return;
 
-            // 1. 오늘 손익
+            // 1. 오늘 손익: 총자산 변화와 그 안에서 매매로 번 돈
             var head = new VisualElement();
             head.AddToClassList("report-headline");
-            var big = new Label(Format.SignedMoney(r.ProfitLoss));
+            var big = new Label(Format.SignedMoney(r.TradingProfit));
             big.AddToClassList("report-big");
-            Format.SetTrendClass(big, r.ProfitLoss);
-            var rate = new Label($"{Format.SignedPercent(r.ReturnRate)} · 총자산 {Format.Money(r.StartAssets)} → {Format.Money(r.EndAssets)}");
+            Format.SetTrendClass(big, r.TradingProfit);
+            var rate = new Label($"매매로 번 돈 · 총자산 {Format.Money(r.StartAssets)} → {Format.Money(r.EndAssets)} ({Format.SignedPercent(r.ReturnRate)})");
             rate.AddToClassList("report-note");
             head.Add(big);
             head.Add(rate);
             settlementReport.Add(head);
 
-            // 2. 종목별
-            var stocks = Section("종목별 (손익은 3배 적용, 수수료 포함)");
-            var lines = r.Stocks.Values.Where(l => l.Active).OrderByDescending(l => Mathf.Abs(l.ProfitLoss)).ToList();
+            // 1-2. 돈의 흐름: 어디서 벌고 어디로 나갔나
+            var money = Section("오늘 돈의 흐름");
+            Row(money, true, "항목", "금액");
+            void MoneyRow(string name, float v)
+            {
+                if (Mathf.Abs(v) < 0.005f) return;
+                var row = Row(money, false, name, Format.SignedMoney(v));
+                Format.SetTrendClass(row.ElementAt(1), v);
+            }
+            MoneyRow("매매 손익 (3배·수수료 포함)", r.TradingProfit);
+            MoneyRow("  └ 그중 수수료", -r.TotalFees);
+            MoneyRow("아이템으로 들어온 돈", r.ItemCash - r.InsuranceRefund);
+            MoneyRow("손실 보험 환급", r.InsuranceRefund);
+            MoneyRow("추가 대출", r.ExtraLoan);
+            MoneyRow("긴급 대출", r.EmergencyLoan);
+            MoneyRow("빚 상환", -r.Repaid);
+            MoneyRow("마이너스 정산 (잔고 차감)", -r.SettlementCharge);
+            if (money.childCount <= 2) Note(money, "오늘은 돈이 움직이지 않았어요.");
+
+            // 2. 내 종목: 주식 창처럼 매수·매도·평가·손익
+            var stocks = Section("내 종목 (손익 = 주가 변동 × 3, 수수료 포함)");
+            var lines = r.Stocks.Values.Where(l => l.Active).OrderByDescending(l => l.ProfitLoss).ToList();
             if (lines.Count == 0) Note(stocks, "오늘은 거래도 보유도 없었어요.");
             else
             {
-                Row(stocks, true, "종목", "매수", "매도", "마감 평가금", "손익");
+                Row(stocks, true, "종목", "매수", "매도", "시작 평가금", "마감 평가금", "손익");
                 foreach (var l in lines)
                 {
                     var row = Row(stocks, false, l.Stock.Name,
-                        l.Buys > 0 ? $"{l.BoughtShares}주" : "-",
-                        l.Sells > 0 ? $"{l.SoldShares}주" : "-",
+                        l.Buys > 0 ? $"{l.BoughtShares}주 · {Format.Money(l.BuyAmount)}" : "-",
+                        l.Sells > 0 ? $"{l.SoldShares}주 · {Format.Money(l.SellAmount)}" : "-",
+                        Format.Money(l.StartValue),
                         Format.Money(l.EndValue),
                         Format.SignedMoney(l.ProfitLoss));
                     Format.SetTrendClass(row.ElementAt(row.childCount - 1), l.ProfitLoss);
                 }
+                var best = lines.First();
+                var worst = lines.Last();
+                if (best.ProfitLoss > 0f) Note(stocks, $"오늘의 효자: {best.Stock.Name} {Format.SignedMoney(best.ProfitLoss)}");
+                if (worst.ProfitLoss < 0f) Note(stocks, $"오늘의 불효자: {worst.Stock.Name} {Format.SignedMoney(worst.ProfitLoss)}");
             }
-            Note(stocks, $"수수료 {Format.Money(r.TotalFees)} · 예약 체결 {r.ReservationsFilled}/{r.ReservationsPlaced}건" +
-                         (r.AutoSellsFired > 0 ? $" · 손절·익절 발동 {r.AutoSellsFired}회" : ""));
+            int trades = lines.Sum(l => l.Buys + l.Sells);
+            Note(stocks, $"체결 {trades}건 · 수수료 {Format.Money(r.TotalFees)} · 예약 체결 {r.ReservationsFilled}/{r.ReservationsPlaced}건" +
+                         (r.AutoSellsFired > 0 ? $" · 자동 매도 발동 {r.AutoSellsFired}회" : ""));
+
+            // 2-2. 시장 한눈에: 오늘 전 종목의 시가 갭 · 고가 · 저가 · 종가 (전일 종가 대비)
+            var market = Section("오늘 시장 (전일 종가 대비)");
+            Row(market, true, "종목", "업종", "시가", "고가", "저가", "종가");
+            foreach (var st in Session.Stocks.OrderByDescending(x => x.PriceAt(Session.Tick) / x.PrevClose))
+            {
+                int last = Mathf.Min(Session.Tick, st.Path.Length - 1);
+                float hi = float.MinValue, lo = float.MaxValue;
+                for (int i = 0; i <= last; i++)
+                {
+                    hi = Mathf.Max(hi, st.Path[i]);
+                    lo = Mathf.Min(lo, st.Path[i]);
+                }
+                float close = st.PriceAt(Session.Tick) / st.PrevClose - 1f;
+                bool held = r.Stocks.TryGetValue(st, out var mine) && mine.Active;
+                bool hadNews = r.News.Any(n => n.Stock == st) || game.Foresights.Any(n => n.Stock == st);
+                var row = Row(market, false,
+                    (held ? "● " : "") + st.Name + (hadNews ? " [뉴스]" : ""),
+                    st.Definition.sector.ToKorean(),
+                    Format.SignedPercent(st.OpenPrice / st.PrevClose - 1f),
+                    Format.SignedPercent(hi / st.PrevClose - 1f),
+                    Format.SignedPercent(lo / st.PrevClose - 1f),
+                    Format.SignedPercent(close));
+                Format.SetTrendClass(row.ElementAt(5), close);
+            }
+            Note(market, "● = 오늘 거래했거나 들고 있던 종목");
 
             // 3. 아이템
             var items = Section("사용한 아이템");

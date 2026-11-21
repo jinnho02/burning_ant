@@ -214,11 +214,13 @@ namespace BurningAnt.Core
             {
                 line.Buys++;
                 line.BoughtShares += r.Shares;
+                line.BuyAmount += r.Shares * r.Price;
             }
             else
             {
                 line.Sells++;
                 line.SoldShares += r.Shares;
+                line.SellAmount += r.Shares * r.Price;
             }
         }
 

@@ -18,6 +18,7 @@ namespace BurningAnt.Core
             public float EndValue;     // 장 마감 직후(마이너스 정산 전) 평가금
             public float NetCash;      // 매도로 받은 돈 − 매수에 쓴 돈 (수수료 포함)
             public int Buys, Sells, BoughtShares, SoldShares;
+            public float BuyAmount, SellAmount; // 체결가 × 수량 합계 (수수료 전)
             public float Fees;
             public float ProfitLoss => EndValue - StartValue + NetCash;
             public bool Active => Buys > 0 || Sells > 0 || StartValue != 0f || EndValue != 0f;
@@ -58,6 +59,16 @@ namespace BurningAnt.Core
         public bool Closed;                // 장이 끝나 결과가 확정됐는지
 
         public float ProfitLoss => EndAssets - StartAssets;
+        /// <summary>매매로 번 돈 (종목별 손익 합계, 수수료 포함). 아이템·대출로 들어온 현금은 빠진다.</summary>
+        public float TradingProfit
+        {
+            get
+            {
+                float sum = 0f;
+                foreach (var line in Stocks.Values) sum += line.ProfitLoss;
+                return sum;
+            }
+        }
         public float ReturnRate => StartAssets > 0f ? ProfitLoss / StartAssets : 0f;
 
         public float TotalFees
