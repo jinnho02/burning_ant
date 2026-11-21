@@ -39,6 +39,8 @@ namespace BurningAnt.Market
         public event Action Ticked;
         public event Action ReservationsChanged;
         public event Action<IReadOnlyList<TradeResult>> ReservationsExecuted;
+        /// <summary>체결된 매매 하나와 그로 인한 현금 변화(매수는 음수, 매도는 양수, 수수료 포함). 하루 기록용.</summary>
+        public event Action<TradeResult, float> Traded;
 
         void Awake()
         {
@@ -82,7 +84,15 @@ namespace BurningAnt.Market
         public TradeResult Trade(OrderRequest order)
         {
             if (Phase != MarketPhase.Open) return TradeResult.Fail(order.Stock, order.Side, TradeError.MarketClosed);
-            return Portfolio.Execute(order, CurrentPrice(order.Stock));
+            return ExecuteAndReport(order, CurrentPrice(order.Stock));
+        }
+
+        TradeResult ExecuteAndReport(OrderRequest order, float price)
+        {
+            float cashBefore = Portfolio.Cash;
+            var result = Portfolio.Execute(order, price);
+            if (result.Success) Traded?.Invoke(result, Portfolio.Cash - cashBefore);
+            return result;
         }
 
         public void StartMarket()
@@ -95,7 +105,7 @@ namespace BurningAnt.Market
 
             var results = new List<TradeResult>();
             foreach (var order in reservations)
-                results.Add(Portfolio.Execute(order, order.Stock.OpenPrice));
+                results.Add(ExecuteAndReport(order, order.Stock.OpenPrice));
             reservations.Clear();
             ReservationsChanged?.Invoke();
             if (results.Count > 0) ReservationsExecuted?.Invoke(results);

@@ -47,6 +47,12 @@
                     <ui:VisualElement class="row row--spread status-row status-row--total"><ui:Label text="순자산" class="caption" /><ui:Label name="networth-label" class="status-value status-value--big" /></ui:VisualElement>
                 </ui:VisualElement>
 
+                <!-- 오늘의 흐름: 지금까지 한 일과 아이템 사용 여부 (2단계에서 강조) -->
+                <ui:VisualElement name="flow-card" class="card flow-card">
+                    <ui:Label text="오늘의 흐름" class="side-title" />
+                    <ui:VisualElement name="flow-list" />
+                </ui:VisualElement>
+
                 <ui:VisualElement class="card hint-card">
                     <ui:Label text="힌트 · 사용 중 효과" class="side-title" />
                     <ui:ScrollView name="hint-list" class="hint-list" />
@@ -94,9 +100,11 @@
         </ui:VisualElement>
 
         <ui:VisualElement name="settlement-overlay" class="overlay">
-            <ui:VisualElement class="modal">
+            <ui:VisualElement class="modal modal--wide settlement-modal">
                 <ui:Label name="settlement-title" text="1일차 장 결과" class="modal-title" />
-                <ui:Label name="settlement-summary" class="modal-body settlement-summary" />
+                <!-- 하루 결과: 손익 요약 · 종목별 · 아이템 · 뉴스 · 대출 (GameScreenController.RefreshSettlement가 채움) -->
+                <ui:ScrollView name="settlement-report" class="settlement-report" />
+                <ui:Label name="settlement-summary" class="caption settlement-summary" />
                 <ui:VisualElement class="row repay-row">
                     <ui:Label text="상환" class="caption" />
                     <ui:FloatField name="repay-field" value="0" class="repay-field" />
@@ -151,6 +159,20 @@
                 <ui:Label name="end-title" text="빚 청산!" class="modal-title end-title" />
                 <ui:Label name="end-body" class="modal-body" />
                 <ui:Button name="restart-button" text="다시 하기" class="modal-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- 튜토리얼: 1일차 각 단계에서 설명 + 대상 강조 (TutorialRunner) -->
+        <ui:VisualElement name="tutorial-overlay" class="tutorial-overlay">
+            <ui:VisualElement name="tutorial-highlight" class="tutorial-highlight" picking-mode="Ignore" />
+            <ui:VisualElement name="tutorial-box" class="tutorial-box">
+                <ui:Label name="tutorial-step" class="tutorial-step" />
+                <ui:Label name="tutorial-title" class="tutorial-title" />
+                <ui:Label name="tutorial-text" class="tutorial-text" />
+                <ui:VisualElement class="row row--spread tutorial-buttons">
+                    <ui:Button name="tutorial-skip" text="튜토리얼 건너뛰기" class="tutorial-skip" />
+                    <ui:Button name="tutorial-next" text="다음" class="tutorial-next" />
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
 

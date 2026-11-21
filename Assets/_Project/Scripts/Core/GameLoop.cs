@@ -80,6 +80,14 @@ namespace BurningAnt.Core
         /// <summary>망원경: 차트에 미리 보여줄 미래 틱 수.</summary>
         public int PreviewTicks => Phase == GamePhase.Market && telescopeUntilTick > session.Tick ? telescopeUntilTick - session.Tick : 0;
 
+        /// <summary>오늘 하루 기록 (2단계 흐름 표시, 4단계 결과창). 지난 날들은 History.</summary>
+        public DailyReport Today { get; private set; }
+        readonly List<DailyReport> history = new();
+        public IReadOnlyList<DailyReport> History => history;
+
+        /// <summary>튜토리얼 등 바깥에서 장을 잠시 멈출 때 true (장 시간과 아이템 효과 시간이 모두 멈춘다).</summary>
+        public bool ExternalPause { get; set; }
+
         public event Action Changed;
         public event Action PhaseChanged;
         public event Action<string> Message;
@@ -96,6 +104,8 @@ namespace BurningAnt.Core
         {
             session.PhaseChanged += OnMarketPhaseChanged;
             session.Ticked += OnTicked;
+            session.Traded += OnTraded;
+            session.ReservationsExecuted += OnReservationsExecuted;
             BeginDay();
         }
 
@@ -105,11 +115,18 @@ namespace BurningAnt.Core
             if (session == null) return;
             session.PhaseChanged -= OnMarketPhaseChanged;
             session.Ticked -= OnTicked;
+            session.Traded -= OnTraded;
+            session.ReservationsExecuted -= OnReservationsExecuted;
         }
 
         void Update()
         {
             if (Phase != GamePhase.Market) return;
+            if (ExternalPause)
+            {
+                Time.timeScale = 0f;
+                return;
+            }
 
             float dt = Time.unscaledDeltaTime;
             if (stopRemaining > 0f) stopRemaining = Mathf.Max(0f, stopRemaining - dt);
@@ -150,13 +167,65 @@ namespace BurningAnt.Core
             newsGenerator.ApplyToPrices(session.Stocks, todayNews, session.Settings);
 
             DayStartAssets = TotalAssets();
+            StartReport();
             SetPhase(GamePhase.News);
         }
 
         /// <summary>뉴스 확인 → 아이템 사용·예약 단계</summary>
         public void ConfirmNews()
         {
-            if (Phase == GamePhase.News) SetPhase(GamePhase.Prep);
+            if (Phase != GamePhase.News) return;
+            Today.NewsChecked = true;
+            SetPhase(GamePhase.Prep);
+        }
+
+        // ───────── 하루 기록 ─────────
+
+        void StartReport()
+        {
+            Today = new DailyReport { Day = Day, StartAssets = DayStartAssets };
+            Today.News.AddRange(todayNews);
+            foreach (var s in session.Portfolio.HeldStocks)
+                Today.Line(s).StartValue = session.Portfolio.GetHolding(s).Value(session.CurrentPrice(s));
+        }
+
+        void OnTraded(TradeResult r, float cashDelta)
+        {
+            if (Today == null) return;
+            var line = Today.Line(r.Stock);
+            line.NetCash += cashDelta;
+            line.Fees += r.Shares * r.Price * session.Settings.feeRate;
+            if (r.Side == OrderSide.Buy)
+            {
+                line.Buys++;
+                line.BoughtShares += r.Shares;
+            }
+            else
+            {
+                line.Sells++;
+                line.SoldShares += r.Shares;
+            }
+        }
+
+        void OnReservationsExecuted(IReadOnlyList<TradeResult> results)
+        {
+            if (Today == null) return;
+            foreach (var r in results)
+                if (r.Success) Today.ReservationsFilled++;
+        }
+
+        /// <summary>장 마감 직후(마이너스 정산 전) 종목별 평가금과 총자산을 기록한다.</summary>
+        void CloseReport()
+        {
+            foreach (var s in session.Stocks)
+            {
+                var h = session.Portfolio.GetHolding(s);
+                if (h.Shares > 0 || Today.Stocks.ContainsKey(s))
+                    Today.Line(s).EndValue = h.Shares > 0 ? h.Value(session.CurrentPrice(s)) : 0f;
+            }
+            Today.EndAssets = TotalAssets();
+            Today.Closed = true;
+            history.Add(Today);
         }
 
         void OnMarketPhaseChanged()
@@ -164,6 +233,7 @@ namespace BurningAnt.Core
             switch (session.Phase)
             {
                 case MarketPhase.Open:
+                    Today.ReservationsPlaced = session.Reservations.Count; // 이 시점엔 아직 체결 전
                     SetPhase(GamePhase.Market);
                     break;
                 case MarketPhase.Closed:
@@ -180,10 +250,15 @@ namespace BurningAnt.Core
             ResetMarketEffects();
             autoSells.Clear();
 
+            CloseReport();
+
             // 장 마감 정산: 마이너스 종목은 정리되고 그 마이너스만큼 잔고에서 빠진다
             lastClosed.Clear();
             LastSettlementCharge = session.Portfolio.SettleNegatives(session.CurrentPrice, lastClosed);
             LastInterest = Loan.IsInterestDay(Day) ? Loan.ApplyInterest() : 0f;
+            Today.SettlementCharge = LastSettlementCharge;
+            Today.ClosedStocks.AddRange(lastClosed);
+            Today.Interest = LastInterest;
 
             if (session.Portfolio.Cash < 0f)
             {
@@ -209,6 +284,7 @@ namespace BurningAnt.Core
                 return;
             }
             session.Portfolio.Deposit(amount);
+            Today.EmergencyLoan += amount;
             Say($"긴급 대출 ${amount:N0} (이자율 {Loan.InterestRate * 100f:0}%)");
             Changed?.Invoke();
         }
@@ -260,6 +336,7 @@ namespace BurningAnt.Core
 
             session.Portfolio.Withdraw(pay);
             Loan.Repay(pay);
+            Today.Repaid += pay;
             Say($"${pay:N2} 갚았어요");
 
             if (Loan.IsPaidOff)
@@ -286,6 +363,7 @@ namespace BurningAnt.Core
                 return;
             }
             session.Portfolio.Deposit(amount);
+            Today.ExtraLoan += amount;
             Say($"추가 대출 ${amount:N0} (이자율 {Loan.InterestRate * 100f:0}%)");
             Changed?.Invoke();
         }
@@ -336,17 +414,30 @@ namespace BurningAnt.Core
             if (item.NeedsTarget && target == null) return;
 
             string result;
+            bool? hintCorrect = null;
+            bool revealTomorrow = false;
+            var usedOn = target;
             switch (item.kind)
             {
                 case ItemKind.Rumor:
-                    result = DirectionHint(item, session.Stocks[rng.Next(session.Stocks.Count)], false);
+                {
+                    usedOn = session.Stocks[rng.Next(session.Stocks.Count)];
+                    result = DirectionHint(item, usedOn, false, out bool ok);
+                    hintCorrect = ok;
                     break;
+                }
                 case ItemKind.AnalystReport:
-                    result = DirectionHint(item, target, false);
+                {
+                    result = DirectionHint(item, target, false, out bool ok);
+                    hintCorrect = ok;
                     break;
+                }
                 case ItemKind.InsiderMemo:
-                    result = DirectionHint(item, target, true);
+                {
+                    result = DirectionHint(item, target, true, out bool ok);
+                    hintCorrect = ok;
                     break;
+                }
                 case ItemKind.ChainForecast:
                 {
                     var chain = newsGenerator.ActiveChain;
@@ -357,6 +448,9 @@ namespace BurningAnt.Core
                     }
                     bool correct = rng.NextDouble() < item.accuracy;
                     bool shownSuccess = correct ? chain.WillSucceed : !chain.WillSucceed;
+                    usedOn = chain.Stock;
+                    hintCorrect = correct;
+                    revealTomorrow = true;
                     result = $"{item.displayName}: {chain.Stock.Name} 연쇄 뉴스는 내일 {(shownSuccess ? "성공" : "실패")}할 것 같다 (정확도 {item.accuracy * 100f:0}%)";
                     break;
                 }
@@ -396,16 +490,25 @@ namespace BurningAnt.Core
 
             Inventory.Consume(item);
             hints.Add(result);
+            Today.ItemUses.Add(new DailyReport.ItemUse
+            {
+                Item = item,
+                Phase = Phase,
+                Target = usedOn,
+                Text = result,
+                HintCorrect = hintCorrect,
+                HintRevealedTomorrow = revealTomorrow,
+            });
             Say(result);
             Changed?.Invoke();
         }
 
         /// <summary>오늘 방향(전일 종가 → 오늘 종가) 힌트. accuracy 확률로 맞고, 틀리면 방향이 반대로 나온다.</summary>
-        string DirectionHint(ItemDefinition item, StockState stock, bool withMagnitude)
+        string DirectionHint(ItemDefinition item, StockState stock, bool withMagnitude, out bool correct)
         {
             float change = stock.Path[stock.Path.Length - 1] / stock.PrevClose - 1f;
             bool up = change >= 0f;
-            bool correct = rng.NextDouble() < item.accuracy;
+            correct = rng.NextDouble() < item.accuracy;
             bool shownUp = correct ? up : !up;
 
             string text = $"{item.displayName}: {stock.Name} 오늘 {(shownUp ? "오를" : "내릴")} 것 같다";
@@ -437,6 +540,7 @@ namespace BurningAnt.Core
 
                 var r = session.Trade(new OrderRequest(a.Stock, OrderSide.Sell, 0, true));
                 autoSells.RemoveAt(i);
+                if (r.Success) Today.AutoSellsFired++;
                 if (r.Success)
                     Say($"{a.Item.displayName} 발동: {a.Stock.Name} {r.Shares}주 매도 @ ${r.Price:N2}");
             }

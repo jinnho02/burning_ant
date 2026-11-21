@@ -20,6 +20,10 @@ namespace BurningAnt.UI
     {
         [SerializeField] GameLoop game;
 
+        [Header("튜토리얼")]
+        [SerializeField, Tooltip("비우면 임시 문구(TutorialScript.CreateDefault)를 쓴다")] TutorialScript tutorialScript;
+        [SerializeField, Tooltip("켜면 이미 본 적이 있어도 1일차에 튜토리얼을 다시 띄운다 (테스트용)")] bool alwaysShowTutorial;
+
         [Header("타이틀 '클릭하여 시작하기' 위치 (Play 중에 고쳐도 바로 반영)")]
         [SerializeField, Range(0f, 1f), Tooltip("글자 윗변 높이. 타이틀 그림 높이 대비 비율 (0 = 그림 맨 위, 1 = 맨 아래)")]
         float titleTextTop = 0.77f;
@@ -58,6 +62,9 @@ namespace BurningAnt.UI
         Label newsPaperDate;
         Label titleStart;
         float titleBlinkTimer;
+        VisualElement flowCard, flowList;
+        ScrollView settlementReport;
+        TutorialRunner tutorial;
 
         void Start()
         {
@@ -70,6 +77,8 @@ namespace BurningAnt.UI
             // 뉴스 띠는 차트 바로 위(주식 창 오른쪽 카드 맨 위)에 둔다
             root.Q("detail-panel")?.Insert(0, newsBand);
             BindTitle(root);
+            tutorial = new TutorialRunner(root, game, tutorialScript != null ? tutorialScript : TutorialScript.CreateDefault(), alwaysShowTutorial);
+            Session.ReservationsChanged += RefreshFlow;
 
             game.Changed += RefreshAll;
             game.PhaseChanged += OnPhaseChanged;
@@ -92,12 +101,14 @@ namespace BurningAnt.UI
             if (game.Inventory != null) game.Inventory.Changed -= RefreshItemBar;
             if (Session != null && Session.Portfolio != null) Session.Portfolio.Changed -= RefreshAll;
             if (stockWindow != null) stockWindow.SelectionChanged -= RefreshNews;
+            if (Session != null) Session.ReservationsChanged -= RefreshFlow;
         }
 
         void Update()
         {
             if (game.Inventory == null) return;
             BlinkTitle();
+            tutorial?.Update(titleOverlay != null && titleOverlay.resolvedStyle.display != DisplayStyle.None);
             RefreshStatus();
             HandleItemKeys();
             if (game.Phase == GamePhase.Market)
@@ -126,6 +137,9 @@ namespace BurningAnt.UI
             loanCountLabel = root.Q<Label>("loan-count-label");
             netWorthLabel = root.Q<Label>("networth-label");
             hintList = root.Q<ScrollView>("hint-list");
+            flowCard = root.Q("flow-card");
+            flowList = root.Q("flow-list");
+            settlementReport = root.Q<ScrollView>("settlement-report");
 
             portrait = root.Q("portrait");
             faceLabel = root.Q<Label>("face-label");
@@ -280,6 +294,7 @@ namespace BurningAnt.UI
             if (game.Phase == GamePhase.Settlement) repayField.value = 0f;
             RefreshNews();
             RefreshAll();
+            tutorial?.OnPhaseChanged();
         }
 
         void OnMessage(string text)
@@ -297,6 +312,7 @@ namespace BurningAnt.UI
             RefreshStatus();
             RefreshHints();
             RefreshItemBar();
+            RefreshFlow();
             // 정산 후 잔고가 0 밑이면 정산 창 대신 긴급 대출 창 (고르기 전까지 4단계로 못 감)
             Show(emergencyOverlay, game.NeedsEmergency);
             Show(settlementOverlay, game.Phase == GamePhase.Settlement && !game.NeedsEmergency);
@@ -435,11 +451,13 @@ namespace BurningAnt.UI
                 var slot = new Button(() => OnItemClicked(item));
                 slot.AddToClassList("item-slot");
                 slot.EnableInClassList("item-slot--off", !game.CanUseNow(item));
+                bool usedToday = game.Today != null && game.Today.ItemUses.Any(u => u.Item == item);
+                slot.EnableInClassList("item-slot--used", usedToday);
                 slot.tooltip = item.description;
                 string key = i < 9 ? $"[{i + 1}] " : "";
                 var name = new Label($"{key}{item.displayName} x{count}");
                 name.AddToClassList("item-slot__name");
-                var meta = new Label(item.Timing == ItemTiming.Prep ? "장 전" : "장 중");
+                var meta = new Label((item.Timing == ItemTiming.Prep ? "장 전" : "장 중") + (usedToday ? " · 오늘 사용" : ""));
                 meta.AddToClassList("item-slot__meta");
                 slot.Add(name);
                 slot.Add(meta);
@@ -470,6 +488,7 @@ namespace BurningAnt.UI
         }
 
         bool AnyOverlayOpen() =>
+            (tutorial != null && tutorial.IsShowing) ||
             new[] { pickerOverlay, settlementOverlay, shopOverlay, endOverlay, titleOverlay, newsOverlay, emergencyOverlay }.Any(o => o != null && o.resolvedStyle.display == DisplayStyle.Flex);
 
         bool IsTyping() =>
@@ -520,26 +539,173 @@ namespace BurningAnt.UI
                 "한 판에 한 번뿐이에요. 안 받으면 파산이에요.";
         }
 
+        // ───────── 오늘의 흐름 (2단계) ─────────
+
+        /// <summary>지금까지 한 일(뉴스 확인, 예약, 쓴 아이템)과 아직 안 쓴 아이템. 2단계에서 강조한다.</summary>
+        void RefreshFlow()
+        {
+            if (flowList == null || game.Today == null) return;
+            var today = game.Today;
+            flowList.Clear();
+            flowCard.EnableInClassList("flow-card--focus", game.Phase == GamePhase.Prep);
+
+            AddFlow(today.NewsChecked ? "● 뉴스 확인함" : "○ 뉴스 확인 전", today.NewsChecked ? "done" : "todo");
+
+            if (game.Phase is GamePhase.News or GamePhase.Prep)
+            {
+                var res = Session.Reservations;
+                AddFlow(res.Count == 0
+                    ? "○ 예약 주문 없음"
+                    : "● 예약 " + res.Count + "건: " + string.Join(", ", res.Select(o =>
+                        $"{o.Stock.Name} {(o.Side == OrderSide.Buy ? "매수" : "매도")} {(o.UseMax ? "최대" : o.Quantity + "주")}")),
+                    res.Count == 0 ? "todo" : "done");
+            }
+            else
+            {
+                AddFlow(today.ReservationsPlaced == 0
+                    ? "○ 예약 없이 시작"
+                    : $"● 예약 체결 {today.ReservationsFilled}/{today.ReservationsPlaced}건", today.ReservationsPlaced == 0 ? "todo" : "done");
+            }
+
+            var used = today.ItemUses;
+            AddFlow(used.Count == 0
+                ? "○ 오늘 쓴 아이템 없음"
+                : "● 쓴 아이템: " + string.Join(", ", used.Select(u => $"{u.Item.displayName}({(u.Phase == GamePhase.Prep ? "장 전" : "장 중")})")),
+                used.Count == 0 ? "todo" : "done");
+
+            var owned = game.Inventory.Owned.ToList();
+            var prepLeft = owned.Where(o => o.item.Timing == ItemTiming.Prep).Select(o => $"{o.item.displayName} x{o.count}").ToList();
+            var marketLeft = owned.Where(o => o.item.Timing == ItemTiming.Market).Select(o => $"{o.item.displayName} x{o.count}").ToList();
+            if (prepLeft.Count > 0)
+                AddFlow("안 쓴 장 전 아이템: " + string.Join(", ", prepLeft), game.Phase == GamePhase.Prep ? "warn" : "todo");
+            if (marketLeft.Count > 0)
+                AddFlow("장 중에 쓸 아이템: " + string.Join(", ", marketLeft), "todo");
+            if (owned.Count == 0 && used.Count == 0)
+                AddFlow("가진 아이템 없음 (상점은 5단계)", "todo");
+        }
+
+        void AddFlow(string text, string kind)
+        {
+            var line = new Label(text);
+            line.AddToClassList("flow-line");
+            line.AddToClassList("flow-line--" + kind);
+            flowList.Add(line);
+        }
+
+        // ───────── 하루 결과창 (4단계) ─────────
+
         void RefreshSettlement()
         {
-            var portfolio = Session.Portfolio;
-            float total = game.TotalAssets();
-            float todayProfit = total - game.DayStartAssets;
-
+            var r = game.Today;
             settlementTitle.text = $"{game.Day}일차 장 결과";
-            string closed = game.LastSettlementCharge > 0f
-                ? $"마이너스 정산: {string.Join(", ", game.LastClosedStocks.Select(s => s.Name))} 정리, 잔고에서 {Format.Money(game.LastSettlementCharge)} 빠짐\n"
-                : "";
-            string interest = game.LastInterest > 0f
-                ? $"\n오늘은 이자일: 빚에 {Format.Money(game.LastInterest)} 추가됨"
-                : $"\n다음 이자일: {game.Loan.NextInterestDay(game.Day + 1)}일차";
-            settlementSummary.text =
-                closed +
-                $"오늘 손익 {Format.SignedMoney(todayProfit)} ({Format.SignedPercent(game.TodayReturn())})\n" +
-                $"현금 {Format.Money(portfolio.Cash)} · 주식 {Format.Money(game.StockValue())}\n" +
-                $"남은 빚 {Format.Money(game.Loan.Debt)} (이자율 {game.Loan.InterestRate * 100f:0}%)" +
-                interest +
-                "\n\n보유 주식은 다음 날로 이어져요. 원하는 만큼 갚을 수 있어요.";
+            settlementSummary.text = "보유 주식은 다음 날로 이어져요. 원하는 만큼 갚을 수 있어요.";
+            settlementReport.Clear();
+            if (r == null) return;
+
+            // 1. 오늘 손익
+            var head = new VisualElement();
+            head.AddToClassList("report-headline");
+            var big = new Label(Format.SignedMoney(r.ProfitLoss));
+            big.AddToClassList("report-big");
+            Format.SetTrendClass(big, r.ProfitLoss);
+            var rate = new Label($"{Format.SignedPercent(r.ReturnRate)} · 총자산 {Format.Money(r.StartAssets)} → {Format.Money(r.EndAssets)}");
+            rate.AddToClassList("report-note");
+            head.Add(big);
+            head.Add(rate);
+            settlementReport.Add(head);
+
+            // 2. 종목별
+            var stocks = Section("종목별 (손익은 3배 적용, 수수료 포함)");
+            var lines = r.Stocks.Values.Where(l => l.Active).OrderByDescending(l => Mathf.Abs(l.ProfitLoss)).ToList();
+            if (lines.Count == 0) Note(stocks, "오늘은 거래도 보유도 없었어요.");
+            else
+            {
+                Row(stocks, true, "종목", "매수", "매도", "마감 평가금", "손익");
+                foreach (var l in lines)
+                {
+                    var row = Row(stocks, false, l.Stock.Name,
+                        l.Buys > 0 ? $"{l.BoughtShares}주" : "-",
+                        l.Sells > 0 ? $"{l.SoldShares}주" : "-",
+                        Format.Money(l.EndValue),
+                        Format.SignedMoney(l.ProfitLoss));
+                    Format.SetTrendClass(row.ElementAt(row.childCount - 1), l.ProfitLoss);
+                }
+            }
+            Note(stocks, $"수수료 {Format.Money(r.TotalFees)} · 예약 체결 {r.ReservationsFilled}/{r.ReservationsPlaced}건" +
+                         (r.AutoSellsFired > 0 ? $" · 손절·익절 발동 {r.AutoSellsFired}회" : ""));
+
+            // 3. 아이템
+            var items = Section("사용한 아이템");
+            if (r.ItemUses.Count == 0) Note(items, "오늘 쓴 아이템이 없어요.");
+            foreach (var u in r.ItemUses)
+            {
+                string verdict = u.HintCorrect == null ? ""
+                    : u.HintRevealedTomorrow ? " · 결과는 내일"
+                    : u.HintCorrect.Value ? " · 적중" : " · 빗나감";
+                var row = Row(items, false, $"{u.Item.displayName} ({(u.Phase == GamePhase.Prep ? "장 전" : "장 중")})", u.Text + verdict);
+                if (u.HintCorrect != null && !u.HintRevealedTomorrow)
+                    row.ElementAt(1).AddToClassList(u.HintCorrect.Value ? "report-ok" : "report-bad");
+            }
+
+            // 4. 뉴스 결과: 뉴스가 말한 방향과 실제 하루 등락
+            var news = Section("오늘 뉴스는 어떻게 됐나");
+            if (r.News.Count == 0) Note(news, "뉴스가 없었어요.");
+            foreach (var n in r.News)
+            {
+                if (n.Stock == null) continue;
+                float change = n.Stock.PriceAt(Session.Tick) / n.Stock.PrevClose - 1f;
+                bool hit = (n.Effect >= 0f) == (change >= 0f);
+                var row = Row(news, false, n.Stock.Name, n.Text, $"실제 {Format.SignedPercent(change)}");
+                row.ElementAt(2).AddToClassList(hit ? "report-ok" : "report-bad");
+            }
+
+            // 5. 대출
+            var loan = Section("빚 · 대출");
+            if (r.SettlementCharge > 0f)
+                Note(loan, $"마이너스 정산: {string.Join(", ", r.ClosedStocks.Select(s => s.Name))} 정리, 잔고에서 {Format.Money(r.SettlementCharge)} 빠짐");
+            if (r.EmergencyLoan > 0f) Note(loan, $"긴급 대출 {Format.Money(r.EmergencyLoan)}");
+            if (r.ExtraLoan > 0f) Note(loan, $"추가 대출 {Format.Money(r.ExtraLoan)}");
+            Note(loan, r.Interest > 0f
+                ? $"오늘은 이자일: 빚에 {Format.Money(r.Interest)} 추가됨"
+                : $"다음 이자일: {game.Loan.NextInterestDay(game.Day + 1)}일차");
+            if (r.Repaid > 0f) Note(loan, $"오늘 갚은 돈 {Format.Money(r.Repaid)}");
+            Note(loan, $"현금 {Format.Money(Session.Portfolio.Cash)} · 남은 빚 {Format.Money(game.Loan.Debt)} (이자율 {game.Loan.InterestRate * 100f:0}%)");
+        }
+
+        VisualElement Section(string title)
+        {
+            var box = new VisualElement();
+            box.AddToClassList("report-section");
+            var t = new Label(title);
+            t.AddToClassList("report-section-title");
+            box.Add(t);
+            settlementReport.Add(box);
+            return box;
+        }
+
+        static VisualElement Row(VisualElement parent, bool header, params string[] cells)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("report-row");
+            if (header) row.AddToClassList("report-row--head");
+            for (int i = 0; i < cells.Length; i++)
+            {
+                var c = new Label(cells[i]);
+                c.AddToClassList("report-cell");
+                if (i == 0) c.AddToClassList("report-cell--name");
+                else if (cells.Length > 2) c.AddToClassList("report-cell--num");
+                if (header) c.AddToClassList("report-cell--head");
+                row.Add(c);
+            }
+            parent.Add(row);
+            return row;
+        }
+
+        static void Note(VisualElement parent, string text)
+        {
+            var l = new Label(text);
+            l.AddToClassList("report-note");
+            parent.Add(l);
         }
 
         // 상점 그림(store.png, 1672×941)에서 가방 안감 바닥면: 위가 좁고 아래가 넓은 사다리꼴 (그림 대비 비율)
