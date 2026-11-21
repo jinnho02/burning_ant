@@ -11,4 +11,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Scenes/StockWindow.unity
     guid: 480a747071d168c4f8f1bc8fe1eefddc
+  - enabled: 1
+    path: Assets/_Project/Scenes/Prologue.unity
+    guid: fe8d7a297c132994190a3d971c0d5b44
   m_configObjects: {}
