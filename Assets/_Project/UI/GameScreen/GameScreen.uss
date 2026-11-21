@@ -380,3 +380,48 @@
 .tutorial-text { font-size: 16px; white-space: normal; margin-bottom: 12px; }
 .tutorial-skip { font-size: 13px; background-color: rgba(0, 0, 0, 0); border-width: 0; color: #6B6A65; }
 .tutorial-next { width: 110px; height: 38px; font-size: 16px; -unity-font-style: bold; border-width: 0; border-radius: 8px; background-color: #F2C14E; color: #2A0E16; }
+
+/* ───────── 5영역 배치 (시안: 왼쪽 종목 · 가운데 주식 창+아이템 · 오른쪽 뉴스·힌트+주인공) ───────── */
+/* 위 막대: 테두리 없는 한 줄 */
+.top-bar { height: 64px; margin: 12px 16px 0 16px; padding: 0 6px; border-width: 0; background-color: rgba(0, 0, 0, 0); }
+.top-day { font-size: 26px; margin-right: 14px; }
+.steps { flex-grow: 0; flex-shrink: 1; width: 470px; }
+.step { height: 34px; font-size: 14px; margin-right: 4px; }
+.top-stats { flex-grow: 1; flex-direction: row; justify-content: space-around; align-items: center; margin-left: 12px; }
+.top-stat { flex-direction: row; align-items: center; margin: 0 6px; }
+.top-stat .caption { margin-right: 6px; }
+.top-stat .status-value--big { font-size: 20px; }
+.repay { width: 220px; margin-left: 12px; }
+
+/* 몸통: 영역 사이 간격 12px, 영역마다 테두리 */
+.body--areas { padding: 12px 16px 16px 16px; }
+.area { border-width: 2px; border-color: var(--gs-border); border-radius: 14px; background-color: var(--gs-card); }
+.area--warm { background-color: var(--gs-panel); }
+
+/* 왼쪽: 종목 목록 전체 높이 */
+.left-column { width: 21%; min-width: 240px; flex-shrink: 0; margin-right: 12px; padding: 12px 14px; }
+.left-column .stock-list-panel { width: auto; flex-grow: 1; margin: 0; padding: 0; border-width: 0; background-color: rgba(0, 0, 0, 0); }
+
+/* 가운데: 주식 창(상세 카드) + 아이템 띠. 내용이 넓어도 양옆을 밀어내지 않게 줄어들 수 있게 */
+.body--areas .main-col { flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; padding: 0; margin-right: 12px; }
+.stock-area { flex-grow: 1; min-height: 0; }
+.stock-area .stock-list-panel { display: none; }
+.stock-area .detail-panel { border-width: 2px; }
+.body--areas .item-bar { margin-top: 12px; min-height: 92px; }
+
+/* 오른쪽: 위 절반 뉴스·흐름·힌트, 아래 주인공 */
+.body--areas .side-col { width: 20%; min-width: 300px; flex-shrink: 0; padding: 0; margin-right: 0; }
+.side-top { flex-grow: 1; flex-basis: 0; margin-bottom: 12px; padding: 10px 12px; }
+.side-news-list { margin-bottom: 6px; }
+.side-news-line { font-size: 13px; white-space: normal; margin-bottom: 4px; color: #633806; }
+.side-news-line--revealed { -unity-font-style: bold; }
+.side-section { margin-top: 8px; padding-top: 8px; border-top-width: 1px; border-color: var(--gs-border); }
+.body--areas .flow-card { margin-top: 8px; padding: 8px 0 0 0; border-width: 0; border-top-width: 1px; background-color: rgba(0, 0, 0, 0); }
+.body--areas .flow-card--focus { border-top-width: 2px; border-color: var(--gs-accent); }
+.body--areas .hint-card { margin-top: 8px; padding: 8px 0 0 0; max-height: none; border-width: 0; border-top-width: 1px; border-color: var(--gs-border); background-color: rgba(0, 0, 0, 0); }
+.body--areas .hint-list { max-height: 160px; }
+
+.body--areas .character-area { flex-grow: 1; flex-basis: 0; margin-right: 0; overflow: hidden; }
+.body--areas .mood-box { left: 0; right: 0; bottom: 10px; }
+.body--areas .speech { top: 8px; left: 8px; right: 8px; max-width: none; font-size: 14px; }
+.body--areas .face { right: 0; }

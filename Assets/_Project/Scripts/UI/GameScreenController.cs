@@ -21,8 +21,8 @@ namespace BurningAnt.UI
         [SerializeField] GameLoop game;
 
         [Header("주인공 그림")]
-        [SerializeField, Range(0.5f, 4f), Tooltip("주인공 그림 크기 배율 (1 = 오른쪽 아래 빈자리에 맞춘 원래 크기)")]
-        float characterScale = 2.5f;
+        [SerializeField, Range(0.5f, 4f), Tooltip("주인공 그림 크기 배율 (1 = 오른쪽 아래 영역에 꽉 맞춤). 1보다 크면 영역 밖으로 위·왼쪽으로 커진다")]
+        float characterScale = 1f;
 
         [Header("튜토리얼")]
         [SerializeField, Range(0.5f, 3f), Tooltip("튜토리얼 설명 창과 글자 크기 배율")] float tutorialScale = 2f;
@@ -68,7 +68,7 @@ namespace BurningAnt.UI
         Label newsPaperDate;
         Label titleStart;
         float titleBlinkTimer;
-        VisualElement flowCard, flowList;
+        VisualElement flowCard, flowList, sideNewsList;
         ScrollView settlementReport;
         TutorialRunner tutorial;
 
@@ -76,6 +76,11 @@ namespace BurningAnt.UI
         {
             var root = GetComponent<UIDocument>().rootVisualElement;
             KoreanFont.Apply(root);
+            // 5영역 배치: 종목 목록을 주식 창에서 꺼내 왼쪽 전체 높이 영역으로 옮긴다 (StockWindow.uxml은 그대로).
+            // 이름으로 찾기 때문에 StockWindowController는 옮긴 뒤에도 그대로 동작한다.
+            var stockListPanel = root.Q("stock-list-panel");
+            var leftColumn = root.Q("left-column");
+            if (stockListPanel != null && leftColumn != null) leftColumn.Add(stockListPanel);
             stockWindow = GetComponent<StockWindowController>();
             Query(root);
             Bind(root);
@@ -144,6 +149,7 @@ namespace BurningAnt.UI
             loanCountLabel = root.Q<Label>("loan-count-label");
             netWorthLabel = root.Q<Label>("networth-label");
             hintList = root.Q<ScrollView>("hint-list");
+            sideNewsList = root.Q("side-news-list");
             flowCard = root.Q("flow-card");
             flowList = root.Q("flow-list");
             settlementReport = root.Q<ScrollView>("settlement-report");
@@ -432,6 +438,20 @@ namespace BurningAnt.UI
                 newsBandList.Add(line);
             }
             newsBandTitle.text = newsPhase ? $"{game.Day}일차 아침 뉴스" : "이 종목 오늘의 뉴스";
+
+            // 오른쪽 위 영역: 오늘 뉴스 전체 (결과가 뜬 뉴스는 결과 기사와 변동률)
+            if (sideNewsList != null)
+            {
+                sideNewsList.Clear();
+                foreach (var n in game.TodayNews)
+                {
+                    var side = new Label("· " + (n.Revealed ? $"{n.ResultText} ({Format.SignedPercent(n.Effect)})" : n.Text));
+                    side.AddToClassList("side-news-line");
+                    side.EnableInClassList("side-news-line--revealed", n.Revealed);
+                    sideNewsList.Add(side);
+                }
+                if (game.TodayNews.Count == 0) sideNewsList.Add(new Label("오늘은 뉴스가 없어요.") { name = "side-news-empty" });
+            }
             Show(newsConfirmButton, newsPhase);
             Show(newsBand, newsPhase || lines.Count > 0);
             newsBand.EnableInClassList("news-band--alert", newsPhase);
@@ -909,19 +929,20 @@ namespace BurningAnt.UI
             float areaH = characterArea.layout.height, areaW = characterArea.layout.width;
             if (float.IsNaN(areaH) || areaH <= 0f) return;
 
-            const float baseTopGap = 40f, baseLeftExtra = 120f, rightBleed = 24f;
+            // 1배 = 오른쪽 아래 영역에 꽉 맞춤 (말풍선 자리만 위에 남김). 영역 밖으로 커지면 영역이 잘라내지 않게 overflow를 푼다
+            const float baseTopGap = 40f;
             float baseH = Mathf.Max(80f, areaH - baseTopGap);
             float h = baseH * characterScale;
-            // 위 막대(DAY·단계) 아래까지만: 화면 높이를 넘지 않게
             var screen = characterArea.panel?.visualTree?.layout ?? new Rect(0, 0, 1920, 1080);
             float maxH = screen.height - 90f;
             if (h > maxH) h = maxH;
-            float w = (areaW + baseLeftExtra) * (h / baseH);
+            float w = areaW * (h / baseH);
+            characterArea.style.overflow = characterScale > 1.01f ? Overflow.Visible : Overflow.Hidden;
 
             portrait.style.top = StyleKeyword.Auto;
             portrait.style.left = StyleKeyword.Auto;
             portrait.style.bottom = 0f;
-            portrait.style.right = -rightBleed;
+            portrait.style.right = 0f;
             portrait.style.height = h;
             portrait.style.width = w;
             portrait.SendToBack(); // 말풍선·표정 라벨이 그림 위에 오도록

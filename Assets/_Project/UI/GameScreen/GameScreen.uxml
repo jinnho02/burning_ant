@@ -3,8 +3,8 @@
     <Style src="GameScreen.uss" />
     <ui:VisualElement name="game-screen" class="game-screen">
 
-        <!-- 위: 일차 · 하루 단계 진행 · 빚 상환 게이지 -->
-        <ui:VisualElement class="top-bar card">
+        <!-- 위: 테두리 없는 한 줄 상태 막대 (일차 · 단계 · 현금 · 빚 · 이자 · 추가 대출 · 순자산 · 빚 상환 게이지) -->
+        <ui:VisualElement class="top-bar">
             <ui:Label name="day-label" text="DAY 1" class="top-day" />
             <ui:VisualElement class="steps">
                 <ui:Label name="step-1" text="1 뉴스" class="step" />
@@ -12,6 +12,14 @@
                 <ui:Label name="step-3" text="3 장" class="step" />
                 <ui:Label name="step-4" text="4 결과" class="step" />
                 <ui:Label name="step-5" text="5 상점" class="step" />
+            </ui:VisualElement>
+            <ui:VisualElement class="top-stats">
+                <ui:VisualElement class="top-stat"><ui:Label text="현금" class="caption" /><ui:Label name="cash-label" class="status-value" /></ui:VisualElement>
+                <ui:VisualElement class="top-stat"><ui:Label text="주식 평가" class="caption" /><ui:Label name="stock-value-label" class="status-value" /></ui:VisualElement>
+                <ui:VisualElement class="top-stat"><ui:Label text="빚" class="caption" /><ui:Label name="debt-label" class="status-value price-up" /></ui:VisualElement>
+                <ui:VisualElement class="top-stat"><ui:Label text="다음 이자" class="caption" /><ui:Label name="interest-label" class="chip chip--warning" /></ui:VisualElement>
+                <ui:VisualElement class="top-stat"><ui:Label text="추가 대출" class="caption" /><ui:Label name="loan-count-label" class="status-value status-value--small" /><ui:Button name="loan-button" text="받기" class="loan-take" tooltip="추가 대출은 아이템 단계(2단계)에서만" /></ui:VisualElement>
+                <ui:VisualElement class="top-stat"><ui:Label text="순자산" class="caption" /><ui:Label name="networth-label" class="status-value status-value--big" /></ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="repay">
                 <ui:VisualElement class="row row--spread">
@@ -24,42 +32,44 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:VisualElement class="body">
-            <!-- 왼쪽 + 가운데: 주식 창, 그 아래 아이템 칸 (주인공 자리 앞에서 끝남) -->
-            <ui:VisualElement class="main-col">
-                <ui:Instance template="StockWindow" class="stock-window-host" />
+        <!-- 몸통 5영역: 왼쪽 종목 | 가운데 주식 창 + 아이템 | 오른쪽 뉴스·흐름·힌트 + 주인공 -->
+        <ui:VisualElement class="body body--areas">
+            <!-- 왼쪽: 종목 목록 (전체 높이). StockWindow.uxml의 stock-list-panel을 GameScreenController가 여기로 옮긴다 -->
+            <ui:VisualElement name="left-column" class="area left-column" />
 
-                <ui:VisualElement class="item-bar card">
+            <!-- 가운데: 주식 창, 그 아래 아이템 띠 -->
+            <ui:VisualElement class="main-col">
+                <ui:VisualElement class="stock-area">
+                    <ui:Instance template="StockWindow" class="stock-window-host" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="item-bar area">
                     <ui:Label text="아이템" class="item-bar-title" />
                     <ui:VisualElement name="item-bar-list" class="item-bar-list" />
                     <ui:Label name="item-bar-hint" class="caption item-bar-hint" />
                 </ui:VisualElement>
             </ui:VisualElement>
 
-            <!-- 오른쪽: 상태창, 힌트, 화면 바닥에 붙은 주인공 -->
+            <!-- 오른쪽: 위 = 오늘의 뉴스 · 오늘의 흐름 · 힌트, 아래 = 주인공 -->
             <ui:VisualElement class="side-col">
-                <ui:VisualElement class="card status-card">
-                    <ui:VisualElement class="row row--spread status-row"><ui:Label text="현금" class="caption" /><ui:Label name="cash-label" class="status-value" /></ui:VisualElement>
-                    <ui:VisualElement class="row row--spread status-row"><ui:Label text="주식 평가" class="caption" /><ui:Label name="stock-value-label" class="status-value" /></ui:VisualElement>
-                    <ui:VisualElement class="row row--spread status-row"><ui:Label text="남은 빚" class="caption" /><ui:Label name="debt-label" class="status-value price-up" /></ui:VisualElement>
-                    <ui:VisualElement class="row row--spread status-row"><ui:Label text="다음 이자" class="caption" /><ui:Label name="interest-label" class="chip chip--warning" /></ui:VisualElement>
-                    <ui:VisualElement class="row row--spread status-row"><ui:Label text="추가 대출" class="caption" /><ui:VisualElement class="row"><ui:Label name="loan-count-label" class="status-value status-value--small" /><ui:Button name="loan-button" text="받기" class="loan-take" tooltip="추가 대출은 아이템 단계(2단계)에서만" /></ui:VisualElement></ui:VisualElement>
-                    <ui:VisualElement class="row row--spread status-row status-row--total"><ui:Label text="순자산" class="caption" /><ui:Label name="networth-label" class="status-value status-value--big" /></ui:VisualElement>
-                </ui:VisualElement>
+                <ui:ScrollView name="side-top" class="area area--warm side-top">
+                    <ui:Label text="오늘의 뉴스" class="side-title" />
+                    <ui:VisualElement name="side-news-list" class="side-news-list" />
 
-                <!-- 오늘의 흐름: 지금까지 한 일과 아이템 사용 여부 (2단계에서 강조) -->
-                <ui:VisualElement name="flow-card" class="card flow-card">
-                    <ui:Label text="오늘의 흐름" class="side-title" />
-                    <ui:VisualElement name="flow-list" />
-                </ui:VisualElement>
+                    <!-- 오늘의 흐름: 지금까지 한 일과 아이템 사용 여부 (2단계에서 강조) -->
+                    <ui:VisualElement name="flow-card" class="flow-card side-section">
+                        <ui:Label text="오늘의 흐름" class="side-title" />
+                        <ui:VisualElement name="flow-list" />
+                    </ui:VisualElement>
 
-                <ui:VisualElement class="card hint-card">
-                    <ui:Label text="힌트 · 사용 중 효과" class="side-title" />
-                    <ui:ScrollView name="hint-list" class="hint-list" />
-                </ui:VisualElement>
+                    <ui:VisualElement class="hint-card side-section">
+                        <ui:Label text="받은 힌트 · 사용 중 효과" class="side-title" />
+                        <ui:ScrollView name="hint-list" class="hint-list" />
+                    </ui:VisualElement>
+                </ui:ScrollView>
 
                 <!-- 주인공: 그림은 CharacterSettings, 그림이 없으면 글자 얼굴 -->
-                <ui:VisualElement name="character-area" class="character-area" picking-mode="Ignore">
+                <ui:VisualElement name="character-area" class="area area--warm character-area" picking-mode="Ignore">
                     <ui:VisualElement name="portrait" class="portrait" picking-mode="Ignore" />
                     <ui:Label name="face-label" text="(-_-)" class="face" />
                     <ui:Label name="speech-label" text="오늘은 뭘 살까~?" class="speech" />
