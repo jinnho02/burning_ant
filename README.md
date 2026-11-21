@@ -24,6 +24,20 @@
    git config merge.unityyamlmerge.driver "'C:/Program Files/Unity/Hub/Editor/6000.6.4f1/Editor/Data/Tools/UnityYAMLMerge.exe' merge -p %O %B %A %A"
    ```
 
+## 빌드 (Unity를 열지 않고 실행 파일 만들기)
+
+1. 이 프로젝트를 연 Unity 에디터가 있으면 닫습니다 (열려 있으면 빌드가 실패해요).
+2. 프로젝트 폴더의 **`build.bat`** 을 더블클릭합니다. 처음엔 몇 분, 그다음부턴 1~2분 걸려요.
+   - 빌드 전에 지금 브랜치를 **GitHub 최신 버전으로 자동 업데이트**합니다 (`git pull` + 캐릭터 그림 `git lfs pull`).
+   - 내가 고친 파일이 있으면 덮어쓰지 않도록 업데이트를 건너뛰고 지금 파일로 빌드해요. 내 브랜치에만 있는 커밋이 있거나 인터넷이 안 될 때도 건너뛰어요.
+   - 업데이트 없이 빌드하려면: `powershell -ExecutionPolicy Bypass -File build.ps1 -NoUpdate`
+3. **`Builds\Windows\FX_master.exe`** 를 실행합니다. 친구에게 줄 때는 `Builds\Windows` 폴더를 통째로 압축해서 보내세요 (exe만 보내면 실행되지 않아요).
+
+- Unity 6000.6.4f1이 기본 위치(`C:\Program Files\Unity\Hub\Editor\`)에 있어야 합니다. 다른 곳에 있으면 환경 변수 `UNITY_PATH`에 Unity.exe 경로를 넣으세요.
+- 빌드 설정(Build Profiles)에 켜진 씬이 순서대로 들어가고, 첫 번째 씬(현재 DayLoop)으로 시작합니다.
+- 실패하면 `Logs\build.log`를 보세요. 에디터 메뉴 **BurningAnt > Build > Windows**로도 같은 빌드를 할 수 있어요.
+- GitHub에서 zip으로 받으면 캐릭터 그림(Git LFS)이 빠집니다. 꼭 `git clone`으로 받아서 빌드하세요.
+
 ## 폴더 구조
 
 우리 팀 파일은 전부 `Assets/_Project/` 아래에 둡니다. 에셋 스토어나 외부 패키지와 섞이지 않게 하려는 것입니다.

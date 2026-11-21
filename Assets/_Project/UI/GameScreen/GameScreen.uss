@@ -177,3 +177,28 @@
 
 .end-portrait { height: 360px; -unity-background-scale-mode: scale-to-fit; margin-bottom: 8px; }
 .end-title { font-size: 34px; }
+
+/* 타이틀 화면 */
+.title-overlay {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    background-color: #1B1033;
+    background-image: url("../../Art/UI/title.png");
+    -unity-background-scale-mode: scale-and-crop;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 56px;
+}
+.title-start {
+    font-size: 44px;
+    -unity-font-style: bold;
+    color: #FFFFFF;
+    -unity-text-outline-width: 3px;
+    -unity-text-outline-color: #C2185B;
+    padding: 8px 32px;
+    border-radius: 24px;
+    background-color: rgba(194, 24, 91, 0.35);
+    transition-property: opacity;
+    transition-duration: 0.4s;
+}
+.title-start--dim { opacity: 0.25; }
