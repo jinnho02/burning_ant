@@ -474,3 +474,25 @@
 .item-slot__icon { width: 44px; height: 44px; margin-right: 6px; flex-shrink: 0; -unity-background-scale-mode: scale-to-fit; }
 .item-slot__text { flex-grow: 1; flex-shrink: 1; }
 .loan-take { background-image: url("../../Art/Item/대출1.png"); -unity-background-scale-mode: scale-to-fit; -unity-background-image-tint-color: rgba(255, 255, 255, 0.35); }
+
+/* 상점 5단계 배치 수정: 현금 = 가방 맨 위 가운데, 다음 날 = 화면 오른쪽 위 큰 버튼, 상점 제목 글자 없음 */
+.shop-header {
+    left: 27%; width: 30%; top: 7.5%; height: 9%;
+    flex-direction: column; justify-content: center; align-items: center;
+}
+.shop-cash {
+    font-size: 30px; -unity-font-style: bold; color: #F2C14E;
+    padding: 4px 22px; border-radius: 14px;
+    background-color: rgba(15, 4, 8, 0.72);
+    border-width: 1px; border-color: rgba(242, 193, 78, 0.6);
+}
+.shop-message { font-size: 15px; color: #F6E7D8; margin-top: 4px; -unity-text-align: middle-center; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8); }
+.shop-next {
+    position: absolute;
+    right: 28px; top: 24px;
+    width: 280px; height: 84px;
+    font-size: 30px; -unity-font-style: bold;
+    border-width: 2px; border-color: #FFFFFF; border-radius: 14px;
+    background-color: #F2C14E; color: #2A0E16;
+}
+.shop-next:hover { background-color: #FFD56B; }

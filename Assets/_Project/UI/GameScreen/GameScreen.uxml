@@ -140,16 +140,15 @@
         <!-- 상점: 서류가방 그림(Art/UI/store.png). shop-stage는 그림이 실제로 그려진 영역에 맞춰지고, 안쪽은 그림 기준 %로 배치한다 -->
         <ui:VisualElement name="shop-overlay" class="overlay shop-overlay">
             <ui:VisualElement name="shop-stage" class="shop-stage">
+                <!-- 현금: 가방 맨 위쪽 가운데, 그 밑에 구매 메시지 -->
                 <ui:VisualElement class="shop-header">
-                    <ui:Label text="상점 · 내일 쓸 아이템 고르기" class="shop-title" />
                     <ui:Label name="shop-cash" text="현금 $0.00" class="shop-cash" />
+                    <ui:Label name="shop-message" text="칸에 마우스를 올리면 설명, 클릭하면 구매" class="shop-message" />
                 </ui:VisualElement>
                 <ui:VisualElement name="shop-grid" class="shop-grid" picking-mode="Ignore" />
-                <ui:VisualElement class="shop-footer">
-                    <ui:Label name="shop-message" text="칸에 마우스를 올리면 설명, 클릭하면 구매" class="shop-message" />
-                    <ui:Button name="next-day-button" text="다음 날" class="shop-next" />
-                </ui:VisualElement>
             </ui:VisualElement>
+            <!-- 다음 날: 화면 오른쪽 위, 크게 -->
+            <ui:Button name="next-day-button" text="다음 날" class="shop-next" />
             <!-- 마우스를 올린 아이템 설명: 화면 가운데 반투명 창 -->
             <ui:VisualElement name="shop-tooltip" class="shop-tooltip" picking-mode="Ignore">
                 <ui:VisualElement class="row row--spread" picking-mode="Ignore">
