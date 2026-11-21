@@ -189,8 +189,9 @@
 /* 위치·크기는 GameScreenController.LayoutTitle이 그림 기준으로 정한다 (화면 비율이 달라 그림이 잘려도 제목 밑에 오도록) */
 .title-start {
     position: absolute;
-    -unity-text-align: middle-center;
-    -unity-font-style: bold;
+    -unity-text-align: upper-center;
+    -unity-font-style: normal;
+    letter-spacing: 3px;
     color: #FFFFFF;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
     padding: 0;

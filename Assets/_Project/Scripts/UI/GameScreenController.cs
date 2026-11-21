@@ -23,8 +23,10 @@ namespace BurningAnt.UI
         [Header("타이틀 '클릭하여 시작하기' 위치 (Play 중에 고쳐도 바로 반영)")]
         [SerializeField, Range(0f, 1f), Tooltip("글자 윗변 높이. 타이틀 그림 높이 대비 비율 (0 = 그림 맨 위, 1 = 맨 아래)")]
         float titleTextTop = 0.77f;
+        [SerializeField, Range(0f, 1f), Tooltip("글자 가로 가운데. 타이틀 그림 폭 대비 비율 (0 = 왼쪽 끝, 1 = 오른쪽 끝)")]
+        float titleTextCenterX = 0.765f;
         [SerializeField, Range(0.01f, 0.1f), Tooltip("글자 크기. 타이틀 그림 높이 대비 비율")]
-        float titleTextSize = 0.032f;
+        float titleTextSize = 0.026f;
 
         MarketSession Session => game.Session;
         StockWindowController stockWindow;
@@ -187,7 +189,7 @@ namespace BurningAnt.UI
 
         // 타이틀 그림(1672×941) 안에서의 문구 자리: 제목 아랫변(약 70.7%)과 그래프 윗변(약 78%) 사이
         const float TitleAspect = 1672f / 941f;
-        const float TitleTextCenterX = 0.752f, TitleTextWidth = 0.34f;
+        const float TitleTextWidth = 0.34f;
 
         /// <summary>scale-and-crop으로 그려진 그림의 실제 위치를 계산해 문구를 그림 기준 자리에 둔다.</summary>
         void LayoutTitle()
@@ -205,7 +207,7 @@ namespace BurningAnt.UI
             float offsetY = (rect.height - drawH) * 0.5f;
 
             titleStart.style.width = drawW * TitleTextWidth;
-            titleStart.style.left = offsetX + drawW * (TitleTextCenterX - TitleTextWidth * 0.5f);
+            titleStart.style.left = offsetX + drawW * (titleTextCenterX - TitleTextWidth * 0.5f);
             titleStart.style.top = offsetY + drawH * titleTextTop;
             titleStart.style.fontSize = drawH * titleTextSize;
         }
