@@ -33,6 +33,9 @@ namespace BurningAnt.UI
         VisualElement portrait, endPortrait;
         string lastMessage = "";
         float hintTimer;
+        VisualElement titleOverlay;
+        Label titleStart;
+        float titleBlinkTimer;
 
         void Start()
         {
@@ -40,6 +43,7 @@ namespace BurningAnt.UI
             KoreanFont.Apply(root);
             Query(root);
             Bind();
+            BindTitle(root);
 
             game.Changed += RefreshAll;
             game.PhaseChanged += OnPhaseChanged;
@@ -63,6 +67,7 @@ namespace BurningAnt.UI
         void Update()
         {
             if (game.Inventory == null) return;
+            BlinkTitle();
             RefreshStatus();
             if (game.Phase == GamePhase.Market)
             {
@@ -134,6 +139,27 @@ namespace BurningAnt.UI
                 Time.timeScale = 1f;
                 SceneManager.LoadScene(gameObject.scene.name); // 씬이 Build Profiles 목록에 있어야 한다 (셋업 메뉴가 추가)
             };
+        }
+
+        // ───────── 타이틀 ─────────
+
+        /// <summary>시작할 때 타이틀이 맨 위에 덮여 있고, 아무 곳이나 클릭하면 닫혀 1일차 뉴스가 보인다.</summary>
+        void BindTitle(VisualElement root)
+        {
+            titleOverlay = root.Q("title-overlay");
+            titleStart = root.Q<Label>("title-start");
+            if (titleOverlay == null) return;
+            titleOverlay.BringToFront();
+            titleOverlay.RegisterCallback<ClickEvent>(_ => Show(titleOverlay, false));
+        }
+
+        void BlinkTitle()
+        {
+            if (titleOverlay == null || titleOverlay.resolvedStyle.display == DisplayStyle.None) return;
+            titleBlinkTimer -= Time.unscaledDeltaTime;
+            if (titleBlinkTimer > 0f) return;
+            titleBlinkTimer = 0.6f;
+            titleStart.ToggleInClassList("title-start--dim");
         }
 
         // ───────── 이벤트 ─────────
