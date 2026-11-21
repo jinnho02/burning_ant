@@ -119,10 +119,5 @@
                 <ui:Button name="restart-button" text="다시 하기" class="modal-button" />
             </ui:VisualElement>
         </ui:VisualElement>
-
-        <!-- 타이틀: 게임 시작 시 맨 위에 덮여 있다가 클릭하면 사라진다 -->
-        <ui:VisualElement name="title-overlay" class="title-overlay">
-            <ui:Label name="title-start" text="Click to Start" class="title-start" />
-        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
