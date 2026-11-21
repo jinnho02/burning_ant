@@ -178,7 +178,7 @@
 .end-portrait { height: 360px; -unity-background-scale-mode: scale-to-fit; margin-bottom: 8px; }
 .end-title { font-size: 34px; }
 
-/* 타이틀 화면: 그림은 16:9, 문구는 그림 오른쪽 아래 제목 "(※무리가 아니었다?!)" 바로 밑 */
+/* 타이틀 화면: 문구는 그림 오른쪽 아래 제목 "(※무리가 아니었다?!)"과 그래프 사이 */
 .title-overlay {
     position: absolute;
     left: 0; right: 0; top: 0; bottom: 0;
@@ -186,16 +186,15 @@
     background-image: url("../../Art/UI/title.png");
     -unity-background-scale-mode: scale-and-crop;
 }
+/* 위치·크기는 GameScreenController.LayoutTitle이 그림 기준으로 정한다 (화면 비율이 달라 그림이 잘려도 제목 밑에 오도록) */
 .title-start {
     position: absolute;
-    left: 58%;
-    width: 34%;
-    top: 81%;
     -unity-text-align: middle-center;
-    font-size: 40px;
     -unity-font-style: bold;
     color: #FFFFFF;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+    padding: 0;
+    margin: 0;
     transition-property: opacity;
     transition-duration: 0.4s;
 }

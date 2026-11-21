@@ -176,6 +176,32 @@ namespace BurningAnt.UI
             if (titleOverlay == null) return;
             titleOverlay.BringToFront();
             titleOverlay.RegisterCallback<ClickEvent>(_ => Show(titleOverlay, false));
+            titleOverlay.RegisterCallback<GeometryChangedEvent>(_ => LayoutTitle());
+        }
+
+        // 타이틀 그림(1672×941) 안에서의 문구 자리: 제목 아랫변(약 70.7%)과 그래프 윗변(약 78%) 사이
+        const float TitleAspect = 1672f / 941f;
+        const float TitleTextCenterX = 0.752f, TitleTextWidth = 0.34f, TitleTextTop = 0.716f, TitleTextSize = 0.036f;
+
+        /// <summary>scale-and-crop으로 그려진 그림의 실제 위치를 계산해 문구를 그림 기준 자리에 둔다.</summary>
+        void LayoutTitle()
+        {
+            var rect = titleOverlay.contentRect;
+            if (rect.width <= 0f || rect.height <= 0f) return;
+
+            float drawW = rect.width, drawH = rect.width / TitleAspect;
+            if (drawH < rect.height)
+            {
+                drawH = rect.height;
+                drawW = rect.height * TitleAspect;
+            }
+            float offsetX = (rect.width - drawW) * 0.5f;
+            float offsetY = (rect.height - drawH) * 0.5f;
+
+            titleStart.style.width = drawW * TitleTextWidth;
+            titleStart.style.left = offsetX + drawW * (TitleTextCenterX - TitleTextWidth * 0.5f);
+            titleStart.style.top = offsetY + drawH * TitleTextTop;
+            titleStart.style.fontSize = drawH * TitleTextSize;
         }
 
         void BlinkTitle()
