@@ -129,6 +129,7 @@
         <!-- 긴급 대출: 장 마감 정산 후 잔고가 0 밑일 때, 4단계 직전에 한 판에 한 번 -->
         <ui:VisualElement name="emergency-overlay" class="overlay">
             <ui:VisualElement class="modal emergency">
+                <ui:VisualElement class="emergency-art" picking-mode="Ignore" />
                 <ui:Label text="잔고 부족 · 이대로면 파산!" class="modal-title emergency-title" />
                 <ui:Label name="emergency-body" class="modal-body" />
                 <ui:Button name="emergency-accept-button" text="햇살론 받기 (한 판에 한 번)" class="modal-button emergency-accept" />

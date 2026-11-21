@@ -610,8 +610,18 @@ namespace BurningAnt.UI
                 name.AddToClassList("item-slot__name");
                 var meta = new Label((item.Timing == ItemTiming.Prep ? "장 전" : "장 중") + (usedToday ? " · 오늘 사용" : ""));
                 meta.AddToClassList("item-slot__meta");
-                slot.Add(name);
-                slot.Add(meta);
+                if (item.icon != null)
+                {
+                    var icon = new VisualElement { pickingMode = PickingMode.Ignore };
+                    icon.AddToClassList("item-slot__icon");
+                    icon.style.backgroundImage = new StyleBackground(item.icon);
+                    slot.Add(icon);
+                }
+                var textCol = new VisualElement { pickingMode = PickingMode.Ignore };
+                textCol.AddToClassList("item-slot__text");
+                textCol.Add(name);
+                textCol.Add(meta);
+                slot.Add(textCol);
                 itemBarList.Add(slot);
             }
 
@@ -867,6 +877,8 @@ namespace BurningAnt.UI
                 Note(loan, $"마이너스 정산: {string.Join(", ", r.ClosedStocks.Select(s => s.Name))} 정리, 잔고에서 {Format.Money(r.SettlementCharge)} 빠짐");
             if (r.EmergencyLoan > 0f) Note(loan, $"긴급 대출 {Format.Money(r.EmergencyLoan)}");
             if (r.ExtraLoan > 0f) Note(loan, $"추가 대출 {Format.Money(r.ExtraLoan)}");
+            if (r.InterestDeferred) Note(loan, "오늘은 이자일이지만 이자 유예 신청서로 면제됐어요");
+            if (r.ItemDebt > 0f) Note(loan, $"악마의 계약서로 빚 +{Format.Money(r.ItemDebt)}");
             Note(loan, r.Interest > 0f
                 ? $"오늘은 이자일: 빚에 {Format.Money(r.Interest)} 추가됨"
                 : $"다음 이자일: {game.Loan.NextInterestDay(game.Day + 1)}일차");
@@ -1081,7 +1093,7 @@ namespace BurningAnt.UI
             else
             {
                 endTitle.text = "파산…";
-                endBody.text = $"{game.Day}일차에 총자산이 {Format.Money(game.TotalAssets())}로 바닥나고 추가 대출도 다 썼어요.\n남은 빚 {Format.Money(game.Loan.Debt)}";
+                endBody.text = $"{game.Day}일차 장 마감 정산 뒤 잔고가 {Format.SignedMoney(Session.Portfolio.Cash)}인데 긴급 대출을 받을 수 없었어요.\n남은 빚 {Format.Money(game.Loan.Debt)} · 버틴 날 {game.Day}일";
             }
         }
 
