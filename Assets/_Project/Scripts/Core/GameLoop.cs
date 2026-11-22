@@ -404,6 +404,7 @@ namespace BurningAnt.Core
                 GoBankrupt();
                 return;
             }
+            if (!NeedsEmergency && CheckStuck()) return;
             SetPhase(GamePhase.Settlement);
             if (!NeedsEmergency) CheckWin(); // 빚이 이미 0원이고 자산이 목표 이상이면 바로 성공
         }
@@ -470,6 +471,7 @@ namespace BurningAnt.Core
                 GoBankrupt();
                 return;
             }
+            if (!NeedsEmergency && CheckStuck()) return;
             Changed?.Invoke();
             if (!NeedsEmergency) CheckWin();
         }
@@ -484,6 +486,7 @@ namespace BurningAnt.Core
                 GoBankrupt();
                 return;
             }
+            if (CheckStuck()) return;
             Say($"햇살론 없이 버텨요 (현금 {Money(session.Portfolio.Cash)}, 순자산 {Money(BankruptcyNetWorth)}, 파산선 {Money(loanSettings.bankruptLine)})");
             Changed?.Invoke();
         }
@@ -507,6 +510,36 @@ namespace BurningAnt.Core
             SetPhase(GamePhase.GameOver);
         }
 
+        /// <summary>
+        /// 더 할 수 있는 게 없는 막힌 상태: 현금으로 가장 싼 주식 1주도 못 사고, 팔 주식도 없고,
+        /// 추가 대출·햇살론 남은 횟수가 0이고, 현금을 만들 대출 아이템(러시앤러시 등)도 없음.
+        /// </summary>
+        public bool IsStuck
+        {
+            get
+            {
+                var pf = session.Portfolio;
+                if (pf.HeldStocks.Any(s => pf.GetHolding(s).Shares > 0)) return false;
+                if (Loan.ExtraLoanLeft > 0 || Loan.EmergencyLeft > 0) return false;
+                if (Inventory.Owned.Any(o => o.item.kind == ItemKind.CashLoan && o.count > 0)) return false;
+                float cheapest = session.Stocks.Min(s => session.CurrentPrice(s)) * (1f + pf.FeeRateNow);
+                return pf.Cash < cheapest;
+            }
+        }
+
+        /// <summary>막힌 상태면 배드 엔딩으로 (이유를 알린다).</summary>
+        bool CheckStuck()
+        {
+            if (Phase == GamePhase.GameOver || !IsStuck) return false;
+            Say($"현금 {Money(session.Portfolio.Cash)}, 팔 주식 없음, 남은 대출 0회 — 더 이상 할 수 있는 게 없어요");
+            StuckEnding = true;
+            GoBankrupt();
+            return true;
+        }
+
+        /// <summary>파산선이 아니라 막힌 상태(현금·주식·대출 모두 없음)로 끝났는지.</summary>
+        public bool StuckEnding { get; private set; }
+
         void GoBankrupt()
         {
             Won = false;
@@ -524,6 +557,7 @@ namespace BurningAnt.Core
                 Today.InterestPaid = Today.Interest; // 빚에 붙었으니 오늘 이자는 끝
             }
             if (CheckWin()) return;
+            if (CheckStuck()) return; // 빚을 갚느라 현금을 다 써서 더 할 게 없으면
             RollShop();
             SetPhase(GamePhase.Shop);
         }
@@ -531,6 +565,7 @@ namespace BurningAnt.Core
         public void StartNextDay()
         {
             if (Phase != GamePhase.Shop) return;
+            if (CheckStuck()) return; // 아이템을 사느라 현금을 다 써서 더 할 게 없으면
             session.NextDay(); // → PreMarket 이벤트 → BeginDay
         }
 
