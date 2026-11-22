@@ -18,9 +18,9 @@ namespace BurningAnt.News
         public NewsKind Kind;
         public NewsTemplate Template;
         public bool Success;
-        /// <summary>결과 기사(특보)가 뜨는 틱. 주가는 이 뒤 MoveTick부터 움직인다.</summary>
+        /// <summary>결과 기사(특보)가 뜨는 틱. 주가도 이 틱부터 움직인다 (MoveTick과 같음).</summary>
         public int RevealTick;
-        /// <summary>특보가 뜬 직후 주가가 움직이기 시작하는 틱 (= RevealTick + 특보 뒤 간격).</summary>
+        /// <summary>주가가 움직이기 시작하는 틱. 지금은 특보와 동시 (= RevealTick).</summary>
         public int MoveTick;
         /// <summary>주가가 결과 값(Effect)에 다 닿는 틱. RevealTick과 같으면 한 번에 뛴다.</summary>
         public int SettleTick;
@@ -42,8 +42,8 @@ namespace BurningAnt.News
     /// </summary>
     public class NewsGenerator
     {
-        /// <summary>특보가 뜬 뒤 주가가 움직이기 시작할 때까지 틱 수: 1~2틱 무작위 (1틱 = 0.5초). 특보를 읽고 해석할 틈.</summary>
-        public const int MinFlashLeadTicks = 1, MaxFlashLeadTicks = 2;
+        /// <summary>특보가 뜬 뒤 주가가 움직이기 시작할 때까지 틱 수. 사용자 확정: 0 = 특보와 동시에 움직임.</summary>
+        public const int MinFlashLeadTicks = 0, MaxFlashLeadTicks = 0;
 
         readonly NewsSettings settings;
         readonly System.Random rng;
@@ -121,7 +121,7 @@ namespace BurningAnt.News
             usedToday.Add(template);
             bool success = rng.NextDouble() < settings.successChance;
             // 특보 시점: 장 진행 earliestReveal~latestReveal(0~100%) 구간에서 균등하게 무작위.
-            // 특보가 먼저 뜨고 FlashLeadTicks 뒤부터 주가가 움직인다 (마지막 틱에도 움직일 수 있게 특보는 그만큼 앞까지)
+            // 특보가 뜨는 틱에 주가도 바로 움직이기 시작한다 (간격 0틱)
             int lead = rng.Next(MinFlashLeadTicks, MaxFlashLeadTicks + 1);
             int lastReveal = Mathf.Max(1, ticksPerDay - MaxFlashLeadTicks);
             int earliest = Mathf.Clamp(Mathf.RoundToInt(ticksPerDay * settings.earliestReveal), 1, lastReveal);
