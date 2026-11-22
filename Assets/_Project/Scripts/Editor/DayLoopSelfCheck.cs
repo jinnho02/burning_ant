@@ -130,7 +130,7 @@ namespace BurningAnt.Editor
         {
             var gen = new NewsGenerator(settings, new System.Random(3));
             int ticks = market.ticksPerDay;
-            bool sawIntraday = false, sawSteps = false, sawGradual = false;
+            bool sawIntraday = false, sawSteps = false, sawGradual = false, sawLead1 = false, sawLead2 = false;
             int early = Mathf.Clamp(Mathf.RoundToInt(ticks * settings.earliestReveal), 1, ticks);
             int firstHalf = 0, total = 0;
             for (int day = 1; day <= 300; day++)
@@ -165,7 +165,9 @@ namespace BurningAnt.Editor
                         Expect(s.Path[i] >= s.LowerLimit - 1e-3f && s.Path[i] <= s.UpperLimit + 1e-3f, "평소엔 기본 구간 안 (전날 종가 기준)");
                     if (n != null)
                     {
-                        Expect(n.MoveTick == n.RevealTick + NewsGenerator.FlashLeadTicks && n.MoveTick <= ticks, "특보가 뜬 직후(2틱 뒤)부터 움직임");
+                        int lead = n.MoveTick - n.RevealTick;
+                        Expect(lead >= NewsGenerator.MinFlashLeadTicks && lead <= NewsGenerator.MaxFlashLeadTicks && n.MoveTick <= ticks, "특보가 뜨고 1~2틱 뒤부터 움직임");
+                        if (lead == 1) sawLead1 = true; else sawLead2 = true;
                         Expect(n.SettleTick >= n.MoveTick && n.SettleTick <= ticks, "결과 값에 닿는 시점은 움직임 시작 뒤, 장 마감 전");
                         for (int i = 0; i < n.MoveTick; i++)
                             Expect(s.Path[i] >= s.LowerLimit - 1e-3f && s.Path[i] <= s.UpperLimit + 1e-3f, "특보 전·특보 직후 1초는 아직 기본 구간 안");
@@ -179,6 +181,7 @@ namespace BurningAnt.Editor
             }
             Expect(sawIntraday, "장 중 특보가 나옴");
             Expect(sawSteps && sawGradual, "한 번에 · 계단식 · 차근차근 움직임이 모두 나옴");
+            Expect(sawLead1 && sawLead2, "특보 뒤 간격 1틱 · 2틱이 둘 다 나옴");
             // 균등 분포: 구간 앞쪽 절반에 대략 절반 (1200개 중 40~60%)
             Expect(firstHalf > total * 0.4f && firstHalf < total * 0.6f, "결과 시점이 구간에 고르게 퍼짐");
 

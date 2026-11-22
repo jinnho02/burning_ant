@@ -707,7 +707,7 @@ namespace BurningAnt.UI
                     var flash = new Label($"[특보] {n.ResultText}");
                     flash.AddToClassList("side-news-line");
                     flash.AddToClassList("side-news-line--flash");
-                    flash.AddToClassList(n.Effect >= 0f ? "side-news-line--up" : "side-news-line--down");
+                    // 방향(상승·하락)은 색으로 알려 주지 않는다: 특보는 모두 노란색, 호재·악재는 문구를 읽고 판단
                     if (flashTimes.TryGetValue(n, out float at) && Time.unscaledTime - at < FlashBlinkSeconds) freshFlashes.Add((flash, at));
                     sideNewsList.Add(flash);
                 }

@@ -42,8 +42,8 @@ namespace BurningAnt.News
     /// </summary>
     public class NewsGenerator
     {
-        /// <summary>특보가 뜬 뒤 주가가 움직이기 시작할 때까지 틱 수 (2틱 = 1초). 특보를 읽을 틈.</summary>
-        public const int FlashLeadTicks = 2;
+        /// <summary>특보가 뜬 뒤 주가가 움직이기 시작할 때까지 틱 수: 1~2틱 무작위 (1틱 = 0.5초). 특보를 읽고 해석할 틈.</summary>
+        public const int MinFlashLeadTicks = 1, MaxFlashLeadTicks = 2;
 
         readonly NewsSettings settings;
         readonly System.Random rng;
@@ -122,8 +122,8 @@ namespace BurningAnt.News
             bool success = rng.NextDouble() < settings.successChance;
             // 특보 시점: 장 진행 earliestReveal~latestReveal(0~100%) 구간에서 균등하게 무작위.
             // 특보가 먼저 뜨고 FlashLeadTicks 뒤부터 주가가 움직인다 (마지막 틱에도 움직일 수 있게 특보는 그만큼 앞까지)
-            int lead = Mathf.Max(0, FlashLeadTicks);
-            int lastReveal = Mathf.Max(1, ticksPerDay - lead);
+            int lead = rng.Next(MinFlashLeadTicks, MaxFlashLeadTicks + 1);
+            int lastReveal = Mathf.Max(1, ticksPerDay - MaxFlashLeadTicks);
             int earliest = Mathf.Clamp(Mathf.RoundToInt(ticksPerDay * settings.earliestReveal), 1, lastReveal);
             int latest = Mathf.Clamp(Mathf.RoundToInt(ticksPerDay * settings.latestReveal), earliest, lastReveal);
             int revealTick = rng.Next(earliest, latest + 1);
