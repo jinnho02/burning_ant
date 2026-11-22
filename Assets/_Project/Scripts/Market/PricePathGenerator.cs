@@ -40,16 +40,57 @@ namespace BurningAnt.Market
         /// 뉴스·예지 템플릿이 걸린 날: 결과가 뜨는 틱(revealTick)까지는 기본 구간 안에서 움직이다가,
         /// 그 틱에 전날 종가 × (1 + targetChange)로 뛰고, 이후에는 그 값 근처에서만 흔들린다. 장 마감 공개면 revealTick = 틱 수.
         /// </summary>
-        public static float[] GenerateWithReveal(float prevClose, float limit, int revealTick, float targetChange, MarketSettings settings, System.Random rng)
+        /// <param name="settleTick">결과 값에 다 닿는 틱. revealTick 이하면 한 번에 뛴다.</param>
+        /// <param name="steps">1 = 한 번에, 2 이상 = 그 횟수만큼 계단식, 0 = 차근차근(매 틱 조금씩).</param>
+        public static float[] GenerateWithReveal(float prevClose, float limit, int revealTick, float targetChange, MarketSettings settings, System.Random rng, int settleTick = -1, int steps = 1)
         {
             var path = Generate(prevClose, limit, settings, rng);
             int ticks = path.Length - 1;
             revealTick = Mathf.Clamp(revealTick, 1, ticks);
+            settleTick = Mathf.Clamp(settleTick, revealTick, ticks);
             float target = prevClose * (1f + targetChange);
             float wobble = prevClose * limit * settings.noiseRatio * 0.5f;
+            float from = path[revealTick - 1];
+            int len = settleTick - revealTick;
+
+            if (len > 0 && steps != 1)
+            {
+                if (steps == 0)
+                {
+                    // 차근차근: 매 틱 조금씩 (부드러운 S자 + 흔들림), 마지막 틱에 정확히 결과 값
+                    for (int i = revealTick; i < settleTick; i++)
+                    {
+                        float t = (i - revealTick + 1f) / (len + 1f);
+                        float eased = t * t * (3f - 2f * t);
+                        path[i] = Mathf.Max(prevClose * 0.01f, Mathf.Lerp(from, target, eased) + (float)(rng.NextDouble() - 0.5) * wobble);
+                    }
+                }
+                else
+                {
+                    // 계단식: steps번 크게 뛰고, 사이에는 그 높이 근처에서 흔들림. 첫 계단은 속보가 뜨는 틱, 마지막은 settleTick
+                    var cut = new float[steps];
+                    float sum = 0f;
+                    for (int k = 0; k < steps; k++) { cut[k] = 0.5f + (float)rng.NextDouble(); sum += cut[k]; }
+                    float level = from, acc = 0f;
+                    int next = 0;
+                    for (int i = revealTick; i < settleTick; i++)
+                    {
+                        int stepTick = revealTick + Mathf.RoundToInt(len * next / (float)(steps - 1));
+                        if (next < steps - 1 && i >= stepTick)
+                        {
+                            acc += cut[next] / sum;
+                            level = Mathf.Lerp(from, target, acc);
+                            next++;
+                        }
+                        level += (float)(rng.NextDouble() - 0.5) * wobble * 0.5f;
+                        path[i] = Mathf.Max(prevClose * 0.01f, level);
+                    }
+                }
+            }
+
             float price = target;
-            path[revealTick] = target;
-            for (int i = revealTick + 1; i <= ticks; i++)
+            path[settleTick] = target;
+            for (int i = settleTick + 1; i <= ticks; i++)
             {
                 price += (target - price) * settings.pullStrength + (float)(rng.NextDouble() - 0.5) * wobble;
                 path[i] = Mathf.Max(prevClose * 0.01f, price);

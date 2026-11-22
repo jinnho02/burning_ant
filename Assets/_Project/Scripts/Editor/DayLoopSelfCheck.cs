@@ -130,7 +130,7 @@ namespace BurningAnt.Editor
         {
             var gen = new NewsGenerator(settings, new System.Random(3));
             int ticks = market.ticksPerDay;
-            bool sawIntraday = false;
+            bool sawIntraday = false, sawSteps = false, sawGradual = false;
             int early = Mathf.Clamp(Mathf.RoundToInt(ticks * settings.earliestReveal), 1, ticks);
             int firstHalf = 0, total = 0;
             for (int day = 1; day <= 300; day++)
@@ -163,11 +163,19 @@ namespace BurningAnt.Editor
                     int until = n != null ? n.RevealTick - 1 : ticks; // 뉴스 종목은 결과 전까지만 구간 안
                     for (int i = 0; i <= until; i++)
                         Expect(s.Path[i] >= s.LowerLimit - 1e-3f && s.Path[i] <= s.UpperLimit + 1e-3f, "평소엔 기본 구간 안 (전날 종가 기준)");
-                    if (n != null) Near(s.Path[n.RevealTick] / s.PrevClose - 1f, n.Effect, "결과 시점에 템플릿 값으로 고정");
+                    if (n != null)
+                    {
+                        Expect(n.SettleTick >= n.RevealTick && n.SettleTick <= ticks, "결과 값에 닿는 시점은 속보 뒤, 장 마감 전");
+                        Near(s.Path[n.SettleTick] / s.PrevClose - 1f, n.Effect, "결과 값에 다 닿는 틱에 템플릿 값으로 고정");
+                        if (n.Steps == 1) Expect(n.SettleTick == n.RevealTick, "한 번에 뛰는 경우는 속보 틱에 바로");
+                        else if (n.Steps >= 2) sawSteps = true;
+                        else sawGradual = true;
+                    }
                     s.CloseDay();
                 }
             }
             Expect(sawIntraday, "장 중 특보가 나옴");
+            Expect(sawSteps && sawGradual, "한 번에 · 계단식 · 차근차근 움직임이 모두 나옴");
             // 균등 분포: 구간 앞쪽 절반에 대략 절반 (1200개 중 40~60%)
             Expect(firstHalf > total * 0.4f && firstHalf < total * 0.6f, "결과 시점이 구간에 고르게 퍼짐");
 
@@ -178,7 +186,7 @@ namespace BurningAnt.Editor
             var seen = gen.CreateForesight(quiet, market);
             Expect(seen != null && seen.Foreseen && seen.Kind == NewsKind.Foresight, "예지 템플릿 생성");
             Expect(!day1.Any(n => n.Template == seen.Template), "예지 템플릿도 오늘 뉴스와 겹치지 않음");
-            Near(quiet.Path[seen.RevealTick] / quiet.PrevClose - 1f, seen.Effect, "예지한 값으로 경로 고정");
+            Near(quiet.Path[seen.SettleTick] / quiet.PrevClose - 1f, seen.Effect, "예지한 값으로 경로 고정");
         }
 
         static void Expect(bool condition, string what)
