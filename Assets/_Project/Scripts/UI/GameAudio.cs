@@ -102,7 +102,7 @@ namespace BurningAnt.UI
             float volume = raw <= 1f ? Mathf.Lerp(TickMinVolume, TickMaxVolume, strength) : Mathf.Min(1f, TickMaxVolume * raw);
             if (strength < 0.12f) return; // 작은 흔들림엔 조용히 (자주 울리지 않게)
             // 오르면 1.0~1.6배, 내리면 1.0~0.6배 피치 (상승·하락 소리 자체도 위·아래로 미끄러짐)
-            tickSfx.pitch = change >= 0f ? Mathf.Lerp(1.0f, 1.25f, strength) : Mathf.Lerp(1.0f, 0.89f, strength); // 음역 550~880Hz 안
+            tickSfx.pitch = change >= 0f ? Mathf.Lerp(1.0f, 1.1f, strength) : Mathf.Lerp(1.0f, 0.92f, strength); // 상승 740~880Hz, 하락 552~660Hz (겹치지 않게)
             tickSfx.PlayOneShot(change >= 0f ? tickUp : tickDown, volume);
         }
 
@@ -121,7 +121,7 @@ namespace BurningAnt.UI
             for (int i = 0; i < n; i++)
             {
                 float t = (float)i / n;
-                float freq = up ? Mathf.Lerp(620f, 700f, t) : Mathf.Lerp(700f, 620f, t); // 피치 배율과 합쳐 상승 620~875Hz, 하락 551~700Hz
+                float freq = up ? Mathf.Lerp(740f, 800f, t) : Mathf.Lerp(660f, 600f, t); // 상승은 위쪽, 하락은 아래쪽 음역으로 나눠 귀로 구별
                 phase += freq / rate;
                 float square = (phase % 1.0) < 0.5 ? 1f : -1f;
                 smooth += (square - smooth) * 0.18f;                       // 간단한 로우패스 (날카로운 고역 줄임)
