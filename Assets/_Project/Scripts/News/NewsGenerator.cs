@@ -106,17 +106,20 @@ namespace BurningAnt.News
             return news;
         }
 
+        // 반전 근거 ({0} = 특보 기사 문구). 결과창에서 "왜 기사와 반대로 갔는지"를 인과가 보이게 설명한다
         static readonly string[] UpButDown =
         {
-            "이미 주가에 다 반영돼 있었다는 평가에 차익 실현 매물이 쏟아졌어요",
-            "기대가 너무 컸던 탓에 '생각보다 별로'라는 실망 매물이 나왔어요",
-            "대주주가 이 소식에 맞춰 보유 주식을 대량 매도했어요",
+            "'{0}' 소식은 며칠 전부터 업계에 소문으로 돌아 이미 주가에 반영돼 있었어요. 기사로 확인되자 미리 사 둔 투자자들이 한꺼번에 팔아 이익을 챙겼어요 (차익 실현 매물)",
+            "'{0}' 내용이 시장이 기대한 규모보다 작다는 분석이 뒤따르며 '생각보다 별로'라는 실망 매물이 쏟아졌어요",
+            "'{0}' 발표 직후 대주주가 보유 주식을 대량으로 팔았다는 공시가 나와, 호재보다 '내부자가 판다'는 불안이 더 커졌어요",
+            "'{0}' 소식에 개인 투자자가 몰려 단기 과열 경고가 붙었고, 큰손들이 그 틈에 물량을 넘기며 주가가 무너졌어요",
         };
         static readonly string[] DownButUp =
         {
-            "악재가 이미 주가에 반영돼 '바닥'이라는 저가 매수세가 몰렸어요",
-            "공매도 세력이 한꺼번에 되사들이며(숏커버링) 주가가 튀었어요",
-            "회사가 즉시 대책과 자사주 매입을 발표해 오히려 신뢰가 올라갔어요",
+            "'{0}' 악재는 지난주부터 소문으로 돌아 주가에 이미 반영돼 있었어요. 기사로 확인되자 '더 나빠질 게 없다'며 저가 매수세가 몰렸어요",
+            "주가 하락에 돈을 걸었던 공매도 세력이 '{0}' 직후 한꺼번에 주식을 되사들이면서(숏커버링) 주가가 오히려 튀었어요",
+            "'{0}' 직후 회사가 즉시 대책과 대규모 자사주 매입을 발표해, 악재보다 '회사가 주가를 지킨다'는 신뢰가 더 커졌어요",
+            "'{0}' 이후 경쟁사들도 같은 문제를 겪고 있다는 보도가 나와, 이 회사만의 악재가 아니라는 안도감에 매수세가 돌아왔어요",
         };
 
         /// <summary>오늘 가격 경로를 정한다. 장 전(PreMarket)에만 부른다.</summary>
@@ -220,7 +223,8 @@ namespace BurningAnt.News
                 created.Reversal = true;
                 created.Effect = Mathf.Max(-0.95f, -created.Effect * settings.reversalScale);
                 var reasons = success ? UpButDown : DownButUp;
-                created.ReversalReason = reasons[rng.Next(reasons.Length)];
+                string headline = success ? template.successHeadline : template.failureHeadline;
+                created.ReversalReason = string.Format(reasons[rng.Next(reasons.Length)], headline);
                 // 현실처럼: 초반엔 기사 방향으로 10~20% 따라가다가 꺾여 반전 결과로 (시간이 있을 때만)
                 if (created.Steps >= 4) created.FakeLead = 0.10f + (float)rng.NextDouble() * 0.10f;
             }

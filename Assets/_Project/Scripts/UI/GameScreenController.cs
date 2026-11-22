@@ -1064,7 +1064,7 @@ namespace BurningAnt.UI
                     : n.Kind == NewsKind.Breaking
                         ? $"[돌발 특보] {follow}"
                         : $"{n.Template.initialHeadline} → {follow}";
-                if (n.Revealed && n.Reversal) text += $"\n반전: {n.ReversalReason}";
+                if (n.Revealed && n.Reversal) text += "\n" + ReversalExplain(n, change);
                 var row = Row(news, false, n.Stock.Name, text, $"실제 {Format.SignedPercent(change)}");
                 row.AddToClassList("report-row--news");
                 // 기사 칸은 넓게 왼쪽 정렬, 등락률은 다른 화면처럼 상승 빨강 · 하락 파랑
@@ -1114,6 +1114,23 @@ namespace BurningAnt.UI
             box.Add(t);
             settlementReport.Add(box);
             return box;
+        }
+
+        /// <summary>
+        /// 반전 결과 설명 (결과창): 기사 방향 → 특보 직후 실제로 기사대로 어디까지 갔는지 → 왜 꺾였는지 → 결국 어떻게 마감했는지.
+        /// 버그가 아니라 반전이라는 걸 한눈에 보이게 맨 앞에 [반전 결과]를 붙인다.
+        /// </summary>
+        string ReversalExplain(NewsItem n, float dayChange)
+        {
+            string tone = n.Success ? "호재" : "악재";
+            var p = n.Stock.Path;
+            int start = Mathf.Clamp(n.MoveTick - 1, 0, p.Length - 1), end = Mathf.Clamp(n.SettleTick, start, p.Length - 1);
+            float dir = n.Success ? 1f : -1f, best = 0f;
+            for (int i = start; i <= end; i++) best = Mathf.Max(best, dir * (p[i] / p[start] - 1f));
+            string early = best >= 0.03f
+                ? $"특보 직후엔 기사대로 {(n.Success ? "+" : "−")}{best * 100f:0}%까지 {(n.Success ? "올랐지만" : "빠졌지만")}, "
+                : "";
+            return $"[반전 결과] {tone} 기사였는데 주가는 {(n.Success ? "내렸어요" : "올랐어요")}. {early}{n.ReversalReason}. 결국 전날보다 {Format.SignedPercent(dayChange)}로 마감했어요.";
         }
 
         static VisualElement Row(VisualElement parent, bool header, params string[] cells)
