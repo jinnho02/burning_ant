@@ -30,8 +30,8 @@ namespace BurningAnt.News
         [Tooltip("아침 뉴스에 없던 종목에 장 중 돌발 특보가 뜨는 수 (최소~최대)")] public int breakingMax = 2;
         [Range(0f, 1f), Tooltip("반전 결과 확률: 호재 기사인데 내리거나 악재 기사인데 오름 (근거 문구가 붙음)")] public float reversalChance = 0.12f;
         [Tooltip("반전 결과의 변동 폭 (원래 폭 대비)")] public float reversalScale = 0.6f;
-        [Tooltip("굴곡 경로가 중간에 가는 최고점 (최종 변동 대비, 1.2 = 120%)")] public float overshootMin = 1.2f;
-        [Tooltip("굴곡 경로가 중간에 가는 최고점 (최종 변동 대비, 1.6 = 160%)")] public float overshootMax = 1.6f;
+        [Tooltip("'넘겼다 돌아옴' 경로의 최고점 (최종 변동 대비, 1.1 = 110%). 이 모양은 전체의 25%만")] public float overshootMin = 1.1f;
+        [Tooltip("'넘겼다 돌아옴' 경로의 최고점 (최종 변동 대비, 1.5 = 150%)")] public float overshootMax = 1.5f;
 
         [Header("결과가 뜨는 시점 (사용자 확정: 장 전체 0~100% 구간에서 균등)")]
         [Range(0f, 1f), Tooltip("(지금은 안 씀) 예전 '장 중 특보 확률'. 시점은 아래 구간에서 균등하게 뽑는다")] public float intradayRevealChance = 1f;

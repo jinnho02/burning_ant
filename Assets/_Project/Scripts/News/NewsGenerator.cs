@@ -12,6 +12,13 @@ namespace BurningAnt.News
         Breaking,  // 돌발 특보: 아침 뉴스에 없던 종목에 장 중 갑자기 뜨는 기사
     }
 
+    /// <summary>
+    /// 뉴스 결과까지 가는 가격 모양. 지금 보이는 고점·저점이 끝인지 더 갈지 확신할 수 없게 섞는다.
+    /// Jump = 한 번에 · Overshoot = 넘겼다가 돌아옴 · Approach = 넘기지 않고 되돌림 섞으며 다가감 ·
+    /// LateSurge = 한동안 조금만 움직이다 막판에 몰아서 · Trend = 장 마감까지 계속 한 방향으로 밀림
+    /// </summary>
+    public enum MoveShape { Jump, Overshoot, Approach, LateSurge, Trend }
+
     /// <summary>오늘 한 종목에 걸린 기사 템플릿과 그 결과. 결과는 처음부터 정해져 있고 공개만 나중에 된다.</summary>
     public class NewsItem
     {
@@ -37,8 +44,10 @@ namespace BurningAnt.News
         /// <summary>반전 결과: 기사(성공·실패)와 반대로 움직임. 근거는 ReversalReason.</summary>
         public bool Reversal;
         public string ReversalReason;
-        /// <summary>굴곡 경로의 중간 최고점 (최종 변동 대비 배수, 1.2~1.6).</summary>
+        /// <summary>굴곡 경로의 중간 최고점 (최종 변동 대비 배수). Shape가 Overshoot일 때만 1보다 크다.</summary>
         public float Overshoot = 1f;
+        /// <summary>가격이 결과 값까지 가는 모양 (읽히지 않게 섞는다).</summary>
+        public MoveShape Shape = MoveShape.Jump;
 
         public string Text => $"{Stock.Name}, {Template.initialHeadline}";
         public string ResultText => $"{Stock.Name}, {(Success ? Template.successHeadline : Template.failureHeadline)}";
@@ -116,7 +125,7 @@ namespace BurningAnt.News
                 var item = news.FirstOrDefault(n => n.Stock == stock);
                 stock.PrepareDay(item != null
                     && item.HasFollowUp
-                    ? PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps, item.Overshoot)
+                    ? PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps, item.Overshoot, (int)item.Shape)
                     : PricePathGenerator.Generate(stock.PrevClose, stock.DailyLimit, market, rng));
             }
         }
@@ -127,7 +136,7 @@ namespace BurningAnt.News
             var item = Create(stock, NewsKind.Foresight, market.ticksPerDay);
             if (item == null) return null;
             item.Foreseen = true;
-            stock.PrepareDay(PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps, item.Overshoot));
+            stock.PrepareDay(PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps, item.Overshoot, (int)item.Shape));
             return item;
         }
 
@@ -170,17 +179,23 @@ namespace BurningAnt.News
             int moveTick = Mathf.Min(ticksPerDay, revealTick + lead);
             bool atClose = false; // 결과는 모두 장 중 특보로 뜬다
 
-            // 움직이는 방식: 오르락내리락(굴곡). 중간 목표 5~8개를 거치며 최종 변동의 120~160% 지점까지 갔다가
-            // (한 번에 튀지 않고 무작위 시점에 도달) 되돌아와 장 마감 전에 정확히 결과 값에 닿는다. 길이는 장 길이의 25~60%,
-            // 장 마감 전에 다 닿도록 남은 시간에 맞춘다 (남은 시간이 아주 짧으면 한 번에)
+            // 움직이는 모양 (읽히지 않게 섞음): 넘겼다 돌아옴 25% · 넘기지 않고 다가감 35% · 막판 몰아치기 20% ·
+            // 마감까지 한 방향 20%. 모두 중간 목표 5~8개를 거치며 되돌림이 섞이고, 결과 값에 정확히 닿는다.
+            // 길이는 장 길이의 25~60% (마감까지 한 방향은 장 마감까지). 남은 시간이 아주 짧으면 한 번에.
             int steps = 1, settleTick = moveTick;
+            var shape = MoveShape.Jump;
+            float overshoot = 1f;
             int room = ticksPerDay - moveTick;
             if (room >= 6)
             {
+                double r = rng.NextDouble();
+                shape = r < 0.25 ? MoveShape.Overshoot : r < 0.60 ? MoveShape.Approach : r < 0.80 ? MoveShape.LateSurge : MoveShape.Trend;
                 int span = Mathf.Max(6, Mathf.RoundToInt(ticksPerDay * (0.25f + (float)rng.NextDouble() * 0.35f)));
-                settleTick = moveTick + Mathf.Min(span, room);
+                settleTick = shape == MoveShape.Trend ? ticksPerDay : moveTick + Mathf.Min(span, room);
                 int len = settleTick - moveTick;
                 steps = Mathf.Clamp(rng.Next(5, 9), 3, Mathf.Max(3, len / 3 + 1)); // 중간 목표 수 5~8개 (구간마다 3틱 이상)
+                if (shape == MoveShape.Overshoot)
+                    overshoot = settings.overshootMin + (float)rng.NextDouble() * Mathf.Max(0f, settings.overshootMax - settings.overshootMin);
             }
             var created = new NewsItem
             {
@@ -191,7 +206,8 @@ namespace BurningAnt.News
                 RevealAtClose = atClose,
                 RevealTick = revealTick,
                 MoveTick = moveTick,
-                Overshoot = settings.overshootMin + (float)rng.NextDouble() * Mathf.Max(0f, settings.overshootMax - settings.overshootMin),
+                Overshoot = overshoot,
+                Shape = shape,
                 SettleTick = settleTick,
                 Steps = steps,
                 Effect = TargetChange(stock, template, success),

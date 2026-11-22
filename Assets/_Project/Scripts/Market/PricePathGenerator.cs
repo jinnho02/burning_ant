@@ -42,7 +42,7 @@ namespace BurningAnt.Market
         /// </summary>
         /// <param name="settleTick">결과 값에 다 닿는 틱. revealTick 이하면 한 번에 뛴다.</param>
         /// <param name="steps">1 = 한 번에, 2 이상 = 그 수의 중간 목표를 거치는 오르락내리락(굴곡), 0 = 차근차근(매 틱 조금씩).</param>
-        public static float[] GenerateWithReveal(float prevClose, float limit, int revealTick, float targetChange, MarketSettings settings, System.Random rng, int settleTick = -1, int steps = 1, float overshoot = 1f)
+        public static float[] GenerateWithReveal(float prevClose, float limit, int revealTick, float targetChange, MarketSettings settings, System.Random rng, int settleTick = -1, int steps = 1, float overshoot = 1f, int shape = 1)
         {
             var path = Generate(prevClose, limit, settings, rng);
             int ticks = path.Length - 1;
@@ -68,26 +68,51 @@ namespace BurningAnt.Market
                 }
                 else
                 {
-                    // 오르락내리락 + 초과 후 되돌림: 중간 목표 steps개 (전체 변동 대비 비율).
-                    // 첫 반응은 작게(10~35%), 굴곡을 거치며 무작위 시점에 최고점(overshoot = 120~160%)에 닿고,
-                    // 다시 굴곡을 거치며 내려와 마지막에 결과 값(1)에 닿는다. 폭락은 더 깊이 빠졌다가 회복.
+                    // 중간 목표 steps개 (전체 변동 대비 비율, 마지막 = 1 = 결과 값). 모양(shape)마다 다르게:
+                    // 1 넘겼다 돌아옴 · 2 넘기지 않고 다가감 · 3 막판 몰아치기 · 4 마감까지 한 방향 (MoveShape 순서)
                     int k = steps;
                     var f = new float[k];
                     var at = new int[k];
-                    float peak = Mathf.Max(1f, overshoot);
-                    int peakIdx = k >= 4 ? 1 + rng.Next(1, k - 2) : Mathf.Max(1, k - 2); // 처음·끝이 아닌 무작위 지점
-                    f[0] = 0.1f + (float)rng.NextDouble() * 0.25f;
-                    float amp = 0.12f + (float)rng.NextDouble() * 0.15f;
-                    for (int j = 1; j < peakIdx; j++)
+                    float R() => (float)rng.NextDouble();
+                    float S() => (float)rng.NextDouble() * 2f - 1f;
+                    int peakIdx = -1;
+                    switch (shape)
                     {
-                        float baseF = f[0] + (peak - f[0]) * j / peakIdx;
-                        f[j] = Mathf.Clamp(baseF + ((float)rng.NextDouble() * 2f - 1f) * amp * peak, -0.1f, peak * 0.95f);
-                    }
-                    f[peakIdx] = peak;
-                    for (int j = peakIdx + 1; j < k - 1; j++)
-                    {
-                        float baseF = peak + (1f - peak) * (j - peakIdx) / (k - 1f - peakIdx);
-                        f[j] = Mathf.Clamp(baseF + ((float)rng.NextDouble() * 2f - 1f) * amp, 0.6f, peak * 0.97f);
+                        case 1: // 넘겼다 돌아옴: 무작위 시점에 최고점(overshoot), 돌아오는 방식도 제각각
+                        {
+                            float peak = Mathf.Max(1.05f, overshoot);
+                            peakIdx = 1 + rng.Next(0, Mathf.Max(1, k - 2));
+                            f[0] = 0.3f + R() * 0.5f; // 특보 순간 이미 크게 반영 (따라 사면 남는 게 적거나 물림)
+                            float amp = 0.1f + R() * 0.15f;
+                            for (int j = 1; j < peakIdx; j++)
+                                f[j] = Mathf.Clamp(f[0] + (peak - f[0]) * j / peakIdx + S() * amp, -0.1f, peak * 0.95f);
+                            f[peakIdx] = peak;
+                            for (int j = peakIdx + 1; j < k - 1; j++)
+                                f[j] = Mathf.Clamp(peak + (1f - peak) * (j - peakIdx) / (k - 1f - peakIdx) + S() * amp, 0.7f, peak * 0.97f);
+                            break;
+                        }
+                        case 3: // 막판 몰아치기: 한동안 조금만(0~45%) 오르내리다 마지막 구간에 몰아서
+                        {
+                            f[0] = 0.05f + R() * 0.2f;
+                            for (int j = 1; j < k - 1; j++)
+                                f[j] = Mathf.Clamp(f[0] + 0.25f * j / (k - 1f) + S() * 0.15f, -0.2f, 0.45f);
+                            break;
+                        }
+                        case 4: // 마감까지 한 방향: 꾸준히 밀리며 작은 되돌림만
+                        {
+                            f[0] = 0.05f + R() * 0.15f;
+                            for (int j = 1; j < k - 1; j++)
+                                f[j] = Mathf.Clamp(f[0] + (1f - f[0]) * j / (k - 1f) + S() * 0.07f, f[j - 1] - 0.08f, 0.97f);
+                            break;
+                        }
+                        default: // 2 넘기지 않고 다가감: 되돌림 섞으며 결과 값 아래에서 다가감
+                        {
+                            f[0] = 0.3f + R() * 0.5f; // 특보 순간 이미 크게 반영
+                            float amp = 0.12f + R() * 0.18f;
+                            for (int j = 1; j < k - 1; j++)
+                                f[j] = Mathf.Clamp(f[0] + (1f - f[0]) * j / (k - 1f) + S() * amp, -0.15f, 0.95f);
+                            break;
+                        }
                     }
                     f[k - 1] = 1f;
                     // 목표 시점: 첫 목표 = 특보 틱, 마지막 = settleTick, 사이는 고르게 + 조금씩 흔들기 (겹치지 않게)
@@ -98,9 +123,10 @@ namespace BurningAnt.Market
                         float pos = len * j / (k - 1f) + ((float)rng.NextDouble() - 0.5f) * len / (2f * (k - 1));
                         at[j] = Mathf.Clamp(revealTick + Mathf.RoundToInt(pos), at[j - 1] + 1, settleTick - (k - 1 - j));
                     }
-                    // 구간마다 미끄러지듯 이어가거나(70%) 뚝 뛰거나(30%). 최고점으로 가는 구간은 항상 미끄러지듯 (한 번에 튀지 않게)
+                    // 구간마다 미끄러지듯 이어가거나 뚝 뛰거나 (비율은 경로마다 40~90%). 최고점으로 가는 구간은 항상 미끄러지듯
                     var ramp = new bool[k];
-                    for (int j = 0; j < k; j++) ramp[j] = rng.NextDouble() < 0.7 || j == peakIdx - 1;
+                    float rampChance = 0.4f + (float)rng.NextDouble() * 0.5f; // 경로마다 뚝뚝 끊기는 정도가 다름
+                    for (int j = 0; j < k; j++) ramp[j] = rng.NextDouble() < rampChance || j == peakIdx - 1;
                     int seg = 0;
                     for (int i = revealTick; i < settleTick; i++)
                     {

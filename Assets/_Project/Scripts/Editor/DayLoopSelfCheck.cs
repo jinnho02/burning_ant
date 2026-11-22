@@ -135,6 +135,7 @@ namespace BurningAnt.Editor
             int early = Mathf.Clamp(Mathf.RoundToInt(ticks * settings.earliestReveal), 1, ticks);
             int firstHalf = 0, total = 0;
             int morning = 0, followUps = 0, breakingCount = 0, reversals = 0, overshot = 0;
+            var shapes = new int[5];
             for (int day = 1; day <= 300; day++)
             {
                 var news = gen.GenerateDay(day, stocks, ticks);
@@ -192,7 +193,8 @@ namespace BurningAnt.Editor
                             float start = s.Path[n.MoveTick - 1], tot = s.Path[n.SettleTick] - start;
                             float far = 0f;
                             for (int i = n.MoveTick; i <= n.SettleTick; i++) far = Mathf.Max(far, (s.Path[i] - start) / tot);
-                            if (far > 1.15f) { wavesWithPullback++; overshot++; }
+                            if (far > 1.05f) overshot++;
+                            shapes[(int)n.Shape]++;
                         }
                         else sawGradual = true;
                     }
@@ -201,7 +203,8 @@ namespace BurningAnt.Editor
             }
             Expect(sawIntraday, "장 중 특보가 나옴");
             Expect(sawSteps, "오르락내리락 움직임이 나옴");
-            Expect(wavesWithPullback >= waves * 0.8f, $"굴곡 대부분이 최종값을 넘겼다 돌아옴 ({wavesWithPullback}/{waves})");
+            Expect(shapes[1] > 0 && shapes[2] > 0 && shapes[3] > 0 && shapes[4] > 0, "네 가지 모양이 모두 나옴");
+            Expect(overshot > waves * 0.15f && overshot < waves * 0.45f, $"최종값을 넘기는 경우는 일부만 ({overshot}/{waves})");
             Expect(followUps > morning * 0.45f && followUps < morning * 0.75f, $"아침 뉴스 중 일부만 후속 ({followUps}/{morning})");
             Expect(reversals > 0 && reversals < (morning + breakingCount) * 0.25f, $"반전 결과는 가끔 ({reversals}/{morning + breakingCount})");
             Debug.Log($"[DayLoopSelfCheck] 뉴스 300일: 아침 {morning} (후속 {followUps}), 돌발 {breakingCount}, 반전 {reversals}, 굴곡 {waves} (초과 후 되돌림 {overshot})");
