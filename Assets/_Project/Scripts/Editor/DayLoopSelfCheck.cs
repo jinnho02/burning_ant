@@ -157,6 +157,7 @@ namespace BurningAnt.Editor
                         reversals++;
                         Expect(!string.IsNullOrEmpty(n.ReversalReason), "반전 결과에는 근거 문구");
                         Expect(n.Success ? n.Effect < 0f : n.Effect > 0f, "반전: 호재 기사인데 내림 · 악재 기사인데 오름");
+                        Expect(n.FakeLead == 0f || (n.FakeLead >= 0.1f - 1e-4f && n.FakeLead <= 0.2f + 1e-4f), "반전 초반 따라가기 폭 10~20%");
                     }
                     else
                     {

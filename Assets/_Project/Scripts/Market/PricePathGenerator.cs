@@ -42,7 +42,7 @@ namespace BurningAnt.Market
         /// </summary>
         /// <param name="settleTick">결과 값에 다 닿는 틱. revealTick 이하면 한 번에 뛴다.</param>
         /// <param name="steps">1 = 한 번에, 2 이상 = 그 수의 중간 목표를 거치는 오르락내리락(굴곡), 0 = 차근차근(매 틱 조금씩).</param>
-        public static float[] GenerateWithReveal(float prevClose, float limit, int revealTick, float targetChange, MarketSettings settings, System.Random rng, int settleTick = -1, int steps = 1, float overshoot = 1f, int shape = 1)
+        public static float[] GenerateWithReveal(float prevClose, float limit, int revealTick, float targetChange, MarketSettings settings, System.Random rng, int settleTick = -1, int steps = 1, float overshoot = 1f, int shape = 1, float fakeLead = 0f)
         {
             var path = Generate(prevClose, limit, settings, rng);
             int ticks = path.Length - 1;
@@ -115,6 +115,20 @@ namespace BurningAnt.Market
                         }
                     }
                     f[k - 1] = 1f;
+
+                    // 반전 결과: 초반엔 기사 방향(= 결과와 반대)으로 fakeLead(전날 종가 대비 10~20%)만큼 따라가다가 꺾인다.
+                    // 꺾이는 시점(중간 목표 1~k-3번째)과 따라가는 모양은 경로마다 다르고, 꺾인 뒤는 다가감 모양으로 결과 값까지.
+                    if (fakeLead > 0f && k >= 4 && Mathf.Abs(target - from) > 1e-4f)
+                    {
+                        float fake = -fakeLead * prevClose / Mathf.Abs(target - from);
+                        int turn = 1 + rng.Next(0, k - 3);
+                        f[0] = fake * (0.3f + R() * 0.4f);
+                        for (int j = 1; j <= turn; j++)
+                            f[j] = j == turn ? fake : Mathf.Lerp(f[0], fake, j / (float)turn) + S() * Mathf.Abs(fake) * 0.25f;
+                        for (int j = turn + 1; j < k - 1; j++)
+                            f[j] = Mathf.Clamp(fake + (1f - fake) * (j - turn) / (k - 1f - turn) + S() * 0.15f, fake, 0.95f);
+                        peakIdx = -1;
+                    }
                     // 목표 시점: 첫 목표 = 특보 틱, 마지막 = settleTick, 사이는 고르게 + 조금씩 흔들기 (겹치지 않게)
                     at[0] = revealTick;
                     at[k - 1] = settleTick;

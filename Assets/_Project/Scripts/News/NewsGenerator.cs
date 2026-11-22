@@ -48,6 +48,8 @@ namespace BurningAnt.News
         public float Overshoot = 1f;
         /// <summary>가격이 결과 값까지 가는 모양 (읽히지 않게 섞는다).</summary>
         public MoveShape Shape = MoveShape.Jump;
+        /// <summary>반전 결과일 때 초반에 기사 방향으로 먼저 가는 폭 (전날 종가 대비, 0.1~0.2). 0이면 없음.</summary>
+        public float FakeLead;
 
         public string Text => $"{Stock.Name}, {Template.initialHeadline}";
         public string ResultText => $"{Stock.Name}, {(Success ? Template.successHeadline : Template.failureHeadline)}";
@@ -125,7 +127,7 @@ namespace BurningAnt.News
                 var item = news.FirstOrDefault(n => n.Stock == stock);
                 stock.PrepareDay(item != null
                     && item.HasFollowUp
-                    ? PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps, item.Overshoot, (int)item.Shape)
+                    ? PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps, item.Overshoot, (int)item.Shape, item.FakeLead)
                     : PricePathGenerator.Generate(stock.PrevClose, stock.DailyLimit, market, rng));
             }
         }
@@ -136,7 +138,7 @@ namespace BurningAnt.News
             var item = Create(stock, NewsKind.Foresight, market.ticksPerDay);
             if (item == null) return null;
             item.Foreseen = true;
-            stock.PrepareDay(PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps, item.Overshoot, (int)item.Shape));
+            stock.PrepareDay(PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps, item.Overshoot, (int)item.Shape, item.FakeLead));
             return item;
         }
 
@@ -219,6 +221,8 @@ namespace BurningAnt.News
                 created.Effect = Mathf.Max(-0.95f, -created.Effect * settings.reversalScale);
                 var reasons = success ? UpButDown : DownButUp;
                 created.ReversalReason = reasons[rng.Next(reasons.Length)];
+                // 현실처럼: 초반엔 기사 방향으로 10~20% 따라가다가 꺾여 반전 결과로 (시간이 있을 때만)
+                if (created.Steps >= 4) created.FakeLead = 0.10f + (float)rng.NextDouble() * 0.10f;
             }
             return created;
         }
