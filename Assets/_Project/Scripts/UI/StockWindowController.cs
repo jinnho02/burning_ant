@@ -35,6 +35,7 @@ namespace BurningAnt.UI
         PriceChartElement chart;
         IntegerField quantityField;
         Button maxButton, buyButton, sellButton, startButton;
+        Button maxSellButton; // 최대 매도량
 
         void Start()
         {
@@ -89,6 +90,7 @@ namespace BurningAnt.UI
             returnLabel = root.Q<Label>("stat-return");
             quantityField = root.Q<IntegerField>("quantity");
             maxButton = root.Q<Button>("max-button");
+            maxSellButton = root.Q<Button>("max-sell-button");
             cashLabel = root.Q<Label>("cash");
             buyButton = root.Q<Button>("buy-button");
             sellButton = root.Q<Button>("sell-button");
@@ -192,6 +194,7 @@ namespace BurningAnt.UI
             // '최대': 지금 현금과 주가로 살 수 있는 최대 주식 수를 수량 칸에 채운다 (칸은 그대로 열려 있어 고칠 수 있음).
             // 장 전엔 시가를 모르므로 전날 종가 기준 (시가가 다르면 예약 체결 때 모자랄 수 있음)
             maxButton.clicked += FillMaxQuantity;
+            if (maxSellButton != null) maxSellButton.clicked += FillMaxSellQuantity;
             if (cancelReservationButton != null)
                 cancelReservationButton.clicked += () =>
                 {
@@ -215,8 +218,19 @@ namespace BurningAnt.UI
             useMax = false;
             quantityField.SetValueWithoutNotify(max); // 알림 없이 (값 변경 콜백이 안내 문구를 지우지 않게)
             ShowMessage(max > 0
-                ? $"최대 {max:N0}주 ({(session.Phase == MarketPhase.PreMarket ? "전날 종가" : "현재가")} {Format.Money(price)} 기준)"
+                ? $"최대 매수량 {max:N0}주 ({(session.Phase == MarketPhase.PreMarket ? "전날 종가" : "현재가")} {Format.Money(price)} 기준)"
                 : "현금이 부족해서 살 수 있는 주식이 없어요");
+            Refresh();
+        }
+
+        /// <summary>'최대 매도량': 선택 종목의 보유 주식 수 전부를 수량 칸에 채운다.</summary>
+        void FillMaxSellQuantity()
+        {
+            if (selected == null) return;
+            int have = session.Portfolio.GetHolding(selected).Shares;
+            useMax = false;
+            quantityField.SetValueWithoutNotify(have);
+            ShowMessage(have > 0 ? $"최대 매도량 {have:N0}주 (보유 전부)" : "이 종목은 보유한 주식이 없어요");
             Refresh();
         }
 
@@ -242,11 +256,20 @@ namespace BurningAnt.UI
                 // 앞 예약이 현금(또는 보유 주식)을 다 써서 이 예약이 체결되지 않을 거면 '예약했어요' 대신 그렇게 알린다
                 var mine = session.EstimateReservationFills().FirstOrDefault(f => f.order.Stock == selected && f.order.Side == side);
                 ShowMessage(mine.shares > 0
-                    ? "예약했어요"
+                    ? (mine.shares < mine.order.Quantity && !mine.order.UseMax
+                        ? $"예약했어요 · 장 시작 때 {(side == OrderSide.Buy ? "살 수 있는" : "가진")} {mine.shares:N0}주만큼 체결될 예정 (입력 {mine.order.Quantity:N0}주)"
+                        : "예약했어요")
                     : side == OrderSide.Buy ? "앞선 매수 예약이 현금을 다 써서 이 매수는 체결되지 않아요" : "팔 주식이 없어서 이 매도는 체결되지 않아요");
             }
             else
-                ShowMessage(Describe(session.Trade(order)));
+            {
+                // 입력 수량이 가능한 수보다 많으면 가능한 만큼 최대로 체결된다 (MarketSession.CapToPossible)
+                var r = session.Trade(order);
+                string msg = Describe(r);
+                if (r.Success && r.Shares < order.Quantity)
+                    msg += $" (입력 {order.Quantity:N0}주 중 {(side == OrderSide.Buy ? "살 수 있는" : "가진")} {r.Shares:N0}주만)";
+                ShowMessage(msg);
+            }
         }
 
         void OnPhaseChanged()

@@ -138,7 +138,19 @@ namespace BurningAnt.Market
         public TradeResult Trade(OrderRequest order)
         {
             if (Phase != MarketPhase.Open) return TradeResult.Fail(order.Stock, order.Side, TradeError.MarketClosed);
-            return ExecuteAndReport(order, CurrentPrice(order.Stock));
+            float price = CurrentPrice(order.Stock);
+            return ExecuteAndReport(CapToPossible(order, price), price);
+        }
+
+        /// <summary>
+        /// 입력 수량이 살 수 있는 수(매수) · 가진 수(매도)보다 많으면 가능한 만큼으로 줄인다 (막지 않고 최대로 체결).
+        /// 가능한 수가 0이면 그대로 둬서 실패 사유(현금 부족 · 보유 없음)가 나오게 한다.
+        /// </summary>
+        public OrderRequest CapToPossible(OrderRequest o, float price)
+        {
+            if (o.UseMax) return o;
+            int cap = o.Side == OrderSide.Buy ? Portfolio.MaxBuyable(price) : Portfolio.GetHolding(o.Stock).Shares;
+            return o.Quantity > cap && cap >= 1 ? new OrderRequest(o.Stock, o.Side, cap, false) : o;
         }
 
         TradeResult ExecuteAndReport(OrderRequest order, float price)
@@ -162,13 +174,7 @@ namespace BurningAnt.Market
             {
                 // 예약 수량이 시가 기준으로 살 수 있는 수(매수) · 가진 수(매도)를 넘으면 되는 만큼만 체결한다
                 // (예전엔 통째로 실패). 0주면 실패로 알린다.
-                var o = order;
-                if (!o.UseMax)
-                {
-                    int cap = o.Side == OrderSide.Buy ? Portfolio.MaxBuyable(o.Stock.OpenPrice) : Portfolio.GetHolding(o.Stock).Shares;
-                    if (o.Quantity > cap && cap >= 1) o = new OrderRequest(o.Stock, o.Side, cap, false);
-                }
-                results.Add(ExecuteAndReport(o, o.Stock.OpenPrice));
+                results.Add(ExecuteAndReport(CapToPossible(order, order.Stock.OpenPrice), order.Stock.OpenPrice));
             }
             reservations.Clear();
             ReservationsChanged?.Invoke();

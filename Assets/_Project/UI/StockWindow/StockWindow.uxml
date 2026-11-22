@@ -67,7 +67,8 @@
                     <ui:Label text="수량" class="caption" />
                     <ui:IntegerField name="quantity" value="10" class="quantity-field" />
                     <ui:Label text="주" class="caption" />
-                    <ui:Button name="max-button" text="최대" class="max-button" />
+                    <ui:Button name="max-button" text="최대 매수량" class="max-button" />
+                    <ui:Button name="max-sell-button" text="최대 매도량" class="max-button" />
                 </ui:VisualElement>
                 <ui:VisualElement class="row">
                     <ui:Label text="현금" class="caption" />
