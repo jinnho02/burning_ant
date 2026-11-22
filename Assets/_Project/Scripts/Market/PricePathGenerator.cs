@@ -61,7 +61,8 @@ namespace BurningAnt.Market
                     for (int i = revealTick; i < settleTick; i++)
                     {
                         float t = (i - revealTick + 1f) / (len + 1f);
-                        float eased = t * t * (3f - 2f * t);
+                        // 거의 일정한 속도 (S자를 약하게): 시작부터 눈에 보이게 꾸준히 오르거나 내림
+                        float eased = Mathf.Lerp(t, t * t * (3f - 2f * t), 0.3f);
                         path[i] = Mathf.Max(prevClose * 0.01f, Mathf.Lerp(from, target, eased) + (float)(rng.NextDouble() - 0.5) * wobble);
                     }
                 }
@@ -70,7 +71,7 @@ namespace BurningAnt.Market
                     // 계단식: steps번 크게 뛰고, 사이에는 그 높이 근처에서 흔들림. 첫 계단은 움직이기 시작하는 틱, 마지막은 settleTick
                     var cut = new float[steps];
                     float sum = 0f;
-                    for (int k = 0; k < steps; k++) { cut[k] = 0.5f + (float)rng.NextDouble(); sum += cut[k]; }
+                    for (int k = 0; k < steps; k++) { cut[k] = 0.8f + (float)rng.NextDouble() * 0.4f; sum += cut[k]; } // 계단 크기를 비슷하게 (첫 계단이 너무 커서 한 번에 뛴 것처럼 보이지 않게)
                     float level = from, acc = 0f;
                     int next = 0;
                     for (int i = revealTick; i < settleTick; i++)

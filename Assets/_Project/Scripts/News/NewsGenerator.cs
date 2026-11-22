@@ -130,16 +130,16 @@ namespace BurningAnt.News
             int moveTick = Mathf.Min(ticksPerDay, revealTick + lead);
             bool atClose = false; // 결과는 모두 장 중 특보로 뜬다
 
-            // 움직이는 방식: 한 번에 40% · 계단식(2~4번) 30% · 차근차근 30%. 길이는 장 길이의 8~35%,
+            // 움직이는 방식: 한 번에 30% · 계단식(2~4번) 35% · 차근차근 35%. 길이는 장 길이의 15~40% (7~24초, 눈에 띄게),
             // 장 마감 전에 다 닿도록 남은 시간에 맞춘다 (남은 시간이 짧으면 자연히 한 번에)
             int steps = 1, settleTick = moveTick;
             int room = ticksPerDay - moveTick;
             double roll = rng.NextDouble();
-            if (roll >= 0.4 && room >= 4)
+            if (roll >= 0.3 && room >= 4)
             {
-                int span = Mathf.Max(3, Mathf.RoundToInt(ticksPerDay * (0.08f + (float)rng.NextDouble() * 0.27f)));
+                int span = Mathf.Max(3, Mathf.RoundToInt(ticksPerDay * (0.15f + (float)rng.NextDouble() * 0.25f)));
                 settleTick = moveTick + Mathf.Min(span, room);
-                steps = roll < 0.7 ? rng.Next(2, 5) : 0;
+                steps = roll < 0.65 ? rng.Next(2, 5) : 0;
                 if (steps > settleTick - moveTick + 1) steps = settleTick - moveTick + 1;
             }
             return new NewsItem
