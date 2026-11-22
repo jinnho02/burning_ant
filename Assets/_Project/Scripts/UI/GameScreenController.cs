@@ -822,9 +822,10 @@ namespace BurningAnt.UI
                 $"· 남은 빚: {Format.Money(loan.Debt)} → {Format.Money(debtAfter)}\n" +
                 $"· 햇살론 이자(하루): 약 {Format.Money(amount * rate)}\n\n" +
                 $"햇살론은 한 판에 {s.emergencyMaxCount}번까지 (남은 횟수 {loan.EmergencyLeft}번).\n" +
+                $"지금 순자산(현금 + 주식 - 빚): {Format.SignedMoney(game.BankruptcyNetWorth)} · 파산선 {Format.Money(s.bankruptLine)}\n" +
                 (game.DeclineMeansBankrupt
-                    ? $"안 받으면 파산이에요 (현금이 파산선 {Format.Money(s.bankruptLine)}보다 낮아요)."
-                    : $"안 받아도 파산선 {Format.Money(s.bankruptLine)} 위라 마이너스 현금으로 버틸 수 있어요.");
+                    ? "순자산이 파산선보다 낮아 파산이에요. 햇살론은 현금과 빚이 같이 늘어 순자산은 그대로예요."
+                    : "안 받아도 순자산이 파산선 위라 마이너스 현금으로 버틸 수 있어요.");
             emergencyDeclineButton.text = game.DeclineMeansBankrupt ? "아니요… (파산)" : "아니요, 마이너스로 버틸게요";
         }
 

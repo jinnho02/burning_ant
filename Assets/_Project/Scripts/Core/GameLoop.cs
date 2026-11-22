@@ -357,13 +357,14 @@ namespace BurningAnt.Core
             if (session.Portfolio.Cash < 0f)
             {
                 // 현금이 마이너스: 햇살론이 남았으면 받을지 고른다 (2억씩, 한 판에 2번).
-                // 햇살론이 없으면 파산선(-5억) 위는 마이너스 통장처럼 버티고, 그 밑이면 파산.
                 if (Loan.EmergencyAmount(-session.Portfolio.Cash) > 0f) NeedsEmergency = true;
-                else if (session.Portfolio.Cash < loanSettings.bankruptLine)
-                {
-                    GoBankrupt();
-                    return;
-                }
+            }
+            // 파산 판정은 순자산(현금 + 주식 - 빚 - 오늘 이자) 기준. 대출로 현금을 채워도 순자산은 그대로라 버티기 꼼수가 안 통한다.
+            // 햇살론을 고르는 중이면 고른 뒤에 판정한다 (받아도 순자산은 같으므로 결과는 같음).
+            if (!NeedsEmergency && IsBankrupt)
+            {
+                GoBankrupt();
+                return;
             }
             SetPhase(GamePhase.Settlement);
             if (!NeedsEmergency) CheckWin(); // 빚이 이미 0원이고 자산이 목표 이상이면 바로 성공
@@ -422,36 +423,42 @@ namespace BurningAnt.Core
             session.Portfolio.Deposit(amount);
             Today.EmergencyLoan += amount;
             Say($"햇살론 {Money(amount)} (하루 이자 {Loan.Loans[Loan.Loans.Count - 1].Rate * 100f:0}%, 내일부터, 남은 횟수 {Loan.EmergencyLeft})");
-            // 아직 마이너스면: 햇살론이 남았으면 한 번 더 묻고, 없으면 파산선으로 판정
-            if (session.Portfolio.Cash < 0f)
+            // 아직 마이너스면: 햇살론이 남았으면 한 번 더 묻는다. 다 고르면 순자산으로 파산 판정
+            if (session.Portfolio.Cash < 0f && Loan.EmergencyAmount(-session.Portfolio.Cash) > 0f) NeedsEmergency = true;
+            if (!NeedsEmergency && IsBankrupt)
             {
-                if (Loan.EmergencyAmount(-session.Portfolio.Cash) > 0f) NeedsEmergency = true;
-                else if (session.Portfolio.Cash < loanSettings.bankruptLine)
-                {
-                    GoBankrupt();
-                    return;
-                }
+                GoBankrupt();
+                return;
             }
             Changed?.Invoke();
             if (!NeedsEmergency) CheckWin();
         }
 
-        /// <summary>햇살론 거절: 파산선(-5억) 밑이면 파산, 위면 마이너스 현금으로 버틴다.</summary>
+        /// <summary>햇살론 거절: 순자산이 파산선(-5억) 밑이면 파산, 위면 마이너스 현금으로 버틴다.</summary>
         public void DeclineEmergencyLoan()
         {
             if (!NeedsEmergency) return;
             NeedsEmergency = false;
-            if (session.Portfolio.Cash < loanSettings.bankruptLine)
+            if (IsBankrupt)
             {
                 GoBankrupt();
                 return;
             }
-            Say($"햇살론 없이 버텨요 (현금 {Money(session.Portfolio.Cash)}, 파산선 {Money(loanSettings.bankruptLine)})");
+            Say($"햇살론 없이 버텨요 (현금 {Money(session.Portfolio.Cash)}, 순자산 {Money(BankruptcyNetWorth)}, 파산선 {Money(loanSettings.bankruptLine)})");
             Changed?.Invoke();
         }
 
-        /// <summary>지금 햇살론을 거절하면 파산인지 (창 버튼 문구용).</summary>
-        public bool DeclineMeansBankrupt => session.Portfolio.Cash < loanSettings.bankruptLine;
+        /// <summary>파산 판정에 쓰는 순자산: 현금 + 주식 평가 - 빚 - 아직 안 낸 오늘 이자.</summary>
+        public float BankruptcyNetWorth => NetWorth() - InterestLeft;
+
+        /// <summary>순자산이 파산선(-5억) 밑인지.</summary>
+        public bool IsBankrupt => BankruptcyNetWorth < loanSettings.bankruptLine;
+
+        /// <summary>
+        /// 지금 햇살론을 거절하면 파산인지 (창 버튼 문구용). 햇살론은 현금과 빚이 같이 늘어 순자산이 그대로라,
+        /// 받든 안 받든 순자산이 파산선 밑이면 파산이다.
+        /// </summary>
+        public bool DeclineMeansBankrupt => IsBankrupt;
 
         /// <summary>시연·테스트용 (-autoplay-win / -autoplay-bankrupt): 바로 엔딩으로.</summary>
         public void EndForDemo(bool won)

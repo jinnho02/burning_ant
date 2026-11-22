@@ -106,7 +106,7 @@ namespace BurningAnt.Editor
                     Expect(loop.Today.Closed, "하루 기록 마감");
                     for (int k = 0; k < 3 && loop.NeedsEmergency; k++) loop.AcceptEmergencyLoan(); // 햇살론은 2억씩 2번까지
                     if (loop.Phase == GamePhase.GameOver) break;
-                    Expect(session.Portfolio.Cash >= loop.LoanSettings.bankruptLine, "정산 후 현금이 파산선 위 (햇살론 뒤)");
+                    Expect(!loop.IsBankrupt, "정산 후 순자산이 파산선 위 (파산이 아니면)");
 
                     if (forceWin && days >= 3)
                     {

@@ -25,7 +25,7 @@ namespace BurningAnt.Loan
         [Tooltip("한 판에 햇살론을 받을 수 있는 횟수")] public int emergencyMaxCount = 2;
 
         [Header("파산")]
-        [Tooltip("장 마감 정산 뒤 현금이 이보다 낮으면(그리고 햇살론으로 못 메우면) 파산. 그 위의 마이너스는 마이너스 통장처럼 버틸 수 있음")]
+        [Tooltip("장 마감 정산 뒤 순자산(현금 + 주식 - 빚 - 오늘 이자)이 이보다 낮으면 파산. 현금 마이너스는 순자산이 이 위면 버틸 수 있음")]
         public float bankruptLine = -500_000_000f;
         [Tooltip("햇살론 하루 이자율 (기본 대출과 따로, 받은 다음 날부터)")] public float emergencyRate = 0.30f;
 
