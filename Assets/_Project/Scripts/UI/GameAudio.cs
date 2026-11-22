@@ -71,7 +71,7 @@ namespace BurningAnt.UI
 
         // 주가 효과음: 보고 있는 종목의 가격이 한 틱 움직일 때마다 짧은 음.
         // 오르면 높은 음, 내리면 낮은 음 (움직인 만큼 더 높게/낮게), 크게 움직일수록 크게.
-        const float TickMaxVolume = 0.45f, TickMinVolume = 0.04f;
+        const float TickMaxVolume = 0.12f, TickMinVolume = 0.02f; // 배경에 깔리는 정도로 작게
 
         // 클릭음이 나는 요소: 버튼, 상점 칸, 종목 줄, 그리고 클릭해서 넘기는 화면(경고창·타이틀·프롤로그·엔딩).
         // 빈 곳·글자·카드를 누를 때는 소리가 안 난다.
@@ -98,9 +98,9 @@ namespace BurningAnt.UI
             // 한 틱 변동을 그 종목 하루 변동 구간 대비로 본다 (구간의 6%를 움직이면 최대)
             float strength = Mathf.Clamp01(Mathf.Abs(change) / Mathf.Max(0.0005f, stock.DailyLimit * 0.06f));
             float volume = Mathf.Lerp(TickMinVolume, TickMaxVolume, strength);
-            if (strength < 0.03f) return; // 거의 안 움직였으면 조용히
+            if (strength < 0.12f) return; // 작은 흔들림엔 조용히 (자주 울리지 않게)
             // 오르면 1.0~1.6배, 내리면 1.0~0.6배 피치 (상승·하락 소리 자체도 위·아래로 미끄러짐)
-            tickSfx.pitch = change >= 0f ? Mathf.Lerp(1.0f, 1.6f, strength) : Mathf.Lerp(1.0f, 0.6f, strength);
+            tickSfx.pitch = change >= 0f ? Mathf.Lerp(1.0f, 1.25f, strength) : Mathf.Lerp(1.0f, 0.8f, strength);
             tickSfx.PlayOneShot(change >= 0f ? tickUp : tickDown, volume);
         }
 
@@ -110,19 +110,22 @@ namespace BurningAnt.UI
         /// </summary>
         static AudioClip MakeChipBlip(bool up)
         {
+            // 부드러운 칩튠: 듀티 50% 사각파(덜 날카로움)를 낮은 음역에서 짧게 살짝만 미끄러뜨리고, 고역을 깎아 둥글게
             const int rate = 44100;
-            int n = rate * 60 / 1000;
+            int n = rate * 45 / 1000;
             var data = new float[n];
             double phase = 0;
+            float smooth = 0f;
             for (int i = 0; i < n; i++)
             {
                 float t = (float)i / n;
-                float freq = up ? Mathf.Lerp(660f, 1320f, t * t) : Mathf.Lerp(660f, 330f, Mathf.Sqrt(t));
+                float freq = up ? Mathf.Lerp(440f, 560f, t) : Mathf.Lerp(440f, 350f, t);
                 phase += freq / rate;
-                float square = (phase % 1.0) < 0.25 ? 1f : -1f;          // 듀티 25% 사각파 (NES 느낌)
-                float env = Mathf.Clamp01(1f - t) * Mathf.Clamp01(i / (rate * 0.002f));
-                env = Mathf.Round(env * 15f) / 15f;                       // 4비트 계단 음량
-                data[i] = square * env * 0.35f;
+                float square = (phase % 1.0) < 0.5 ? 1f : -1f;
+                smooth += (square - smooth) * 0.18f;                       // 간단한 로우패스 (날카로운 고역 줄임)
+                float env = Mathf.Pow(1f - t, 1.5f) * Mathf.Clamp01(i / (rate * 0.004f));
+                env = Mathf.Round(env * 15f) / 15f;                        // 4비트 계단 음량 (전자음 느낌은 유지)
+                data[i] = smooth * env * 0.25f;
             }
             var clip = AudioClip.Create(up ? "price-up" : "price-down", n, 1, rate, false);
             clip.SetData(data, 0);
