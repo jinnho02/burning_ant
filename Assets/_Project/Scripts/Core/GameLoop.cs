@@ -488,6 +488,8 @@ namespace BurningAnt.Core
                 Today.InterestPaid += toInterest;
             }
             float toPrincipal = pay - toInterest;
+            // float 오차: 억 단위에선 (빚 + 이자) - 이자가 빚보다 몇십 원 모자랄 수 있어, 다 갚는 경우엔 남은 빚 전부로 본다
+            if (toPrincipal >= Loan.Debt - 1000f) toPrincipal = Loan.Debt;
             if (toPrincipal > 0f) Loan.Repay(toPrincipal);
             Today.Repaid += toPrincipal;
             Say(Loan.IsPaidOff && TotalAssets() < loanSettings.winAssets
@@ -497,25 +499,25 @@ namespace BurningAnt.Core
             Changed?.Invoke();
         }
 
-        /// <summary>추가 대출은 2단계(아이템·예약)·3단계(장 중)에서, 한 판에 1번, 최대 2억. 이자는 다다음 날부터.</summary>
+        /// <summary>추가 대출은 2단계(아이템·예약)·3단계(장 중)에서, 한 판에 2번, 1번에 2억 고정. 이자는 다다음 날부터.</summary>
         public bool CanTakeExtraLoanNow => Loan.CanTakeExtraLoan && (Phase == GamePhase.Prep || (Phase == GamePhase.Market && session.Phase == MarketPhase.Open));
 
-        public void TakeExtraLoan(float amount)
+        public void TakeExtraLoan()
         {
             if (Phase != GamePhase.Prep && !(Phase == GamePhase.Market && session.Phase == MarketPhase.Open))
             {
                 Say("추가 대출은 아이템 시간(2단계)이나 장 시간(3단계)에만 받을 수 있어요");
                 return;
             }
-            float got = Loan.TakeExtraLoan(amount, Day);
+            float got = Loan.TakeExtraLoan(Day);
             if (got <= 0f)
             {
-                Say(Loan.ExtraLoanUsed ? "추가 대출은 한 번만 받을 수 있어요" : "빌릴 금액을 입력하세요");
+                Say($"추가 대출은 한 판에 {loanSettings.extraLoanMaxCount}번까지만 받을 수 있어요");
                 return;
             }
             session.Portfolio.Deposit(got);
             Today.ExtraLoan += got;
-            Say($"추가 대출 {Money(got)} (하루 이자 {Loan.Loans[Loan.Loans.Count - 1].Rate * 100f:0}%, {Day + loanSettings.extraLoanGraceDays}일차부터)");
+            Say($"추가 대출 {Money(got)} · 남은 횟수 {Loan.ExtraLoanLeft}회 (하루 이자 {Loan.Loans[Loan.Loans.Count - 1].Rate * 100f:0}%, {Day + loanSettings.extraLoanGraceDays}일차부터)");
             Changed?.Invoke();
         }
 

@@ -12,8 +12,9 @@ namespace BurningAnt.Loan
         [Tooltip("하루 이자율 (0.05 = 남은 빚의 5%)")] public float baseInterestRate = 0.05f;
         [Tooltip("이 일차부터 이자가 붙음 (3 = 1·2일차는 없음)")] public int interestStartDay = 3;
 
-        [Header("추가 대출 (2·3단계에서, 한 판에 1번)")]
-        [Tooltip("한 번에 빌릴 수 있는 최대 금액")] public float extraLoanMax = 200_000_000f;
+        [Header("추가 대출 (2·3단계에서, 한 판에 extraLoanMaxCount번, 1번에 extraLoanMax 고정)")]
+        [Tooltip("추가 대출 1번 금액 (고정)")] public float extraLoanMax = 200_000_000f;
+        [Tooltip("한 판에 추가 대출을 받을 수 있는 횟수")] public int extraLoanMaxCount = 2;
         [Tooltip("추가 대출 하루 이자율 (일반 대출과 따로)")] public float extraLoanRate = 0.30f;
         [Tooltip("빌린 날로부터 며칠 뒤부터 이자 (2 = 다다음 날)")] public int extraLoanGraceDays = 2;
 

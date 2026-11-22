@@ -16,6 +16,7 @@ MonoBehaviour:
   baseInterestRate: 0.05
   interestStartDay: 3
   extraLoanMax: 200000000
+  extraLoanMaxCount: 2
   extraLoanRate: 0.3
   extraLoanGraceDays: 2
   emergencyLoanBuffer: 10000000

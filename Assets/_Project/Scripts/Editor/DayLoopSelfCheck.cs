@@ -90,8 +90,8 @@ namespace BurningAnt.Editor
             Expect(loan.InterestDue(1) == 0f && loan.InterestDue(2) == 0f, "1·2일차는 이자 없음");
             Won(loan.InterestDue(3), 5_000_000f, "3일차부터 매일 기본 대출 이자 5% = 500만");
 
-            Won(loan.TakeExtraLoan(500_000_000f, 3), 200_000_000f, "추가 대출은 최대 2억");
-            Expect(!loan.CanTakeExtraLoan && loan.TakeExtraLoan(1f, 3) == 0f, "추가 대출은 한 번만");
+            Won(loan.TakeExtraLoan(3), 200_000_000f, "추가 대출은 1번에 2억 고정");
+            Expect(loan.CanTakeExtraLoan && loan.ExtraLoanLeft == 1, "추가 대출은 한 판에 2번 (1번 남음)");
             Won(loan.InterestDue(4), 5_000_000f, "추가 대출 다음 날은 추가 대출 이자 없음");
             Won(loan.InterestDue(5), 5_000_000f + 60_000_000f, "다다음 날부터 추가 대출 이자 30%");
 

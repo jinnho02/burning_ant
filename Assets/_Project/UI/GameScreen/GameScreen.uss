@@ -525,7 +525,15 @@
 
 /* 추가 대출 금액 입력 */
 .loan-row { margin: 6px 0 4px 0; }
-.loan-field { width: 220px; margin-right: 6px; }
+.loan-amount { font-size: 20px; -unity-font-style: bold; color: var(--gs-up); margin: 4px 0 8px 0; }
+/* 햇살론 로고: 햇살론 창·추가 대출 창 오른쪽 위 모서리에 살짝 걸치게 */
+.sunshine-logo {
+    position: absolute;
+    top: -28px; right: -24px;
+    width: 120px; height: 120px;
+    background-image: url("../../Art/Item/햇살론(회생).png");
+    -unity-background-scale-mode: scale-to-fit;
+}
 
 /* 장 결과: 이자 갚기(왼쪽) · 빚 갚기(오른쪽) */
 .pay-row { flex-direction: row; margin-top: 6px; }

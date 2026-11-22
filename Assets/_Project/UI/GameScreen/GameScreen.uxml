@@ -138,6 +138,7 @@
         <ui:VisualElement name="emergency-overlay" class="overlay">
             <ui:VisualElement class="modal emergency">
                 <ui:VisualElement class="emergency-art" picking-mode="Ignore" />
+                <ui:VisualElement class="sunshine-logo" picking-mode="Ignore" />
                 <ui:Label text="햇살론 대출하시겠습니까?" class="modal-title emergency-title" />
                 <ui:Label text="잔고 부족 · 이대로면 파산!" class="caption emergency-sub" />
                 <ui:Label name="emergency-body" class="modal-body" />
@@ -192,12 +193,10 @@
         <!-- 추가 대출: 한 판에 1번, 최대 2억 (2단계에서만) -->
         <ui:VisualElement name="loan-overlay" class="overlay">
             <ui:VisualElement class="modal">
+                <ui:VisualElement class="sunshine-logo" picking-mode="Ignore" />
                 <ui:Label text="추가 대출" class="modal-title" />
                 <ui:Label name="loan-body" class="modal-body" />
-                <ui:VisualElement class="row loan-row">
-                    <ui:FloatField name="loan-field" value="200000000" class="loan-field" />
-                    <ui:Label text="원" class="caption" />
-                </ui:VisualElement>
+                <ui:Label name="loan-amount-label" class="loan-amount" />
                 <ui:Button name="loan-confirm-button" text="빌리기" class="modal-button" />
                 <ui:Button name="loan-cancel-button" text="취소" class="modal-button modal-button--sub" />
             </ui:VisualElement>

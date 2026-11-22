@@ -58,7 +58,7 @@ namespace BurningAnt.UI
         Button loanButton;
         Label pickerTitle, settlementTitle, settlementSummary, settlementMessage, shopCash, shopMessage;
         VisualElement loanOverlay, interestBox, endingStage, endingEnd, endingFinal;
-        FloatField loanField;
+        Label loanAmountLabel;
         Label loanBody, interestDueLabel, endingAmount, endingHint, endingSummary;
         Button interestPayButton;
         int endingIndex;
@@ -256,7 +256,7 @@ namespace BurningAnt.UI
             endOverlay.RegisterCallback<ClickEvent>(_ => AdvanceEnding());
 
             loanOverlay = root.Q("loan-overlay");
-            loanField = root.Q<FloatField>("loan-field");
+            loanAmountLabel = root.Q<Label>("loan-amount-label");
             loanBody = root.Q<Label>("loan-body");
             interestBox = root.Q("interest-box");
             interestDueLabel = root.Q<Label>("interest-due-label");
@@ -275,7 +275,7 @@ namespace BurningAnt.UI
             root.Q<Button>("loan-confirm-button").clicked += () =>
             {
                 CloseLoan();
-                game.TakeExtraLoan(loanField.value);
+                game.TakeExtraLoan();
             };
             interestPayButton.clicked += game.PayInterest;
             root.Q<Button>("emergency-accept-button").clicked += game.AcceptEmergencyLoan;
@@ -510,9 +510,9 @@ namespace BurningAnt.UI
         {
             var s = game.LoanSettings;
             loanBody.text =
-                $"한 판에 한 번, 최대 {Format.Money(s.extraLoanMax)}까지 빌릴 수 있어요.\n" +
+                $"한 판에 {s.extraLoanMaxCount}번, 1번에 {Format.Money(s.extraLoanMax)} 고정이에요.\n" +
                 $"일반 대출과 따로 하루 이자 {s.extraLoanRate * 100f:0}%가 붙고, 이자는 {game.Day + s.extraLoanGraceDays}일차(다다음 날)부터예요.";
-            loanField.value = s.extraLoanMax;
+            loanAmountLabel.text = $"{Format.Money(s.extraLoanMax)} 고정 · 남은 횟수 {game.Loan.ExtraLoanLeft}회";
             Show(loanOverlay, true);
             loanOverlay.BringToFront();
             game.ExternalPause = true; // 장 중이면 고르는 동안 시간을 멈춘다
@@ -576,8 +576,8 @@ namespace BurningAnt.UI
             // 오늘 낼 이자율만 (조건은 3단계 튜토리얼에서 설명): 오늘 이자가 붙는 대출들의 이자율
             var rates = loan.RatesOn(game.Day).Select(r => $"{r * 100f:0.#}%").ToList();
             interestLabel.text = rates.Count == 0 ? "0%" : string.Join(" · ", rates);
-            loanCountLabel.text = loan.CanTakeExtraLoan ? "1회 남음" : "사용함";
-            loanButton.SetEnabled(game.CanTakeExtraLoanNow); // 추가 대출은 2·3단계에서, 한 판에 1번
+            loanCountLabel.text = loan.CanTakeExtraLoan ? $"{loan.ExtraLoanLeft}회 남음" : "다 씀";
+            loanButton.SetEnabled(game.CanTakeExtraLoanNow); // 추가 대출은 2·3단계에서, 한 판에 2번
 
             float netWorth = game.NetWorth();
             netWorthLabel.text = Format.SignedMoney(netWorth);

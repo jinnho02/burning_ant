@@ -30,7 +30,9 @@ namespace BurningAnt.Loan
         public float Debt => loans.Sum(l => l.Principal);
         /// <summary>기본 대출 이자율.</summary>
         public float InterestRate => Base.Rate;
-        public bool ExtraLoanUsed { get; private set; }
+        /// <summary>지금까지 받은 추가 대출 횟수 (한 판에 extraLoanMaxCount번까지).</summary>
+        public int ExtraLoanCount { get; private set; }
+        public int ExtraLoanLeft => Mathf.Max(0, settings.extraLoanMaxCount - ExtraLoanCount);
         /// <summary>지금까지 받은 햇살론 횟수 (한 판에 emergencyMaxCount번까지).</summary>
         public int EmergencyCount { get; private set; }
         public bool EmergencyUsed => EmergencyCount >= settings.emergencyMaxCount;
@@ -41,7 +43,7 @@ namespace BurningAnt.Loan
         public float TotalRepaid { get; private set; }
 
         public bool IsPaidOff => Debt <= 0.5f;
-        public bool CanTakeExtraLoan => !ExtraLoanUsed;
+        public bool CanTakeExtraLoan => ExtraLoanLeft > 0;
 
         public LoanAccount(LoanSettings settings)
         {
@@ -82,12 +84,12 @@ namespace BurningAnt.Loan
             return rate;
         }
 
-        /// <summary>추가 대출 (한 판에 1번, 최대 extraLoanMax, 다다음 날부터 이자). 성공하면 빌린 금액, 실패하면 0.</summary>
-        public float TakeExtraLoan(float amount, int day)
+        /// <summary>추가 대출 (한 판에 extraLoanMaxCount번, 1번에 extraLoanMax 고정, 다다음 날부터 이자). 성공하면 빌린 금액, 실패하면 0.</summary>
+        public float TakeExtraLoan(int day)
         {
-            amount = Mathf.Min(amount, settings.extraLoanMax);
-            if (ExtraLoanUsed || amount <= 0f) return 0f;
-            ExtraLoanUsed = true;
+            float amount = settings.extraLoanMax;
+            if (!CanTakeExtraLoan || amount <= 0f) return 0f;
+            ExtraLoanCount++;
             AddLoan("추가 대출", amount, settings.extraLoanRate, day + settings.extraLoanGraceDays);
             return amount;
         }
@@ -128,8 +130,10 @@ namespace BurningAnt.Loan
         {
             float left = Mathf.Clamp(amount, 0f, Debt);
             float paid = left;
+            bool all = amount >= Debt; // 다 갚는 경우: 대출 여러 개를 나눠 빼다 생기는 float 오차(몇 원)가 남지 않게
             foreach (var l in loans.OrderByDescending(x => x.Rate))
             {
+                if (all) { l.Principal = 0f; continue; }
                 float p = Mathf.Min(left, l.Principal);
                 l.Principal -= p;
                 left -= p;

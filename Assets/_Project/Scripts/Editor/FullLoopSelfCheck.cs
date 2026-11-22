@@ -80,7 +80,7 @@ namespace BurningAnt.Editor
                         loop.UseItem(it, session.Stocks[rng.Next(session.Stocks.Count)]);
                         itemUses++;
                     }
-                    if (days == 2 && loop.Loan.CanTakeExtraLoan) loop.TakeExtraLoan(50_000_000f);
+                    if (days == 2 && loop.Loan.CanTakeExtraLoan) loop.TakeExtraLoan();
 
                     // 예약: 무작위 2종목 매수
                     foreach (var s in session.Stocks.OrderBy(_ => rng.Next()).Take(2))
