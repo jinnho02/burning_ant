@@ -206,7 +206,15 @@ namespace BurningAnt.Core
         public float NetWorth() => TotalAssets() - Loan.Debt;
 
         /// <summary>그날 수익률 (표정 기준). 뉴스 단계 시점 총자산 대비.</summary>
-        public float TodayReturn() => DayStartAssets > 0f ? TotalAssets() / DayStartAssets - 1f : 0f;
+        /// <summary>
+        /// 그날 수익률 (표정·화면 기준): 매매로 늘거나 준 자산만. 대출·아이템·복권·보험으로 들어온 돈,
+        /// 이자·빚 갚기·아이템 구매로 나간 돈은 뺀다 (NonTradeToday).
+        /// </summary>
+        public float TodayReturn() => DayStartAssets > 0f ? (TotalAssets() - DayStartAssets - NonTradeToday) / DayStartAssets : 0f;
+
+        /// <summary>오늘 매매가 아닌 이유로 들어온(+)·나간(−) 현금 합계.</summary>
+        public float NonTradeToday { get; private set; }
+        void NonTrade(float amount) => NonTradeToday += amount;
 
         /// <summary>보유 종목 전체의 수익률 (평가손익 합 / 넣은 돈 합, 레버리지 포함). 보유가 없으면 null.</summary>
         public float? HoldingsReturn()
@@ -254,6 +262,7 @@ namespace BurningAnt.Core
             alarm = null;                        // 파산 경보기도 그날만
             alarmOn = false;
             DayStartAssets = TotalAssets();
+            NonTradeToday = 0f;
             StartReport();
             SetPhase(GamePhase.News);
         }
@@ -301,6 +310,7 @@ namespace BurningAnt.Core
                     {
                         float refund = Mathf.Min(loss * insurance.amount, insurance.debtAmount);
                         session.Portfolio.Deposit(refund);
+                        NonTrade(refund);
                         Today.InsuranceRefund += refund;
                         Today.ItemCash += refund;
                         Say($"{insurance.displayName}: 손실 보상 +{Money(refund)}");
@@ -327,6 +337,7 @@ namespace BurningAnt.Core
                     Today.Line(s).EndValue = h.Shares > 0 ? h.Value(session.CurrentPrice(s)) : 0f;
             }
             Today.EndAssets = TotalAssets();
+            Today.NonTradeAtClose = NonTradeToday; // 결과창 수익률에서 뺄 돈 (마감 시점까지)
             Today.Closed = true;
             history.Add(Today);
         }
@@ -417,6 +428,7 @@ namespace BurningAnt.Core
             }
             float cashBefore = session.Portfolio.Cash;
             session.Portfolio.Withdraw(pay);
+            NonTrade(-pay);
             Loan.RecordInterestPaid(pay);
             Today.InterestPaid += pay;
             // 이자는 원금(빚)을 줄이지 않는 비용이라 현금과 순자산이 같이 준다는 걸 바로 보이게
@@ -448,6 +460,7 @@ namespace BurningAnt.Core
                 return;
             }
             session.Portfolio.Deposit(amount);
+            NonTrade(amount);
             Today.EmergencyLoan += amount;
             Say($"햇살론 {Money(amount)} (하루 이자 {Loan.Loans[Loan.Loans.Count - 1].Rate * 100f:0}%, 내일부터, 남은 횟수 {Loan.EmergencyLeft})");
             // 아직 마이너스면: 햇살론이 남았으면 한 번 더 묻는다. 다 고르면 순자산으로 파산 판정
@@ -543,6 +556,7 @@ namespace BurningAnt.Core
             }
 
             session.Portfolio.Withdraw(pay);
+            NonTrade(-pay);
             float toInterest = Mathf.Min(pay, InterestLeft);
             if (toInterest > 0f)
             {
@@ -578,6 +592,7 @@ namespace BurningAnt.Core
                 return;
             }
             session.Portfolio.Deposit(got);
+            NonTrade(got);
             Today.ExtraLoan += got;
             Say($"추가 대출 {Money(got)} · 남은 횟수 {Loan.ExtraLoanLeft}회 (하루 이자 {Loan.Loans[Loan.Loans.Count - 1].Rate * 100f:0}%, {Day + loanSettings.extraLoanGraceDays}일차부터)");
             Changed?.Invoke();
@@ -616,6 +631,7 @@ namespace BurningAnt.Core
                 Say("현금이 부족해요");
                 return;
             }
+            if (price > 0f) NonTrade(-price);
             Inventory.Add(item);
             boughtToday.Add(item);
             boughtCount[item] = TimesBought(item) + 1;
@@ -880,6 +896,7 @@ namespace BurningAnt.Core
                 case ItemKind.CashLoan:
                 {
                     session.Portfolio.Deposit(item.amount);
+                    NonTrade(item.amount);
                     Today.ItemCash += item.amount;
                     Today.ItemDebt += item.debtAmount;
                     if (item.loanRate > 0f)
@@ -948,6 +965,7 @@ namespace BurningAnt.Core
             if (win)
             {
                 session.Portfolio.Deposit(lottery.amount);
+                NonTrade(lottery.amount);
                 Today.ItemCash += lottery.amount;
             }
             string line = win ? $"{lottery.displayName}: 당첨! +{Money(lottery.amount)}" : $"{lottery.displayName}: 꽝…";

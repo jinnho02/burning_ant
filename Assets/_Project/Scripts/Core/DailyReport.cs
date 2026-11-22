@@ -59,6 +59,7 @@ namespace BurningAnt.Core
         public float InsuranceRefund;      // 손실 보험으로 돌려받은 돈
         public bool InterestDeferred;      // 이자 유예로 오늘 이자를 건너뜀
         public bool Closed;                // 장이 끝나 결과가 확정됐는지
+        public float NonTradeAtClose;      // 마감까지 매매가 아닌 이유로 들어온(+)·나간(−) 돈 (대출·아이템·복권·보험·이자·상환)
 
         public float ProfitLoss => EndAssets - StartAssets;
         /// <summary>매매로 번 돈 (종목별 손익 합계, 수수료 포함). 아이템·대출로 들어온 현금은 빠진다.</summary>
@@ -71,7 +72,8 @@ namespace BurningAnt.Core
                 return sum;
             }
         }
-        public float ReturnRate => StartAssets > 0f ? ProfitLoss / StartAssets : 0f;
+        /// <summary>매매 수익률: 자산 변화에서 대출·아이템 등 매매 아닌 돈을 뺀 것.</summary>
+        public float ReturnRate => StartAssets > 0f ? (ProfitLoss - NonTradeAtClose) / StartAssets : 0f;
 
         public float TotalFees
         {

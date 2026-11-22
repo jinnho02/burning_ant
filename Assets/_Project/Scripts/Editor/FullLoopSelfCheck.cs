@@ -80,7 +80,12 @@ namespace BurningAnt.Editor
                         loop.UseItem(it, session.Stocks[rng.Next(session.Stocks.Count)]);
                         itemUses++;
                     }
-                    if (days == 2 && loop.Loan.CanTakeExtraLoan) loop.TakeExtraLoan();
+                    if (days == 2 && loop.Loan.CanTakeExtraLoan)
+                    {
+                        float before = loop.TodayReturn();
+                        loop.TakeExtraLoan();
+                        Expect(Mathf.Abs(loop.TodayReturn() - before) < 1e-4f, "대출로 들어온 돈은 하루 수익률에 안 잡힘");
+                    }
 
                     // 예약 합치기 · 취소 확인 (1일차, 승리 경로 제외)
                     if (days == 1 && !forceWin)

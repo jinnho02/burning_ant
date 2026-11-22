@@ -959,7 +959,8 @@ namespace BurningAnt.UI
             var big = new Label(Format.SignedMoney(r.TradingProfit));
             big.AddToClassList("report-big");
             Format.SetTrendClass(big, r.TradingProfit);
-            var rate = new Label($"매매로 번 돈 · 총자산 {Format.Money(r.StartAssets)} → {Format.Money(r.EndAssets)} ({Format.SignedPercent(r.ReturnRate)})");
+            string excl = Mathf.Abs(r.NonTradeAtClose) >= 1f ? $" · 대출·아이템 등 매매 아닌 돈 {Format.SignedMoney(r.NonTradeAtClose)} 제외" : "";
+            var rate = new Label($"매매 수익률 {Format.SignedPercent(r.ReturnRate)} · 총자산 {Format.Money(r.StartAssets)} → {Format.Money(r.EndAssets)}{excl}");
             rate.AddToClassList("report-note");
             head.Add(big);
             head.Add(rate);
