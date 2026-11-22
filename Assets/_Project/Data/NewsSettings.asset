@@ -21,6 +21,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9828d7563eeaac24ead7f7a42e665b44, type: 2}
   successChance: 0.5
   addBaseRange: 1
-  intradayRevealChance: 0.5
-  earliestReveal: 0.15
-  latestReveal: 0.85
+  intradayRevealChance: 1
+  earliestReveal: 0
+  latestReveal: 1

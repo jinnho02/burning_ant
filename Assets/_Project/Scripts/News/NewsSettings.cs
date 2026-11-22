@@ -23,9 +23,9 @@ namespace BurningAnt.News
         [Tooltip("기본 구간보다 최소 몇 배 더 (0.5 = 50% 더)")] public float extraMin = 0.5f;
         [Tooltip("기본 구간보다 최대 몇 배 더 (2.0 = 200% 더)")] public float extraMax = 2f;
 
-        [Header("결과가 뜨는 시점 (제안값)")]
-        [Range(0f, 1f), Tooltip("결과가 장 중(특보)에 뜰 확률. 나머지는 장 마감에 뜸")] public float intradayRevealChance = 0.5f;
-        [Range(0f, 1f), Tooltip("특보가 뜰 수 있는 가장 이른 시점 (장 길이 대비)")] public float earliestReveal = 0.15f;
-        [Range(0f, 1f), Tooltip("특보가 뜰 수 있는 가장 늦은 시점 (장 길이 대비)")] public float latestReveal = 0.85f;
+        [Header("결과가 뜨는 시점 (사용자 확정: 장 전체 0~100% 구간에서 균등)")]
+        [Range(0f, 1f), Tooltip("(지금은 안 씀) 예전 '장 중 특보 확률'. 시점은 아래 구간에서 균등하게 뽑는다")] public float intradayRevealChance = 1f;
+        [Range(0f, 1f), Tooltip("결과가 뜰 수 있는 가장 이른 시점 (장 길이 대비)")] public float earliestReveal = 0f;
+        [Range(0f, 1f), Tooltip("결과가 뜰 수 있는 가장 늦은 시점 (장 길이 대비, 1 = 장 마감)")] public float latestReveal = 1f;
     }
 }

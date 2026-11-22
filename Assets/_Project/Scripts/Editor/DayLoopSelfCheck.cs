@@ -130,7 +130,9 @@ namespace BurningAnt.Editor
         {
             var gen = new NewsGenerator(settings, new System.Random(3));
             int ticks = market.ticksPerDay;
-            bool sawIntraday = false, sawClose = false;
+            bool sawIntraday = false;
+            int early = Mathf.Clamp(Mathf.RoundToInt(ticks * settings.earliestReveal), 1, ticks);
+            int firstHalf = 0, total = 0;
             for (int day = 1; day <= 300; day++)
             {
                 var news = gen.GenerateDay(day, stocks, ticks);
@@ -146,8 +148,11 @@ namespace BurningAnt.Editor
                     Expect(n.Effect <= -0.95f + 1e-4f || (ratio >= 1.5f - 1e-3f && ratio <= 3f + 1e-3f), "뉴스 변동 폭 = 기본 구간보다 50~200% 큼");
                     Expect(Mathf.Abs(n.Effect) > n.Stock.DailyLimit, "떡상·떡락은 기본 구간보다 큼");
                     Expect(n.Success ? n.Effect > 0f : n.Effect < 0f, "성공은 상승, 실패는 하락");
-                    if (n.RevealAtClose) { sawClose = true; Expect(n.RevealTick == ticks, "마감 발표는 마지막 틱"); }
-                    else { sawIntraday = true; Expect(n.RevealTick > 0 && n.RevealTick < ticks, "특보는 장 중"); }
+                    Expect(n.RevealTick >= early && n.RevealTick <= ticks, "결과 시점은 장 전체 (첫 틱~마감)");
+                    Expect(n.RevealAtClose == (n.RevealTick == ticks), "마지막 틱이면 마감 발표");
+                    if (!n.RevealAtClose) sawIntraday = true;
+                    total++;
+                    if (n.RevealTick <= (early + ticks) / 2) firstHalf++;
                 }
 
                 gen.ApplyToPrices(stocks, news, market);
@@ -162,7 +167,9 @@ namespace BurningAnt.Editor
                     s.CloseDay();
                 }
             }
-            Expect(sawIntraday && sawClose, "특보와 마감 발표가 둘 다 나옴");
+            Expect(sawIntraday, "장 중 특보가 나옴");
+            // 균등 분포: 구간 앞쪽 절반에 대략 절반 (1200개 중 40~60%)
+            Expect(firstHalf > total * 0.4f && firstHalf < total * 0.6f, "결과 시점이 구간에 고르게 퍼짐");
 
             // 예지: 뉴스 없던 종목에 템플릿을 하나 꺼내 경로를 그 값으로 고정
             var day1 = gen.GenerateDay(301, stocks, ticks);

@@ -108,7 +108,7 @@ namespace BurningAnt.Editor
                     if (loop.Phase == GamePhase.GameOver) break;
                     Expect(!loop.IsBankrupt, "정산 후 순자산이 파산선 위 (파산이 아니면)");
 
-                    if (forceWin && days >= 3)
+                    if (forceWin && days >= 3 && loop.InterestLeft > 0f) // 이자 유예 아이템 등으로 이자가 없는 날은 건너뛰고 이자 있는 날에 확인
                     {
                         // 승리 경로 (이자일): 이자를 따로 내지 않고 '빚 갚기'만 해도 오늘 이자부터 갚아져 빚 0원이 된다.
                         // 예전엔 원금만 갚히고 상점으로 갈 때 이자가 빚에 다시 붙어 성공 엔딩이 안 나왔다.

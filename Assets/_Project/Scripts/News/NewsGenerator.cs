@@ -111,9 +111,12 @@ namespace BurningAnt.News
             var template = candidates[rng.Next(candidates.Count)];
             usedToday.Add(template);
             bool success = rng.NextDouble() < settings.successChance;
-            bool atClose = rng.NextDouble() >= settings.intradayRevealChance;
-            int earliest = Mathf.Clamp(Mathf.RoundToInt(ticksPerDay * settings.earliestReveal), 1, ticksPerDay - 1);
-            int latest = Mathf.Clamp(Mathf.RoundToInt(ticksPerDay * settings.latestReveal), earliest, ticksPerDay - 1);
+            // 결과(폭등·폭락) 시점: 장 진행 earliestReveal~latestReveal(0~100%) 구간에서 균등하게 무작위.
+            // 마지막 틱에 걸리면 장 마감 발표로 표시한다 (예전 '50%는 장 마감' 규칙은 없앰)
+            int earliest = Mathf.Clamp(Mathf.RoundToInt(ticksPerDay * settings.earliestReveal), 1, ticksPerDay);
+            int latest = Mathf.Clamp(Mathf.RoundToInt(ticksPerDay * settings.latestReveal), earliest, ticksPerDay);
+            int revealTick = rng.Next(earliest, latest + 1);
+            bool atClose = revealTick >= ticksPerDay;
             return new NewsItem
             {
                 Stock = stock,
@@ -121,7 +124,7 @@ namespace BurningAnt.News
                 Template = template,
                 Success = success,
                 RevealAtClose = atClose,
-                RevealTick = atClose ? ticksPerDay : rng.Next(earliest, latest + 1),
+                RevealTick = revealTick,
                 Effect = TargetChange(stock, template, success),
             };
         }
