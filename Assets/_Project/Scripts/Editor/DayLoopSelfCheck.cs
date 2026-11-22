@@ -131,6 +131,7 @@ namespace BurningAnt.Editor
             var gen = new NewsGenerator(settings, new System.Random(3));
             int ticks = market.ticksPerDay;
             bool sawIntraday = false, sawSteps = false, sawGradual = false;
+            int waves = 0, wavesWithPullback = 0;
             int early = Mathf.Clamp(Mathf.RoundToInt(ticks * settings.earliestReveal), 1, ticks);
             int firstHalf = 0, total = 0;
             for (int day = 1; day <= 300; day++)
@@ -171,14 +172,30 @@ namespace BurningAnt.Editor
                             Expect(s.Path[i] >= s.LowerLimit - 1e-3f && s.Path[i] <= s.UpperLimit + 1e-3f, "특보 전까지는 기본 구간 안");
                         Near(s.Path[n.SettleTick] / s.PrevClose - 1f, n.Effect, "결과 값에 다 닿는 틱에 템플릿 값으로 고정");
                         if (n.Steps == 1) Expect(n.SettleTick == n.MoveTick, "한 번에 뛰는 경우는 움직임 시작 틱에 바로");
-                        else if (n.Steps >= 2) sawSteps = true;
+                        else if (n.Steps >= 2)
+                        {
+                            sawSteps = true;
+                            waves++;
+                            // 되돌림: 움직임 도중 최종 방향과 반대로 전체 변동의 8% 넘게 되돌아간 적이 있는지
+                            float tot = s.Path[n.SettleTick] - s.Path[n.MoveTick - 1];
+                            float best = s.Path[n.MoveTick - 1];
+                            bool pulled = false;
+                            for (int i = n.MoveTick; i <= n.SettleTick; i++)
+                            {
+                                float p = s.Path[i];
+                                if (tot >= 0f ? p > best : p < best) best = p;
+                                if (Mathf.Abs(best - p) > Mathf.Abs(tot) * 0.08f) pulled = true;
+                            }
+                            if (pulled) wavesWithPullback++;
+                        }
                         else sawGradual = true;
                     }
                     s.CloseDay();
                 }
             }
             Expect(sawIntraday, "장 중 특보가 나옴");
-            Expect(sawSteps && sawGradual, "한 번에 · 계단식 · 차근차근 움직임이 모두 나옴");
+            Expect(sawSteps, "오르락내리락 움직임이 나옴");
+            Expect(wavesWithPullback >= waves * 0.8f, $"오르락내리락 대부분에 되돌림이 있음 ({wavesWithPullback}/{waves})");
             // 균등 분포: 구간 앞쪽 절반에 대략 절반 (1200개 중 40~60%)
             Expect(firstHalf > total * 0.4f && firstHalf < total * 0.6f, "결과 시점이 구간에 고르게 퍼짐");
 

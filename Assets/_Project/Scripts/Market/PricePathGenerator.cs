@@ -41,7 +41,7 @@ namespace BurningAnt.Market
         /// 그 틱에 전날 종가 × (1 + targetChange)로 뛰고, 이후에는 그 값 근처에서만 흔들린다. 장 마감 공개면 revealTick = 틱 수.
         /// </summary>
         /// <param name="settleTick">결과 값에 다 닿는 틱. revealTick 이하면 한 번에 뛴다.</param>
-        /// <param name="steps">1 = 한 번에, 2 이상 = 그 횟수만큼 계단식, 0 = 차근차근(매 틱 조금씩).</param>
+        /// <param name="steps">1 = 한 번에, 2 이상 = 그 수의 중간 목표를 거치는 오르락내리락(굴곡), 0 = 차근차근(매 틱 조금씩).</param>
         public static float[] GenerateWithReveal(float prevClose, float limit, int revealTick, float targetChange, MarketSettings settings, System.Random rng, int settleTick = -1, int steps = 1)
         {
             var path = Generate(prevClose, limit, settings, rng);
@@ -68,23 +68,47 @@ namespace BurningAnt.Market
                 }
                 else
                 {
-                    // 계단식: steps번 크게 뛰고, 사이에는 그 높이 근처에서 흔들림. 첫 계단은 움직이기 시작하는 틱, 마지막은 settleTick
-                    var cut = new float[steps];
-                    float sum = 0f;
-                    for (int k = 0; k < steps; k++) { cut[k] = 0.8f + (float)rng.NextDouble() * 0.4f; sum += cut[k]; } // 계단 크기를 비슷하게 (첫 계단이 너무 커서 한 번에 뛴 것처럼 보이지 않게)
-                    float level = from, acc = 0f;
-                    int next = 0;
+                    // 오르락내리락: 중간 목표 steps개 (전체 변동 대비 비율). 첫 목표는 특보 순간의 첫 반응,
+                    // 사이 목표는 최종 방향으로 가면서도 되돌림·일시적 초과가 섞이고, 마지막은 결과 값(1).
+                    // 예) 최종 +50%: +30% → +15% → +25% → +40% → +25% → +30% → +50%
+                    int k = steps;
+                    var f = new float[k];
+                    var at = new int[k];
+                    f[0] = 0.3f + (float)rng.NextDouble() * 0.4f;
+                    float amp = 0.3f + (float)rng.NextDouble() * 0.25f; // 되돌림 크기
+                    for (int j = 1; j < k - 1; j++)
+                    {
+                        float baseF = f[0] + (1f - f[0]) * j / (k - 1f);
+                        f[j] = Mathf.Clamp(baseF + ((float)rng.NextDouble() * 2f - 1f) * amp, -0.2f, 1.3f);
+                    }
+                    f[k - 1] = 1f;
+                    // 되돌림이 하나도 없으면 하나 만든다 (대부분의 결과에서 굴곡이 보이게)
+                    bool back = false;
+                    for (int j = 1; j < k; j++) if (f[j] < f[j - 1] - 0.05f) back = true;
+                    if (!back && k >= 3)
+                    {
+                        int j = 1 + rng.Next(k - 2);
+                        f[j] = f[j - 1] - (0.12f + (float)rng.NextDouble() * 0.18f);
+                    }
+                    // 목표 시점: 첫 목표 = 특보 틱, 마지막 = settleTick, 사이는 고르게 + 조금씩 흔들기 (겹치지 않게)
+                    at[0] = revealTick;
+                    at[k - 1] = settleTick;
+                    for (int j = 1; j < k - 1; j++)
+                    {
+                        float pos = len * j / (k - 1f) + ((float)rng.NextDouble() - 0.5f) * len / (2f * (k - 1));
+                        at[j] = Mathf.Clamp(revealTick + Mathf.RoundToInt(pos), at[j - 1] + 1, settleTick - (k - 1 - j));
+                    }
+                    // 구간마다 뚝 뛰거나(60%) 미끄러지듯 이어감(40%)
+                    var ramp = new bool[k];
+                    for (int j = 0; j < k; j++) ramp[j] = rng.NextDouble() < 0.4;
+                    int seg = 0;
                     for (int i = revealTick; i < settleTick; i++)
                     {
-                        int stepTick = revealTick + Mathf.RoundToInt(len * next / (float)(steps - 1));
-                        if (next < steps - 1 && i >= stepTick)
-                        {
-                            acc += cut[next] / sum;
-                            level = Mathf.Lerp(from, target, acc);
-                            next++;
-                        }
-                        level += (float)(rng.NextDouble() - 0.5) * wobble * 0.5f;
-                        path[i] = Mathf.Max(prevClose * 0.01f, level);
+                        while (seg < k - 2 && i >= at[seg + 1]) seg++;
+                        float a = f[seg], b = f[seg + 1];
+                        float t = (i - at[seg]) / (float)Mathf.Max(1, at[seg + 1] - at[seg]);
+                        float v = ramp[seg] ? Mathf.Lerp(a, b, t) : a;
+                        path[i] = Mathf.Max(prevClose * 0.01f, Mathf.LerpUnclamped(from, target, v) + (float)(rng.NextDouble() - 0.5) * wobble * 0.6f);
                     }
                 }
             }

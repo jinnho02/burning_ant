@@ -130,17 +130,17 @@ namespace BurningAnt.News
             int moveTick = Mathf.Min(ticksPerDay, revealTick + lead);
             bool atClose = false; // 결과는 모두 장 중 특보로 뜬다
 
-            // 움직이는 방식: 한 번에 30% · 계단식(2~4번) 35% · 차근차근 35%. 길이는 장 길이의 15~40% (7~24초, 눈에 띄게),
-            // 장 마감 전에 다 닿도록 남은 시간에 맞춘다 (남은 시간이 짧으면 자연히 한 번에)
+            // 움직이는 방식: 12%는 한 번에, 88%는 오르락내리락(굴곡). 굴곡은 중간 목표 5~8개를 거치며
+            // 되돌림·일시적 초과가 섞이고 마지막에 정확히 결과 값에 닿는다. 길이는 장 길이의 25~60%,
+            // 장 마감 전에 다 닿도록 남은 시간에 맞춘다 (남은 시간이 짧으면 중간 목표가 줄고, 아주 짧으면 한 번에)
             int steps = 1, settleTick = moveTick;
             int room = ticksPerDay - moveTick;
-            double roll = rng.NextDouble();
-            if (roll >= 0.3 && room >= 4)
+            if (rng.NextDouble() >= 0.12 && room >= 6)
             {
-                int span = Mathf.Max(3, Mathf.RoundToInt(ticksPerDay * (0.15f + (float)rng.NextDouble() * 0.25f)));
+                int span = Mathf.Max(6, Mathf.RoundToInt(ticksPerDay * (0.25f + (float)rng.NextDouble() * 0.35f)));
                 settleTick = moveTick + Mathf.Min(span, room);
-                steps = roll < 0.65 ? rng.Next(2, 5) : 0;
-                if (steps > settleTick - moveTick + 1) steps = settleTick - moveTick + 1;
+                int len = settleTick - moveTick;
+                steps = Mathf.Clamp(rng.Next(5, 9), 3, Mathf.Max(3, len / 3 + 1)); // 중간 목표 수 5~8개 (구간마다 3틱 이상)
             }
             return new NewsItem
             {
