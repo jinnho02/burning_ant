@@ -31,7 +31,7 @@ namespace BurningAnt.UI
                 s.steps.Add(new Step { phase = phase, target = target, title = title, text = text });
 
             // 1단계 · 뉴스
-            Add(GamePhase.News, "news-paper-list", "아침 뉴스", "매일 아침 무작위 4종목에 뉴스가 떠요. 뉴스가 뜬 종목은 평소보다 훨씬 크게 움직여요.\n성공인지 실패인지는 숨겨져 있다가, 장 중 특보로 공개되고 그 직후부터 주가가 크게 움직여요.");
+            Add(GamePhase.News, "news-paper-list", "아침 뉴스", "매일 아침 무작위 4종목에 뉴스가 떠요. 뉴스가 뜬 종목은 평소보다 훨씬 크게 움직여요.\n후속 기사는 장 중 특보로 뜨는데, 모든 뉴스에 후속이 나오지는 않아요. 아침 뉴스에 없던 종목에 돌발 특보가 뜨기도 해요.");
             Add(GamePhase.News, "news-paper-button", "다음 단계로", "다 읽었으면 눌러서 2단계(아이템·예약)로 넘어가요.");
             // 2단계 · 아이템 · 예약
             Add(GamePhase.Prep, "left-column", "업종과 종목", "업종을 누르면 그 업종 종목이 펼쳐져요. ● 뉴스는 오늘 뉴스가 뜬 업종, ● 보유는 내가 가진 종목이 있는 업종이에요.");

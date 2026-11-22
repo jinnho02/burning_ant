@@ -9,6 +9,7 @@ namespace BurningAnt.News
     {
         Normal,    // 1단계 뉴스: 모두에게 공개 (결과는 숨김)
         Foresight, // 예지 아이템으로만 알게 된 템플릿 (뉴스 없던 종목)
+        Breaking,  // 돌발 특보: 아침 뉴스에 없던 종목에 장 중 갑자기 뜨는 기사
     }
 
     /// <summary>오늘 한 종목에 걸린 기사 템플릿과 그 결과. 결과는 처음부터 정해져 있고 공개만 나중에 된다.</summary>
@@ -31,6 +32,13 @@ namespace BurningAnt.News
         public bool Foreseen;
         /// <summary>전날 종가 대비 고정 변동률 (0.43 = +43%).</summary>
         public float Effect;
+        /// <summary>오늘 장 중에 후속 기사(특보)가 뜨는지. false면 그 종목은 평소처럼만 움직이고 결과창에도 후속이 없다.</summary>
+        public bool HasFollowUp = true;
+        /// <summary>반전 결과: 기사(성공·실패)와 반대로 움직임. 근거는 ReversalReason.</summary>
+        public bool Reversal;
+        public string ReversalReason;
+        /// <summary>굴곡 경로의 중간 최고점 (최종 변동 대비 배수, 1.2~1.6).</summary>
+        public float Overshoot = 1f;
 
         public string Text => $"{Stock.Name}, {Template.initialHeadline}";
         public string ResultText => $"{Stock.Name}, {(Success ? Template.successHeadline : Template.failureHeadline)}";
@@ -55,19 +63,50 @@ namespace BurningAnt.News
             this.rng = rng;
         }
 
+        /// <summary>
+        /// 하루 기사: 아침 뉴스 newsPerDay개 (그중 followUpChance만큼만 장 중 후속 특보가 뜸) +
+        /// 아침 뉴스에 없던 종목의 돌발 특보 breakingMin~breakingMax개 (Kind = Breaking, 장 중에 갑자기 뜸).
+        /// </summary>
         public List<NewsItem> GenerateDay(int day, IReadOnlyList<StockState> stocks, int ticksPerDay)
         {
             usedToday.Clear();
             var order = stocks.OrderBy(_ => rng.Next()).ToList();
             var news = new List<NewsItem>();
-            foreach (var stock in order)
+            int idx = 0;
+            for (; idx < order.Count && news.Count(n => n.Kind == NewsKind.Normal) < settings.newsPerDay; idx++)
             {
-                if (news.Count >= settings.newsPerDay) break;
-                var item = Create(stock, NewsKind.Normal, ticksPerDay);
-                if (item != null) news.Add(item);
+                var item = Create(order[idx], NewsKind.Normal, ticksPerDay);
+                if (item == null) continue;
+                if (rng.NextDouble() >= settings.followUpChance)
+                {
+                    item.HasFollowUp = false; // 오늘은 후속 없음: 평소처럼 움직이고 특보·결과 기사 없음
+                    item.RevealTick = int.MaxValue;
+                }
+                news.Add(item);
+            }
+            int breaking = rng.Next(Mathf.Max(0, settings.breakingMin), Mathf.Max(settings.breakingMin, settings.breakingMax) + 1);
+            for (int made = 0; idx < order.Count && made < breaking; idx++)
+            {
+                var item = Create(order[idx], NewsKind.Breaking, ticksPerDay);
+                if (item == null) continue;
+                news.Add(item);
+                made++;
             }
             return news;
         }
+
+        static readonly string[] UpButDown =
+        {
+            "이미 주가에 다 반영돼 있었다는 평가에 차익 실현 매물이 쏟아졌어요",
+            "기대가 너무 컸던 탓에 '생각보다 별로'라는 실망 매물이 나왔어요",
+            "대주주가 이 소식에 맞춰 보유 주식을 대량 매도했어요",
+        };
+        static readonly string[] DownButUp =
+        {
+            "악재가 이미 주가에 반영돼 '바닥'이라는 저가 매수세가 몰렸어요",
+            "공매도 세력이 한꺼번에 되사들이며(숏커버링) 주가가 튀었어요",
+            "회사가 즉시 대책과 자사주 매입을 발표해 오히려 신뢰가 올라갔어요",
+        };
 
         /// <summary>오늘 가격 경로를 정한다. 장 전(PreMarket)에만 부른다.</summary>
         public void ApplyToPrices(IReadOnlyList<StockState> stocks, IReadOnlyList<NewsItem> news, MarketSettings market)
@@ -76,7 +115,8 @@ namespace BurningAnt.News
             {
                 var item = news.FirstOrDefault(n => n.Stock == stock);
                 stock.PrepareDay(item != null
-                    ? PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps)
+                    && item.HasFollowUp
+                    ? PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps, item.Overshoot)
                     : PricePathGenerator.Generate(stock.PrevClose, stock.DailyLimit, market, rng));
             }
         }
@@ -87,7 +127,7 @@ namespace BurningAnt.News
             var item = Create(stock, NewsKind.Foresight, market.ticksPerDay);
             if (item == null) return null;
             item.Foreseen = true;
-            stock.PrepareDay(PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps));
+            stock.PrepareDay(PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps, item.Overshoot));
             return item;
         }
 
@@ -130,19 +170,19 @@ namespace BurningAnt.News
             int moveTick = Mathf.Min(ticksPerDay, revealTick + lead);
             bool atClose = false; // 결과는 모두 장 중 특보로 뜬다
 
-            // 움직이는 방식: 12%는 한 번에, 88%는 오르락내리락(굴곡). 굴곡은 중간 목표 5~8개를 거치며
-            // 되돌림·일시적 초과가 섞이고 마지막에 정확히 결과 값에 닿는다. 길이는 장 길이의 25~60%,
-            // 장 마감 전에 다 닿도록 남은 시간에 맞춘다 (남은 시간이 짧으면 중간 목표가 줄고, 아주 짧으면 한 번에)
+            // 움직이는 방식: 오르락내리락(굴곡). 중간 목표 5~8개를 거치며 최종 변동의 120~160% 지점까지 갔다가
+            // (한 번에 튀지 않고 무작위 시점에 도달) 되돌아와 장 마감 전에 정확히 결과 값에 닿는다. 길이는 장 길이의 25~60%,
+            // 장 마감 전에 다 닿도록 남은 시간에 맞춘다 (남은 시간이 아주 짧으면 한 번에)
             int steps = 1, settleTick = moveTick;
             int room = ticksPerDay - moveTick;
-            if (rng.NextDouble() >= 0.12 && room >= 6)
+            if (room >= 6)
             {
                 int span = Mathf.Max(6, Mathf.RoundToInt(ticksPerDay * (0.25f + (float)rng.NextDouble() * 0.35f)));
                 settleTick = moveTick + Mathf.Min(span, room);
                 int len = settleTick - moveTick;
                 steps = Mathf.Clamp(rng.Next(5, 9), 3, Mathf.Max(3, len / 3 + 1)); // 중간 목표 수 5~8개 (구간마다 3틱 이상)
             }
-            return new NewsItem
+            var created = new NewsItem
             {
                 Stock = stock,
                 Kind = kind,
@@ -151,10 +191,20 @@ namespace BurningAnt.News
                 RevealAtClose = atClose,
                 RevealTick = revealTick,
                 MoveTick = moveTick,
+                Overshoot = settings.overshootMin + (float)rng.NextDouble() * Mathf.Max(0f, settings.overshootMax - settings.overshootMin),
                 SettleTick = settleTick,
                 Steps = steps,
                 Effect = TargetChange(stock, template, success),
             };
+            // 반전 결과: 기사와 반대로 (폭은 reversalScale배), 근거 문구를 붙인다
+            if (rng.NextDouble() < settings.reversalChance)
+            {
+                created.Reversal = true;
+                created.Effect = Mathf.Max(-0.95f, -created.Effect * settings.reversalScale);
+                var reasons = success ? UpButDown : DownButUp;
+                created.ReversalReason = reasons[rng.Next(reasons.Length)];
+            }
+            return created;
         }
     }
 }

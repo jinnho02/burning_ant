@@ -134,24 +134,38 @@ namespace BurningAnt.Editor
             int waves = 0, wavesWithPullback = 0;
             int early = Mathf.Clamp(Mathf.RoundToInt(ticks * settings.earliestReveal), 1, ticks);
             int firstHalf = 0, total = 0;
+            int morning = 0, followUps = 0, breakingCount = 0, reversals = 0, overshot = 0;
             for (int day = 1; day <= 300; day++)
             {
                 var news = gen.GenerateDay(day, stocks, ticks);
-                Expect(news.Count == settings.newsPerDay, "하루 뉴스 = 4종목");
-                Expect(news.Select(n => n.Stock).Distinct().Count() == news.Count, "뉴스마다 다른 종목");
+                var am = news.Where(n => n.Kind == NewsKind.Normal).ToList();
+                var br = news.Where(n => n.Kind == NewsKind.Breaking).ToList();
+                Expect(am.Count == settings.newsPerDay, "아침 뉴스 = 4종목");
+                Expect(br.Count >= settings.breakingMin && br.Count <= settings.breakingMax, "돌발 특보 1~2개");
+                Expect(news.Select(n => n.Stock).Distinct().Count() == news.Count, "기사마다 다른 종목 (돌발 특보는 아침 뉴스에 없던 종목)");
                 Expect(news.Select(n => n.Template).Distinct().Count() == news.Count, "같은 날 같은 기사 두 번 안 씀");
+                Expect(br.All(b => b.HasFollowUp), "돌발 특보는 항상 장 중에 뜸");
+                morning += am.Count; followUps += am.Count(n => n.HasFollowUp); breakingCount += br.Count;
 
                 foreach (var n in news)
                 {
                     Expect(settings.library.First(l => l.sector == n.Stock.Definition.sector).templates.Contains(n.Template), "그 종목 업종의 템플릿");
-                    float percent = (n.Success ? n.Template.successPercent : n.Template.failurePercent) / 100f;
                     float ratio = Mathf.Abs(n.Effect) / n.Stock.DailyLimit;
-                    Expect(n.Effect <= -0.95f + 1e-4f || (ratio >= 1.5f - 1e-3f && ratio <= 3f + 1e-3f), "뉴스 변동 폭 = 기본 구간보다 50~200% 큼");
-                    Expect(Mathf.Abs(n.Effect) > n.Stock.DailyLimit, "떡상·떡락은 기본 구간보다 큼");
-                    Expect(n.Success ? n.Effect > 0f : n.Effect < 0f, "성공은 상승, 실패는 하락");
+                    if (n.Reversal)
+                    {
+                        reversals++;
+                        Expect(!string.IsNullOrEmpty(n.ReversalReason), "반전 결과에는 근거 문구");
+                        Expect(n.Success ? n.Effect < 0f : n.Effect > 0f, "반전: 호재 기사인데 내림 · 악재 기사인데 오름");
+                    }
+                    else
+                    {
+                        Expect(n.Effect <= -0.95f + 1e-4f || (ratio >= 1.5f - 1e-3f && ratio <= 3f + 1e-3f), "뉴스 변동 폭 = 기본 구간보다 50~200% 큼");
+                        Expect(n.Success ? n.Effect > 0f : n.Effect < 0f, "성공은 상승, 실패는 하락");
+                    }
+                    if (!n.HasFollowUp) continue;
                     Expect(n.RevealTick >= early && n.RevealTick <= ticks, "결과 시점은 장 전체 (첫 틱~마감)");
-                    Expect(!n.RevealAtClose && n.RevealTick <= ticks, "결과는 모두 특보 (마지막 틱까지)");
-                    if (!n.RevealAtClose) sawIntraday = true;
+                    Expect(!n.RevealAtClose, "결과는 모두 특보");
+                    sawIntraday = true;
                     total++;
                     if (n.RevealTick <= (early + ticks) / 2) firstHalf++;
                 }
@@ -160,33 +174,25 @@ namespace BurningAnt.Editor
                 foreach (var s in stocks)
                 {
                     Expect(s.Path.Length == ticks + 1, "경로 길이");
-                    var n = news.FirstOrDefault(x => x.Stock == s);
-                    int until = n != null ? n.RevealTick - 1 : ticks; // 뉴스 종목은 결과 전까지만 구간 안
+                    var n = news.FirstOrDefault(x => x.Stock == s && x.HasFollowUp);
+                    int until = n != null ? n.MoveTick - 1 : ticks; // 후속 없는 아침 뉴스 종목은 하루 종일 평소 범위
                     for (int i = 0; i <= until; i++)
-                        Expect(s.Path[i] >= s.LowerLimit - 1e-3f && s.Path[i] <= s.UpperLimit + 1e-3f, "평소엔 기본 구간 안 (전날 종가 기준)");
+                        Expect(s.Path[i] >= s.LowerLimit - 1e-3f && s.Path[i] <= s.UpperLimit + 1e-3f, "특보 전 · 후속 없는 뉴스는 평소 범위 안");
                     if (n != null)
                     {
                         Expect(n.MoveTick == n.RevealTick && n.MoveTick <= ticks, "특보가 뜨는 틱에 바로 움직임");
                         Expect(n.SettleTick >= n.MoveTick && n.SettleTick <= ticks, "결과 값에 닿는 시점은 움직임 시작 뒤, 장 마감 전");
-                        for (int i = 0; i < n.MoveTick; i++)
-                            Expect(s.Path[i] >= s.LowerLimit - 1e-3f && s.Path[i] <= s.UpperLimit + 1e-3f, "특보 전까지는 기본 구간 안");
-                        Near(s.Path[n.SettleTick] / s.PrevClose - 1f, n.Effect, "결과 값에 다 닿는 틱에 템플릿 값으로 고정");
+                        Near(s.Path[n.SettleTick] / s.PrevClose - 1f, n.Effect, "마감 전에 정확히 결과 값");
                         if (n.Steps == 1) Expect(n.SettleTick == n.MoveTick, "한 번에 뛰는 경우는 움직임 시작 틱에 바로");
                         else if (n.Steps >= 2)
                         {
                             sawSteps = true;
                             waves++;
-                            // 되돌림: 움직임 도중 최종 방향과 반대로 전체 변동의 8% 넘게 되돌아간 적이 있는지
-                            float tot = s.Path[n.SettleTick] - s.Path[n.MoveTick - 1];
-                            float best = s.Path[n.MoveTick - 1];
-                            bool pulled = false;
-                            for (int i = n.MoveTick; i <= n.SettleTick; i++)
-                            {
-                                float p = s.Path[i];
-                                if (tot >= 0f ? p > best : p < best) best = p;
-                                if (Mathf.Abs(best - p) > Mathf.Abs(tot) * 0.08f) pulled = true;
-                            }
-                            if (pulled) wavesWithPullback++;
+                            // 초과 후 되돌림: 결과 값보다 최종 변동의 15% 넘게 더 간 적이 있는지
+                            float start = s.Path[n.MoveTick - 1], tot = s.Path[n.SettleTick] - start;
+                            float far = 0f;
+                            for (int i = n.MoveTick; i <= n.SettleTick; i++) far = Mathf.Max(far, (s.Path[i] - start) / tot);
+                            if (far > 1.15f) { wavesWithPullback++; overshot++; }
                         }
                         else sawGradual = true;
                     }
@@ -195,7 +201,10 @@ namespace BurningAnt.Editor
             }
             Expect(sawIntraday, "장 중 특보가 나옴");
             Expect(sawSteps, "오르락내리락 움직임이 나옴");
-            Expect(wavesWithPullback >= waves * 0.8f, $"오르락내리락 대부분에 되돌림이 있음 ({wavesWithPullback}/{waves})");
+            Expect(wavesWithPullback >= waves * 0.8f, $"굴곡 대부분이 최종값을 넘겼다 돌아옴 ({wavesWithPullback}/{waves})");
+            Expect(followUps > morning * 0.45f && followUps < morning * 0.75f, $"아침 뉴스 중 일부만 후속 ({followUps}/{morning})");
+            Expect(reversals > 0 && reversals < (morning + breakingCount) * 0.25f, $"반전 결과는 가끔 ({reversals}/{morning + breakingCount})");
+            Debug.Log($"[DayLoopSelfCheck] 뉴스 300일: 아침 {morning} (후속 {followUps}), 돌발 {breakingCount}, 반전 {reversals}, 굴곡 {waves} (초과 후 되돌림 {overshot})");
             // 균등 분포: 구간 앞쪽 절반에 대략 절반 (1200개 중 40~60%)
             Expect(firstHalf > total * 0.4f && firstHalf < total * 0.6f, "결과 시점이 구간에 고르게 퍼짐");
 

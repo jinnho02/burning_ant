@@ -692,7 +692,7 @@ namespace BurningAnt.UI
             var selected = stockWindow != null ? stockWindow.Selected : null;
             var lines = newsPhase
                 ? game.TodayNews.ToList()
-                : game.TodayNews.Concat(game.Foresights).Where(n => n.Stock == selected).ToList();
+                : game.AllNewsToday.Where(n => n.Stock == selected && (n.Kind != NewsKind.Breaking || n.Revealed)).ToList(); // 돌발 특보는 뜬 뒤에만
 
             newsBandList.Clear();
             // 특보(결과)가 뜬 뉴스는 특보 줄을 위에 따로, 최초 기사는 그 아래에 그대로
@@ -715,7 +715,7 @@ namespace BurningAnt.UI
             if (sideNewsList != null)
             {
                 sideNewsList.Clear();
-                foreach (var n in game.TodayNews.Concat(game.Foresights).Where(x => x.Revealed).OrderByDescending(x => x.RevealTick))
+                foreach (var n in game.AllNewsToday.Where(x => x.Revealed).OrderByDescending(x => x.RevealTick))
                 {
                     var flash = new Label($"[특보] {n.ResultText}");
                     flash.AddToClassList("side-news-line");
@@ -1056,10 +1056,16 @@ namespace BurningAnt.UI
             {
                 if (n.Stock == null) continue;
                 float change = n.Stock.PriceAt(Session.Tick) / n.Stock.PrevClose - 1f;
-                bool hit = (n.Effect >= 0f) == (change >= 0f);
-                // "성공/실패" 대신 팀 문서(업종 및 기사 정리)의 성공 기사·실패 기사 문구 그대로
+                // "성공/실패" 대신 팀 문서(업종 및 기사 정리)의 성공 기사·실패 기사 문구 그대로.
+                // 장 중에 후속 기사가 안 뜬 뉴스는 결과창에도 후속을 보여 주지 않는다. 반전 결과는 근거를 붙인다
                 string follow = n.Success ? n.Template.successHeadline : n.Template.failureHeadline;
-                var row = Row(news, false, n.Stock.Name, $"{n.Template.initialHeadline} → {follow}", $"실제 {Format.SignedPercent(change)}");
+                string text = !n.Revealed
+                    ? $"{n.Template.initialHeadline} → (오늘은 후속 기사 없음)"
+                    : n.Kind == NewsKind.Breaking
+                        ? $"[돌발 특보] {follow}"
+                        : $"{n.Template.initialHeadline} → {follow}";
+                if (n.Revealed && n.Reversal) text += $"\n반전: {n.ReversalReason}";
+                var row = Row(news, false, n.Stock.Name, text, $"실제 {Format.SignedPercent(change)}");
                 row.AddToClassList("report-row--news");
                 // 기사 칸은 넓게 왼쪽 정렬, 등락률은 다른 화면처럼 상승 빨강 · 하락 파랑
                 row.ElementAt(1).AddToClassList("report-cell--headline");

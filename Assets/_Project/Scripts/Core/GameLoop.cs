@@ -101,6 +101,11 @@ namespace BurningAnt.Core
         /// <summary>뉴스 없던 종목을 예지해서 생긴 템플릿 (플레이어만 앎, 결과 시점에 특보로 공개).</summary>
         public IReadOnlyList<NewsItem> Foresights => foresights;
         readonly List<NewsItem> foresights = new();
+        /// <summary>오늘의 돌발 특보 (아침 뉴스에 없던 종목, 장 중에 갑자기 뜸). 뜨기 전엔 화면에 안 보인다.</summary>
+        public IReadOnlyList<NewsItem> BreakingNews => breakingNews;
+        readonly List<NewsItem> breakingNews = new();
+        /// <summary>오늘 기사 전부: 아침 뉴스 + 예지 + 돌발 특보.</summary>
+        public IEnumerable<NewsItem> AllNewsToday => todayNews.Concat(foresights).Concat(breakingNews);
         public IReadOnlyList<string> Hints => hints;
         public float DayStartAssets { get; private set; }
         public float LastInterest { get; private set; }
@@ -239,8 +244,11 @@ namespace BurningAnt.Core
 
             todayNews.Clear();
             foresights.Clear();
-            todayNews.AddRange(newsGenerator.GenerateDay(Day, session.Stocks, session.Settings.ticksPerDay));
-            newsGenerator.ApplyToPrices(session.Stocks, todayNews, session.Settings);
+            breakingNews.Clear();
+            var all = newsGenerator.GenerateDay(Day, session.Stocks, session.Settings.ticksPerDay);
+            todayNews.AddRange(all.Where(n => n.Kind != NewsKind.Breaking));   // 아침 뉴스 (그중 일부만 장 중 후속 특보)
+            breakingNews.AddRange(all.Where(n => n.Kind == NewsKind.Breaking)); // 돌발 특보 (장 중에 갑자기)
+            newsGenerator.ApplyToPrices(session.Stocks, all, session.Settings);
 
             session.Portfolio.BonusHoldings = 0; // 듀얼 모니터는 그날만
             alarm = null;                        // 파산 경보기도 그날만
@@ -661,8 +669,16 @@ namespace BurningAnt.Core
                         return;
                     }
                     news.Foreseen = true;
-                    string when = news.RevealAtClose ? "장 마감에 발표" : $"장 시작 {news.RevealTick * session.Settings.secondsPerTick:0}초 뒤 특보";
-                    result = $"{item.displayName}: [후속 기사] {news.ResultText} ({Pct(news.Effect)}) · {when}";
+                    if (!news.HasFollowUp)
+                    {
+                        // 오늘은 후속 기사가 없다는 것도 정보: 그 종목은 평소 범위에서만 움직인다
+                        result = $"{item.displayName}: {target.Name} \"{news.Template.initialHeadline}\" → 오늘은 후속 기사가 없어요 (평소처럼만 움직여요)";
+                        hintCorrect = true;
+                        break;
+                    }
+                    string when = $"장 시작 {news.RevealTick * session.Settings.secondsPerTick:0}초 뒤 특보";
+                    string twist = news.Reversal ? $" · 반전! {news.ReversalReason}" : "";
+                    result = $"{item.displayName}: [후속 기사] {news.ResultText} → 실제 {Pct(news.Effect)}{twist} · {when}";
                     hintCorrect = true;
                     break;
                 }
@@ -676,17 +692,19 @@ namespace BurningAnt.Core
                     break;
                 case ItemKind.ChainForecast: // 수상한 전화: 아직 결과가 안 나온 오늘 뉴스 하나의 성공·실패
                 {
-                    var pending = todayNews.Where(n => !n.Revealed).ToList();
+                    // 오늘 후속 특보가 뜰 아침 뉴스 중 하나: 결국 오를지 내릴지 (반전 결과까지 반영한 실제 방향)
+                    var pending = todayNews.Where(n => !n.Revealed && n.HasFollowUp).ToList();
                     if (pending.Count == 0)
                     {
-                        Say("결과를 기다리는 뉴스가 없어요");
+                        Say("오늘 후속 기사가 나올 뉴스가 없어요");
                         return;
                     }
                     var news = pending[rng.Next(pending.Count)];
                     bool ok = rng.NextDouble() < item.accuracy;
-                    bool saySuccess = ok ? news.Success : !news.Success;
+                    bool up = news.Effect >= 0f;
+                    bool sayUp = ok ? up : !up;
                     usedOn = news.Stock;
-                    result = $"{item.displayName}: {news.Stock.Name} \"{news.Template.initialHeadline}\" → {(saySuccess ? "성공" : "실패")}할 것 같대요 (적중률 {item.accuracy * 100f:0}%)";
+                    result = $"{item.displayName}: {news.Stock.Name} \"{news.Template.initialHeadline}\" → 오늘 안에 후속 기사가 나오고, 결국 {(sayUp ? "오를" : "내릴")} 것 같대요 (적중률 {item.accuracy * 100f:0}%)";
                     hintCorrect = ok;
                     break;
                 }
@@ -959,11 +977,12 @@ namespace BurningAnt.Core
         void RevealDueNews()
         {
             bool any = false;
-            foreach (var n in todayNews.Concat(foresights))
+            foreach (var n in AllNewsToday)
             {
-                if (n.Revealed || session.Tick < n.RevealTick) continue;
+                if (n.Revealed || !n.HasFollowUp || session.Tick < n.RevealTick) continue;
                 n.Revealed = true;
                 any = true;
+                if (n.Kind == NewsKind.Breaking && Today != null && !Today.News.Contains(n)) Today.News.Add(n); // 결과창에도 돌발 특보
                 string line = $"[특보] {n.ResultText}"; // 변동률은 안 보여 준다 (결과창에서 실제 등락으로 확인)
                 hints.Add(line);
                 Say(line);
