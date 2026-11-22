@@ -92,6 +92,40 @@ namespace BurningAnt.Market
             return true;
         }
 
+        /// <summary>
+        /// 화면 표시용 예상 체결: 예약 순서대로 전날 종가로 체결된다고 보고, 각 예약이 몇 주 체결될지 (0 = 현금·보유가 없어 체결 안 됨).
+        /// 실제 체결(StartMarket)은 바꾸지 않는다. 시가가 전날 종가와 다르면 실제 수량은 조금 다를 수 있다.
+        /// </summary>
+        public List<(OrderRequest order, int shares)> EstimateReservationFills()
+        {
+            var list = new List<(OrderRequest, int)>();
+            float cash = Portfolio.Cash;
+            float fee = Portfolio.FeeRateNow;
+            var held = new Dictionary<StockState, int>();
+            foreach (var o in reservations)
+            {
+                float price = Mathf.Max(0.0001f, o.Stock.PrevClose);
+                if (!held.TryGetValue(o.Stock, out int have)) have = Portfolio.GetHolding(o.Stock).Shares;
+                int n;
+                if (o.Side == OrderSide.Buy)
+                {
+                    int can = cash > 0f ? Mathf.FloorToInt(cash / (price * (1f + fee))) : 0;
+                    n = o.UseMax ? can : Mathf.Min(o.Quantity, can);
+                    cash -= n * price * (1f + fee);
+                    held[o.Stock] = have + n;
+                }
+                else
+                {
+                    n = o.UseMax ? have : Mathf.Min(o.Quantity, have);
+                    var h = Portfolio.GetHolding(o.Stock);
+                    if (n > 0 && h.Shares > 0) cash += h.Value(price) * n / h.Shares;
+                    held[o.Stock] = have - n;
+                }
+                list.Add((o, n));
+            }
+            return list;
+        }
+
         /// <summary>그 종목의 장 전 예약(매수·매도 모두)을 취소한다. 취소한 게 있으면 true.</summary>
         public bool CancelReservations(StockState stock)
         {

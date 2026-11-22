@@ -237,7 +237,14 @@ namespace BurningAnt.UI
 
             var order = new OrderRequest(selected, side, quantityField.value, useMax);
             if (session.Phase == MarketPhase.PreMarket)
-                ShowMessage(session.Reserve(order) ? "예약했어요" : "지금은 예약할 수 없어요");
+            {
+                if (!session.Reserve(order)) { ShowMessage("지금은 예약할 수 없어요"); return; }
+                // 앞 예약이 현금(또는 보유 주식)을 다 써서 이 예약이 체결되지 않을 거면 '예약했어요' 대신 그렇게 알린다
+                var mine = session.EstimateReservationFills().FirstOrDefault(f => f.order.Stock == selected && f.order.Side == side);
+                ShowMessage(mine.shares > 0
+                    ? "예약했어요"
+                    : side == OrderSide.Buy ? "앞선 매수 예약이 현금을 다 써서 이 매수는 체결되지 않아요" : "팔 주식이 없어서 이 매도는 체결되지 않아요");
+            }
             else
                 ShowMessage(Describe(session.Trade(order)));
         }
@@ -353,11 +360,13 @@ namespace BurningAnt.UI
             startButton.style.display = phase == MarketPhase.Open ? DisplayStyle.None : DisplayStyle.Flex;
             startButton.text = pre ? "장 시작" : "다음 날";
 
-            reservationLabel.text = session.Reservations.Count == 0
-                ? ""
-                : "예약: " + string.Join(", ", session.Reservations.Select(o =>
-                      $"{o.Stock.Name} {(o.Side == OrderSide.Buy ? "매수" : "매도")} {(o.UseMax ? "최대" : o.Quantity.ToString("N0") + "주")}"))
-                  + "\n장 시작 때 시가로 자동 체결 (현금·보유 수량을 넘으면 되는 만큼만)";
+            // 예약 줄에는 장 시작 때 실제로 체결될 예약만 (앞 예약이 현금을 다 쓰면 뒤 매수 예약은 안 보임)
+            var fills = session.EstimateReservationFills().Where(f => f.shares > 0).ToList();
+            reservationLabel.text = fills.Count == 0
+                ? (session.Reservations.Count > 0 ? "예약한 주문은 현금·보유 수량이 없어 체결되지 않아요" : "")
+                : "예약: " + string.Join(", ", fills.Select(f =>
+                      $"{f.order.Stock.Name} {(f.order.Side == OrderSide.Buy ? "매수" : "매도")} {(f.order.UseMax ? "최대" : f.shares.ToString("N0") + "주")}"))
+                  + "\n장 시작 때 시가로 자동 체결 (전날 종가 기준 예상, 시가에 따라 수량이 조금 달라질 수 있어요)";
             bool hasReservation = pre && selected != null && session.Reservations.Any(o => o.Stock == selected);
             if (cancelReservationButton != null)
             {

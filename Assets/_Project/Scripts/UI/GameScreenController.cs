@@ -889,11 +889,12 @@ namespace BurningAnt.UI
 
             if (game.Phase is GamePhase.News or GamePhase.Prep)
             {
-                var res = Session.Reservations;
+                // 체결될 예약만 (예약 줄과 같은 기준)
+                var res = Session.EstimateReservationFills().Where(f => f.shares > 0).ToList();
                 AddFlow(res.Count == 0
                     ? "○ 예약 주문 없음"
-                    : "● 예약 " + res.Count + "건: " + string.Join(", ", res.Select(o =>
-                        $"{o.Stock.Name} {(o.Side == OrderSide.Buy ? "매수" : "매도")} {(o.UseMax ? "최대" : o.Quantity.ToString("N0") + "주")}")),
+                    : "● 예약 " + res.Count + "건: " + string.Join(", ", res.Select(f =>
+                        $"{f.order.Stock.Name} {(f.order.Side == OrderSide.Buy ? "매수" : "매도")} {(f.order.UseMax ? "최대" : f.shares.ToString("N0") + "주")}")),
                     res.Count == 0 ? "todo" : "done");
             }
             else

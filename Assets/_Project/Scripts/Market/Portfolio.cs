@@ -52,6 +52,8 @@ namespace BurningAnt.Market
         /// <summary>은행 VIP 쿠폰·영혼의 풀매수: true인 동안 매매 수수료 0.</summary>
         public bool FeeWaived { get; set; }
         float Fee => FeeWaived ? 0f : feeRate;
+        /// <summary>지금 적용되는 매매 수수료율 (표시·예상용).</summary>
+        public float FeeRateNow => Fee;
 
         public event Action Changed;
 
