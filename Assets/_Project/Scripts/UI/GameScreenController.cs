@@ -756,6 +756,7 @@ namespace BurningAnt.UI
             foreach (var stock in Session.Stocks)
             {
                 if (item.TargetsHeldOnly && Session.Portfolio.GetHolding(stock).Shares < 1) continue;
+                if (item.TargetsNewsOnly && !game.TodayNews.Any(n => n.Stock == stock && !n.Revealed)) continue;
                 var target = stock;
                 var b = new Button(() =>
                 {
@@ -766,7 +767,7 @@ namespace BurningAnt.UI
                 pickerList.Add(b);
             }
             if (pickerList.childCount == 0)
-                pickerList.Add(new Label("보유한 종목이 없어요") { name = "picker-empty" });
+                pickerList.Add(new Label(item.TargetsNewsOnly ? "후속 기사를 볼 수 있는 뉴스가 없어요" : "보유한 종목이 없어요") { name = "picker-empty" });
             Show(pickerOverlay, true);
         }
 
@@ -967,7 +968,7 @@ namespace BurningAnt.UI
                 Note(loan, $"마이너스 정산: {string.Join(", ", r.ClosedStocks.Select(s => s.Name))} 정리, 잔고에서 {Format.Money(r.SettlementCharge)} 빠짐");
             if (r.EmergencyLoan > 0f) Note(loan, $"햇살론 {Format.Money(r.EmergencyLoan)}");
             if (r.ExtraLoan > 0f) Note(loan, $"추가 대출 {Format.Money(r.ExtraLoan)}");
-            if (r.InterestDeferred) Note(loan, "오늘은 이자일이지만 이자 유예 신청서로 면제됐어요");
+            if (r.InterestDeferred) Note(loan, "오늘 이자는 이자 유예 신청서로 내일로 미뤄졌어요 (내일 이자에 더해져요)");
             if (r.ItemDebt > 0f) Note(loan, $"대출 아이템으로 빚 +{Format.Money(r.ItemDebt)}");
             Note(loan, r.Interest > 0f
                 ? $"오늘 이자 {Format.Money(r.Interest)} (왼쪽 '이자 갚기'로 내요. 안 내면 상점으로 갈 때 빚에 붙어요)"
@@ -986,7 +987,7 @@ namespace BurningAnt.UI
             Show(interestBox, interestDays);
             if (!interestDays || r == null) return;
             float left = game.InterestLeft;
-            interestDueLabel.text = r.InterestDeferred ? "오늘 이자는 이자 유예 신청서로 면제"
+            interestDueLabel.text = r.InterestDeferred ? "오늘 이자는 내일로 미뤄졌어요 (이자 유예)"
                 : r.Interest <= 0f ? "오늘은 낼 이자가 없어요"
                 : left <= 0f ? $"오늘 이자 {Format.Money(r.Interest)} 다 냈어요"
                 : $"오늘 이자 {Format.Money(left)} 남음 (안 내면 빚에 붙음)";
@@ -1105,7 +1106,8 @@ namespace BurningAnt.UI
                 slot.Add(icon);
 
                 // 이름: 칸 앞쪽(아래) 변 바로 밑, 그 변 폭만큼
-                var name = new Label(item != null ? item.displayName : "");
+                bool ownedNow = item != null && game.Inventory.Count(item) > 0;
+                var name = new Label(item == null ? "" : ownedNow ? $"{item.displayName} (보유중)" : item.displayName);
                 name.AddToClassList("shop-slot-name");
                 name.pickingMode = PickingMode.Ignore;
                 SetPercentRect(name, bl.x, bl.y + ShopNameGap, br.x - bl.x, ShopNameHeight);

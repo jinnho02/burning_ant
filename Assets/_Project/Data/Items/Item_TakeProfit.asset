@@ -15,7 +15,7 @@ MonoBehaviour:
   kind: 5
   displayName: "\uC775\uC808 \uC608\uC57D\uAD8C"
   price: 150000
-  description: "[\uC7A5 \uC911] \uBCF4\uC720 \uC885\uBAA9\uC758 \uC190\uC775\uC774 +15%\uAC00 \uB418\uBA74 \uC804\uB7C9 \uC790\uB3D9 \uB9E4\uB3C4."
+  description: "[\uC7A5 \uC804\xB7\uC7A5 \uC911] \uBCF4\uC720 \uC885\uBAA9\uC758 \uC190\uC775\uC774 +15%\uAC00 \uB418\uBA74 \uC804\uB7C9 \uC790\uB3D9 \uB9E4\uB3C4."
   icon: {fileID: 2800000, guid: 1ad7117b287af684c81c1836897d70a0, type: 3}
   accuracy: 1
   triggerRate: 0.15

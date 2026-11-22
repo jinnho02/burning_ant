@@ -24,7 +24,7 @@ namespace BurningAnt.Editor
         static readonly (string file, ItemKind kind, string name, float price, string desc, float acc, float trigger, float duration, float speed, float amount, float debt, float rate)[] Items =
         {
             // ── 정보 획득형 (틀릴 수 있음) ──
-            ("Item_Rumor", ItemKind.Rumor, "증권가 찌라시", 150_000f, "[장 전] 무작위 종목 1개의 오늘 상승·하락 방향을 알려줘요. 65% 확률로 맞아요.", 0.65f, 0, 0, 0, 0, 0, 0),
+            ("Item_Rumor", ItemKind.Rumor, "엠바고", 150_000f, "[장 전] 오늘 뉴스 하나를 골라, 아직 안 풀린 후속 기사(성공·실패, 변동률, 발표 시점)를 미리 봐요.", 1f, 0, 0, 0, 0, 0, 0),
             ("Item_AnalystReport", ItemKind.AnalystReport, "애널리스트 리포트", 350_000f, "[장 전] 고른 종목의 오늘 상승·하락 방향을 알려줘요. 75% 확률로 맞아요.", 0.75f, 0, 0, 0, 0, 0, 0),
             ("Item_InsiderMemo", ItemKind.InsiderMemo, "내부자 메모", 800_000f, "[장 전] 고른 종목의 오늘 방향과 예상 등락폭을 알려줘요. 85% 확률로 맞아요.", 0.85f, 0, 0, 0, 0, 0, 0),
             ("Item_SectorRumor", ItemKind.ChainForecast, "수상한 전화", 500_000f, "[장 전] 오늘 뉴스 하나가 성공할지 실패할지 알려줘요. 80% 확률로 맞아요.", 0.80f, 0, 0, 0, 0, 0, 0),
@@ -32,15 +32,15 @@ namespace BurningAnt.Editor
             ("Item_VolatilityRadar", ItemKind.VolatilityRadar, "변동성 레이더", 550_000f, "[장 전] 오늘 가장 크게 움직일 종목 2개를 알려줘요. 오를지 내릴지는 몰라요.", 1f, 0, 0, 0, 0, 0, 0),
             ("Item_Telescope", ItemKind.Telescope, "미래를 보는 망원경", 1_500_000f, "[장 중] 고른 종목의 앞으로 5초 가격을 따로 창에서 미리 봐요. 실제 차트는 그대로예요.", 1f, 0, 5f, 0, 0, 0, 0),
             // ── 매매 보조형 ──
-            ("Item_StopLoss", ItemKind.StopLoss, "손절 예약권", 150_000f, "[장 중] 보유 종목의 손익이 -15%가 되면 전량 자동 매도.", 1f, 0.15f, 0, 0, 0, 0, 0),
-            ("Item_TakeProfit", ItemKind.TakeProfit, "익절 예약권", 150_000f, "[장 중] 보유 종목의 손익이 +15%가 되면 전량 자동 매도.", 1f, 0.15f, 0, 0, 0, 0, 0),
+            ("Item_StopLoss", ItemKind.StopLoss, "손절 예약권", 150_000f, "[장 전·장 중] 보유 종목의 손익이 -15%가 되면 전량 자동 매도.", 1f, 0.15f, 0, 0, 0, 0, 0),
+            ("Item_TakeProfit", ItemKind.TakeProfit, "익절 예약권", 150_000f, "[장 전·장 중] 보유 종목의 손익이 +15%가 되면 전량 자동 매도.", 1f, 0.15f, 0, 0, 0, 0, 0),
             ("Item_TrailingStop", ItemKind.TrailingStop, "추적 손절권", 450_000f, "[장 중] 보유 종목이 최고 손익률에서 15%p 밀리면 전량 자동 매도.", 1f, 0.15f, 0, 0, 0, 0, 0),
             ("Item_TargetBuy", ItemKind.TargetBuy, "목표가 예약권", 300_000f, "[장 중] 고른 종목이 지금보다 5% 내리면 현금 전부로 자동 매수.", 1f, 0.05f, 0, 0, 0, 0, 0),
             ("Item_BankruptAlarm", ItemKind.BankruptAlarm, "파산 경보기", 300_000f, "[장 전·장 중] 오늘 현금+주식이 2,000만원 밑으로 내려가면 화면과 소리로 강하게 경고해요.", 1f, 0, 0, 0, 20_000_000f, 0, 0),
             ("Item_EmergencyExit", ItemKind.EmergencyExit, "비상 탈출 버튼", 500_000f, "[장 중] 쓰는 즉시 보유 종목 전부를 지금 가격에 매도해요.", 1f, 0, 0, 0, 0, 0, 0),
             ("Item_DualMonitor", ItemKind.DualMonitor, "듀얼 모니터", 600_000f, "[장 전] 오늘 하루 동시에 보유할 수 있는 종목 수 4개 → 5개.", 1f, 0, 0, 0, 0, 0, 0),
             // ── 대출·부채 관리형 ──
-            ("Item_FeeWaiver", ItemKind.InterestCoupon, "은행 VIP 쿠폰", 900_000f, "[장 전] 다음에 낼 이자를 30% 깎아줘요.", 1f, 0, 0, 0, 0, 0, 0),
+            ("Item_FeeWaiver", ItemKind.InterestCoupon, "은행 VIP 쿠폰", 900_000f, "[장 전] VIP 우대 금리: 다음에 낼 이자 30% 할인.", 1f, 0, 0, 0, 0, 0, 0),
             ("Item_InterestDeferral", ItemKind.InterestDeferral, "이자 유예 신청서", 400_000f, "[장 전] 다음 이자를 하루 미뤄요 (다음 날 이자에 더해져요). 게임당 1번.", 1f, 0, 0, 0, 0, 0, 0),
             ("Item_CreditLaunder", ItemKind.CreditLaunder, "신용등급 세탁기", 750_000f, "[장 전] 다음 대출 1회(추가 대출·무대출·콩대출·햇살론)의 이자율을 절반으로. 기본 대출 5%에는 안 돼요.", 1f, 0, 0, 0, 0, 0, 0),
             ("Item_DebtAdjustment", ItemKind.DebtAdjustment, "채무 조정 신청서", 600_000f, "[장 전] 기본 대출 원금 1% 감면. 게임당 1번.", 1f, 0, 0, 0, 0.01f, 0, 0),
@@ -55,7 +55,13 @@ namespace BurningAnt.Editor
             ("Item_LoanKidney", ItemKind.CashLoan, "콩대출", 300_000f, "[장 전·장 중] 즉시 1억원 대출. 하루 이자 20% (다음 날부터).", 1f, 0, 0, 0, 100_000_000f, 100_000_000f, 0.2f),
             ("Item_StrongDevilContract", ItemKind.CashLoan, "더 강한 악마의 계약서", 200_000f, "[장 전·장 중] 즉시 8,000만원. 대신 기본 대출 원금이 1억 3,000만원 늘어나요.", 1f, 0, 0, 0, 80_000_000f, 130_000_000f, 0),
             ("Item_SlowMotion", ItemKind.SlowMotion, "모래시계(전체 시간 증가)", 700_000f, "[장 중] 남은 장 시간이 1.5배로 늘어나요 (차트가 느려져요).", 1f, 0, 600f, 0.67f, 0, 0, 0),
-            ("Item_TimeStop", ItemKind.TimeStop, "에너지 드링크", 900_000f, "[장 중] 5초 동안 차트가 멈춰요. 멈춘 동안 매매할 수 있어요.", 1f, 0, 5f, 0, 0, 0, 0),
+            ("Item_TimeStop", ItemKind.SlowMotion, "에너지 드링크", 900_000f, "[장 중] 10초 동안 주가가 0.5배속으로 천천히 움직여요.", 1f, 0, 10f, 0.5f, 0, 0, 0),
+        };
+
+        // 이름이 바뀌어 그림 파일 이름과 다른 아이템 (아이템 이름 → 그림 이름)
+        static readonly System.Collections.Generic.Dictionary<string, string> IconAlias = new()
+        {
+            { "엠바고", "증권가 찌라시" },
         };
 
         // 더는 안 쓰는 아이템 (햇살론은 아이템이 아니라 파산 직전에만)
@@ -87,8 +93,9 @@ namespace BurningAnt.Editor
                 it.amount = d.amount;
                 it.debtAmount = d.debt;
                 it.loanRate = d.rate;
-                it.icon = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtDir}/{d.name}.png");
-                if (it.icon == null) Debug.LogWarning($"[ItemSetup] 그림 없음: {ArtDir}/{d.name}.png");
+                string iconName = IconAlias.TryGetValue(d.name, out var alias) ? alias : d.name;
+                it.icon = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtDir}/{iconName}.png");
+                if (it.icon == null) Debug.LogWarning($"[ItemSetup] 그림 없음: {ArtDir}/{iconName}.png");
                 string tag = it.Timing switch { ItemTiming.Prep => "[장 전]", ItemTiming.Market => "[장 중]", _ => "[장 전·장 중]" };
                 if (!d.desc.StartsWith(tag)) throw new Exception($"{d.name}: 설명의 사용 시점이 코드({tag})와 달라요");
                 if (create) AssetDatabase.CreateAsset(it, path);

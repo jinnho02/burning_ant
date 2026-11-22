@@ -28,7 +28,7 @@ namespace BurningAnt.Editor
             try
             {
                 for (int seed = 1; seed <= 5; seed++) Run(40, seed, false);
-                Run(3, 7, true);
+                Run(5, 7, true);
                 EditorApplication.Exit(0);
             }
             catch (Exception e)
@@ -108,16 +108,22 @@ namespace BurningAnt.Editor
                     if (loop.Phase == GamePhase.GameOver) break;
                     Expect(session.Portfolio.Cash >= 0f, "정산 후 현금 0 이상 (긴급 대출 뒤)");
 
-                    if (forceWin)
+                    if (forceWin && days >= 3)
                     {
-                        // 승리 경로: 빚을 다 갚아도 자산이 5억 미만이면 계속, 5억 이상이면 승리
-                        loop.PayInterest();
-                        session.Portfolio.Deposit(loop.Loan.Debt + 1f);
-                        loop.Repay(loop.Loan.Debt);
-                        Expect(loop.Loan.IsPaidOff && loop.Phase != GamePhase.GameOver, "빚 0원이어도 자산 5억 전에는 계속");
-                        session.Portfolio.Deposit(loop.LoanSettings.winAssets);
-                        loop.GoToShop();
-                        Expect(loop.Phase == GamePhase.GameOver && loop.Won, "빚 0원 + 자산 5억이면 승리");
+                        // 승리 경로 (이자일): 이자를 따로 내지 않고 '빚 갚기'만 해도 오늘 이자부터 갚아져 빚 0원이 된다.
+                        // 예전엔 원금만 갚히고 상점으로 갈 때 이자가 빚에 다시 붙어 성공 엔딩이 안 나왔다.
+                        Expect(loop.InterestLeft > 0f, "3일차엔 낼 이자가 있다");
+                        float owe = loop.Loan.Debt + loop.InterestLeft;
+                        session.Portfolio.Deposit(owe + 1f);
+                        loop.Repay(owe);
+                        Expect(loop.Loan.IsPaidOff && loop.InterestLeft <= 0f, "빚 갚기로 이자까지 다 갚아진다");
+                        Expect(loop.Phase != GamePhase.GameOver || loop.TotalAssets() >= loop.LoanSettings.winAssets, "자산이 목표 전이면 계속");
+                        if (loop.Phase != GamePhase.GameOver)
+                        {
+                            session.Portfolio.Deposit(loop.LoanSettings.winAssets);
+                            loop.GoToShop();
+                        }
+                        Expect(loop.Phase == GamePhase.GameOver && loop.Won, "빚 0원 + 자산 목표 이상이면 승리 엔딩");
                         break;
                     }
                     if (loop.Today.Interest > 0f)
@@ -125,7 +131,7 @@ namespace BurningAnt.Editor
                         loop.PayInterest();
                         Expect(loop.InterestLeft <= 0.5f || session.Portfolio.Cash <= 0.5f, "이자 갚기");
                     }
-                    else Expect(days < 3 || loop.Today.InterestDeferred || loop.Loan.IsPaidOff, "3일차부터 매일 이자");
+                    else Expect(days < 3 || loop.Today.InterestDeferred || loop.Loan.InterestDue(loop.Day) <= 0.5f, "3일차부터 매일 이자 (이자가 붙는 대출이 있으면)"); // 기본 대출을 다 갚고 남은 대출이 아직 유예 기간이면 0원일 수 있다
                     if (session.Portfolio.Cash > 30_000_000f) loop.Repay(session.Portfolio.Cash * 0.3f);
                     if (loop.Phase == GamePhase.GameOver) break;
 

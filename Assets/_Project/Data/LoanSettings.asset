@@ -21,4 +21,4 @@ MonoBehaviour:
   emergencyLoanBuffer: 10000000
   emergencyLoanMax: 200000000
   emergencyRate: 0.3
-  winAssets: 500000000
+  winAssets: 1000000000

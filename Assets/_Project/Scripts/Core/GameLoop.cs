@@ -335,6 +335,7 @@ namespace BurningAnt.Core
                 NeedsEmergency = true; // 4단계 직전: 햇살론을 받을지 고른다
             }
             SetPhase(GamePhase.Settlement);
+            if (!NeedsEmergency) CheckWin(); // 빚이 이미 0원이고 자산이 목표 이상이면 바로 성공
         }
 
         /// <summary>오늘 아직 안 낸 이자.</summary>
@@ -363,7 +364,7 @@ namespace BurningAnt.Core
             Changed?.Invoke();
         }
 
-        /// <summary>승리: 빚(원금 + 이자)을 다 갚고 자산이 목표(5억) 이상.</summary>
+        /// <summary>승리: 빚(원금 + 오늘 이자)을 다 갚고 자산이 목표(10억) 이상.</summary>
         bool CheckWin()
         {
             if (!Loan.IsPaidOff || InterestLeft > 0f || TotalAssets() < loanSettings.winAssets) return false;
@@ -443,8 +444,10 @@ namespace BurningAnt.Core
 
         public void Repay(float amount)
         {
-            if (Phase != GamePhase.Settlement) return;
-            float pay = Mathf.Min(amount, session.Portfolio.Cash, Loan.Debt);
+            if (Phase != GamePhase.Settlement || NeedsEmergency) return;
+            // 오늘 낼 이자가 남아 있으면 그것부터 갚는다. 원금만 갚고 이자를 남기면 상점으로 갈 때
+            // 이자가 다시 빚에 붙어 '빚 0원'이 깨지고 성공 엔딩이 안 나오던 문제 (이자 오류 피드백)
+            float pay = Mathf.Min(amount, session.Portfolio.Cash, Loan.Debt + InterestLeft);
             if (pay <= 0f)
             {
                 Say("갚을 현금이 없어요");
@@ -452,8 +455,15 @@ namespace BurningAnt.Core
             }
 
             session.Portfolio.Withdraw(pay);
-            Loan.Repay(pay);
-            Today.Repaid += pay;
+            float toInterest = Mathf.Min(pay, InterestLeft);
+            if (toInterest > 0f)
+            {
+                Loan.RecordInterestPaid(toInterest);
+                Today.InterestPaid += toInterest;
+            }
+            float toPrincipal = pay - toInterest;
+            if (toPrincipal > 0f) Loan.Repay(toPrincipal);
+            Today.Repaid += toPrincipal;
             Say(Loan.IsPaidOff && TotalAssets() < loanSettings.winAssets
                 ? $"{Money(pay)} 갚아서 빚 0원! 자산 {Money(loanSettings.winAssets)}을 모으면 성공"
                 : $"{Money(pay)} 갚았어요");
@@ -546,11 +556,25 @@ namespace BurningAnt.Core
             switch (item.kind)
             {
                 // ── 정보 (2단계): 오늘 종가 방향을 item.accuracy 확률로 맞게 알려준다. 틀릴 수 있다. ──
-                case ItemKind.Rumor:
-                    usedOn = session.Stocks[rng.Next(session.Stocks.Count)];
-                    result = Predict(item, usedOn, false, out bool rumorOk);
-                    hintCorrect = rumorOk;
+                case ItemKind.Rumor: // 엠바고: 고른 뉴스의 후속 기사(결과)를 발표 전에 미리 본다. 틀리지 않음
+                {
+                    var news = todayNews.FirstOrDefault(n => n.Stock == target);
+                    if (news == null)
+                    {
+                        Say("뉴스가 뜬 종목을 골라 주세요");
+                        return;
+                    }
+                    if (news.Revealed)
+                    {
+                        Say($"{target.Name}: 후속 기사가 이미 나왔어요");
+                        return;
+                    }
+                    news.Foreseen = true;
+                    string when = news.RevealAtClose ? "장 마감에 발표" : $"장 시작 {news.RevealTick * session.Settings.secondsPerTick:0}초 뒤 특보";
+                    result = $"{item.displayName}: [후속 기사] {news.ResultText} ({Pct(news.Effect)}) · {when}";
+                    hintCorrect = true;
                     break;
+                }
                 case ItemKind.AnalystReport:
                     result = Predict(item, target, false, out bool analystOk);
                     hintCorrect = analystOk;

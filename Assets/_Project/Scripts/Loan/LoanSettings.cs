@@ -24,6 +24,6 @@ namespace BurningAnt.Loan
         [Tooltip("햇살론 하루 이자율 (기본 대출과 따로, 받은 다음 날부터)")] public float emergencyRate = 0.30f;
 
         [Header("승리")]
-        [Tooltip("빚(원금+이자)을 다 갚고, 자산(현금+주식)이 이만큼 있으면 승리")] public float winAssets = 500_000_000f;
+        [Tooltip("빚(원금+이자)을 다 갚고, 자산(현금+주식)이 이만큼 있으면 승리")] public float winAssets = 1_000_000_000f;
     }
 }

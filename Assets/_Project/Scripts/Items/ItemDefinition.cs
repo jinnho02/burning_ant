@@ -69,15 +69,19 @@ namespace BurningAnt.Items
         /// <summary>2단계(장 전)용 · 3단계(장 중)용 · 둘 다.</summary>
         public ItemTiming Timing => kind switch
         {
-            ItemKind.StopLoss or ItemKind.TakeProfit or ItemKind.TrailingStop or ItemKind.TargetBuy
+            ItemKind.TrailingStop or ItemKind.TargetBuy
                 or ItemKind.SlowMotion or ItemKind.TimeStop or ItemKind.Telescope or ItemKind.EmergencyExit => ItemTiming.Market,
-            ItemKind.CashLoan or ItemKind.SoulAllIn or ItemKind.DevilTrade or ItemKind.LossInsurance or ItemKind.BankruptAlarm => ItemTiming.Anytime,
+            ItemKind.CashLoan or ItemKind.SoulAllIn or ItemKind.DevilTrade or ItemKind.LossInsurance or ItemKind.BankruptAlarm
+                or ItemKind.StopLoss or ItemKind.TakeProfit => ItemTiming.Anytime, // 손절·익절 예약권: 2단계에서도 미리 걸 수 있음
             _ => ItemTiming.Prep,
         };
 
         /// <summary>사용할 때 종목을 골라야 하는지.</summary>
-        public bool NeedsTarget => kind is ItemKind.AnalystReport or ItemKind.InsiderMemo or ItemKind.StopLoss or ItemKind.TakeProfit
+        public bool NeedsTarget => kind is ItemKind.Rumor or ItemKind.AnalystReport or ItemKind.InsiderMemo or ItemKind.StopLoss or ItemKind.TakeProfit
             or ItemKind.OpenLeak or ItemKind.TrailingStop or ItemKind.TargetBuy or ItemKind.Telescope;
+
+        /// <summary>엠바고: 대상 종목을 오늘 뉴스가 뜬 종목 중에서만 고른다.</summary>
+        public bool TargetsNewsOnly => kind is ItemKind.Rumor;
 
         /// <summary>대상 종목을 보유 종목 중에서만 고를 수 있는지.</summary>
         public bool TargetsHeldOnly => kind is ItemKind.StopLoss or ItemKind.TakeProfit or ItemKind.TrailingStop;
