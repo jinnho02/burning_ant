@@ -17,7 +17,7 @@ namespace BurningAnt.UI
 
         GameLoop game;
         AudioSource bgm, sfx, tickSfx;
-        AudioClip tickTone;
+        AudioClip tickUp, tickDown;
         StockWindowController stockWindow;
 
         AudioClip morning, noon, evening, gold, click, alarm;
@@ -36,7 +36,8 @@ namespace BurningAnt.UI
             sfx.playOnAwake = false;
             tickSfx = gameObject.AddComponent<AudioSource>(); // 주가 틱 소리 전용 (피치를 바꿔 쓰므로 따로)
             tickSfx.playOnAwake = false;
-            tickTone = MakeTickTone();
+            tickUp = MakeChipBlip(true);
+            tickDown = MakeChipBlip(false);
             stockWindow = GetComponent<StockWindowController>();
             game.Session.Ticked += OnPriceTick;
 
@@ -51,9 +52,10 @@ namespace BurningAnt.UI
             game.ItemBought += OnItemBought;
             game.AlarmFired += OnAlarm;
             // 버블 단계(대상 처리 뒤)에서 듣는다: 같은 클릭으로 아이템을 샀으면 클릭음 대신 골드만
-            root.RegisterCallback<ClickEvent>(_ =>
+            root.RegisterCallback<ClickEvent>(e =>
             {
-                if (boughtFrame != Time.frameCount) sfx.PlayOneShot(click, ClickVolume);
+                if (boughtFrame == Time.frameCount) return; // 같은 클릭으로 아이템을 샀으면 골드 소리만
+                if (IsClickable(e.target as VisualElement)) sfx.PlayOneShot(click, ClickVolume);
             });
             OnPhaseChanged();
         }
@@ -71,6 +73,21 @@ namespace BurningAnt.UI
         // 오르면 높은 음, 내리면 낮은 음 (움직인 만큼 더 높게/낮게), 크게 움직일수록 크게.
         const float TickMaxVolume = 0.45f, TickMinVolume = 0.04f;
 
+        // 클릭음이 나는 요소: 버튼, 상점 칸, 종목 줄, 그리고 클릭해서 넘기는 화면(경고창·타이틀·프롤로그·엔딩).
+        // 빈 곳·글자·카드를 누를 때는 소리가 안 난다.
+        static readonly string[] ClickScreens = { "warning-overlay", "title-overlay", "prologue-overlay", "end-overlay" };
+
+        static bool IsClickable(VisualElement e)
+        {
+            for (var v = e; v != null; v = v.parent)
+            {
+                if (!v.enabledInHierarchy) return false;
+                if (v is Button || v is ShopSlotElement || v is StockListItem || v is Toggle) return true;
+                if (System.Array.IndexOf(ClickScreens, v.name) >= 0) return true;
+            }
+            return false;
+        }
+
         void OnPriceTick()
         {
             var session = game.Session;
@@ -82,24 +99,32 @@ namespace BurningAnt.UI
             float strength = Mathf.Clamp01(Mathf.Abs(change) / Mathf.Max(0.0005f, stock.DailyLimit * 0.06f));
             float volume = Mathf.Lerp(TickMinVolume, TickMaxVolume, strength);
             if (strength < 0.03f) return; // 거의 안 움직였으면 조용히
-            // 오르면 1.0~1.8배, 내리면 1.0~0.55배 피치
-            tickSfx.pitch = change >= 0f ? Mathf.Lerp(1.05f, 1.8f, strength) : Mathf.Lerp(0.95f, 0.55f, strength);
-            tickSfx.PlayOneShot(tickTone, volume);
+            // 오르면 1.0~1.6배, 내리면 1.0~0.6배 피치 (상승·하락 소리 자체도 위·아래로 미끄러짐)
+            tickSfx.pitch = change >= 0f ? Mathf.Lerp(1.0f, 1.6f, strength) : Mathf.Lerp(1.0f, 0.6f, strength);
+            tickSfx.PlayOneShot(change >= 0f ? tickUp : tickDown, volume);
         }
 
-        /// <summary>주가 틱 소리: 660Hz 사인파 70ms, 부드럽게 사라짐 (피치로 높낮이를 바꿔 쓴다).</summary>
-        static AudioClip MakeTickTone()
+        /// <summary>
+        /// 주가 틱 소리 (아케이드 칩튠): 듀티 25% 사각파 + 4비트 계단 음량, 60ms.
+        /// 상승 = 660→1320Hz로 올라가는 "삥", 하락 = 660→330Hz로 내려가는 "뿅". 높낮이·크기는 재생할 때 피치·볼륨으로 더 바꾼다.
+        /// </summary>
+        static AudioClip MakeChipBlip(bool up)
         {
             const int rate = 44100;
-            int n = rate * 70 / 1000;
+            int n = rate * 60 / 1000;
             var data = new float[n];
+            double phase = 0;
             for (int i = 0; i < n; i++)
             {
                 float t = (float)i / n;
-                float attack = Mathf.Clamp01(i / (rate * 0.003f));
-                data[i] = Mathf.Sin(2 * Mathf.PI * 660f * i / rate) * attack * Mathf.Pow(1f - t, 2f) * 0.7f;
+                float freq = up ? Mathf.Lerp(660f, 1320f, t * t) : Mathf.Lerp(660f, 330f, Mathf.Sqrt(t));
+                phase += freq / rate;
+                float square = (phase % 1.0) < 0.25 ? 1f : -1f;          // 듀티 25% 사각파 (NES 느낌)
+                float env = Mathf.Clamp01(1f - t) * Mathf.Clamp01(i / (rate * 0.002f));
+                env = Mathf.Round(env * 15f) / 15f;                       // 4비트 계단 음량
+                data[i] = square * env * 0.35f;
             }
-            var clip = AudioClip.Create("price-tick", n, 1, rate, false);
+            var clip = AudioClip.Create(up ? "price-up" : "price-down", n, 1, rate, false);
             clip.SetData(data, 0);
             return clip;
         }
