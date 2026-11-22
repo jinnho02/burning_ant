@@ -113,6 +113,10 @@ namespace BurningAnt.UI
 
             // 뉴스 띠는 차트 바로 위(주식 창 오른쪽 카드 맨 위)에 둔다
             root.Q("detail-panel")?.Insert(0, newsBand);
+            // 가격선은 차트를 뚫고 나가도 잘리지 않고 다른 화면 요소 위로 보이게 (웃음 포인트). 뉴스 신문·모달 같은 창보다는 아래
+            var firstOverlay = root.Q("news-overlay");
+            if (firstOverlay?.parent != null)
+                root.Q<PriceChartElement>("chart")?.PopOutLineInto(firstOverlay.parent, firstOverlay.parent.IndexOf(firstOverlay));
             BindTitle(root);
             BindIntro(root);
             tutorial = new TutorialRunner(root, game, tutorialScript != null ? tutorialScript : TutorialScript.CreateDefault(), alwaysShowTutorial, tutorialScale);

@@ -29,11 +29,34 @@ namespace BurningAnt.UI
         float limit = 0.1f;
         float? averagePrice;
         int previewCount;
+        VisualElement lineLayer; // 가격선을 그리는 층 (있으면 차트 밖·다른 UI 위로 튀어나가게 그린다)
 
         public PriceChartElement()
         {
             generateVisualContent += Draw;
             RegisterCallback<CustomStyleResolvedEvent>(OnCustomStyle);
+            RegisterCallback<GeometryChangedEvent>(_ => lineLayer?.MarkDirtyRepaint());
+        }
+
+        /// <summary>
+        /// 가격선을 차트 안이 아니라 host 위의 투명한 층에 그린다 (폭등·폭락 때 선이 차트를 뚫고 다른 UI 위로 튀어나가게).
+        /// host의 index 자리에 끼워 넣으므로, 그 뒤에 있는 창(모달·튜토리얼 등)보다는 아래에 깔린다. 클릭은 막지 않는다.
+        /// </summary>
+        public void PopOutLineInto(VisualElement host, int index)
+        {
+            lineLayer?.RemoveFromHierarchy();
+            lineLayer = new VisualElement { name = "chart-line-layer", pickingMode = PickingMode.Ignore };
+            lineLayer.style.position = Position.Absolute;
+            lineLayer.style.left = 0; lineLayer.style.top = 0; lineLayer.style.right = 0; lineLayer.style.bottom = 0;
+            lineLayer.generateVisualContent += DrawLineLayer;
+            host.Insert(Mathf.Clamp(index, 0, host.childCount), lineLayer);
+            MarkDirtyRepaint();
+        }
+
+        void Repaint()
+        {
+            MarkDirtyRepaint();
+            lineLayer?.MarkDirtyRepaint();
         }
 
         /// <param name="visibleCount">그릴 점 개수. 0이면 가격선 없이 기준선만.</param>
@@ -46,7 +69,7 @@ namespace BurningAnt.UI
             this.visibleCount = visibleCount;
             this.totalTicks = Mathf.Max(1, totalTicks);
             this.averagePrice = averagePrice;
-            MarkDirtyRepaint();
+            Repaint();
         }
 
         /// <summary>망원경 아이템: 지금까지 그린 점 뒤로 미래 가격을 흐리게 그릴 점 개수. 0이면 없음.</summary>
@@ -54,7 +77,7 @@ namespace BurningAnt.UI
         {
             if (previewCount == count) return;
             previewCount = Mathf.Max(0, count);
-            MarkDirtyRepaint();
+            Repaint();
         }
 
         void OnCustomStyle(CustomStyleResolvedEvent evt)
@@ -63,7 +86,7 @@ namespace BurningAnt.UI
             if (evt.customStyle.TryGetValue(DownColorProperty, out c)) downColor = c;
             if (evt.customStyle.TryGetValue(BaseColorProperty, out c)) baseColor = c;
             if (evt.customStyle.TryGetValue(AverageColorProperty, out c)) averageColor = c;
-            MarkDirtyRepaint();
+            Repaint();
         }
 
         float Y(float price, float height)
@@ -85,6 +108,27 @@ namespace BurningAnt.UI
             HorizontalLine(p, Y(prevClose, h), w, baseColor);
             if (averagePrice.HasValue) HorizontalLine(p, Y(averagePrice.Value, h), w, averageColor);
 
+            if (lineLayer == null) DrawPrice(p, w, h, pt => pt); // 층이 없으면 예전처럼 차트 안에
+        }
+
+        void DrawLineLayer(MeshGenerationContext ctx)
+        {
+            var rect = contentRect;
+            if (rect.width <= 0f || rect.height <= 0f || !Shown()) return;
+            // 차트 안 좌표 → 층 좌표. 가격이 상·하한을 넘으면 선이 차트 밖으로 그대로 뻗어 나간다
+            DrawPrice(ctx.painter2D, rect.width, rect.height, pt => this.ChangeCoordinatesTo(lineLayer, pt));
+        }
+
+        bool Shown()
+        {
+            if (panel == null) return false;
+            for (VisualElement v = this; v != null; v = v.parent)
+                if (v.resolvedStyle.display == DisplayStyle.None || v.resolvedStyle.visibility == Visibility.Hidden) return false;
+            return true;
+        }
+
+        void DrawPrice(Painter2D p, float w, float h, System.Func<Vector2, Vector2> map)
+        {
             if (path == null || visibleCount < 1) return;
 
             int count = Mathf.Min(visibleCount, path.Length);
@@ -95,7 +139,7 @@ namespace BurningAnt.UI
             p.BeginPath();
             for (int i = 0; i < count; i++)
             {
-                var point = new Vector2(i * w / totalTicks, Y(path[i], h));
+                var point = map(new Vector2(i * w / totalTicks, Y(path[i], h)));
                 if (i == 0) p.MoveTo(point);
                 else p.LineTo(point);
             }
@@ -108,7 +152,7 @@ namespace BurningAnt.UI
             p.BeginPath();
             for (int i = count - 1; i < previewEnd; i++)
             {
-                var point = new Vector2(i * w / totalTicks, Y(path[i], h));
+                var point = map(new Vector2(i * w / totalTicks, Y(path[i], h)));
                 if (i == count - 1) p.MoveTo(point);
                 else p.LineTo(point);
             }
