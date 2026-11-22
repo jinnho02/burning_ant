@@ -104,7 +104,11 @@ namespace BurningAnt.Editor
                     }
                     session.StartMarket();
                     Expect(loop.Phase == GamePhase.Market, "장 시작 → 3단계");
-                    if (huge != null) Expect(session.Portfolio.GetHolding(huge).Shares > 0, "1억 주 예약은 현금으로 살 수 있는 만큼만 체결");
+                    if (huge != null)
+                    {
+                        bool inTol = huge.OpenPrice <= session.ReservationLimitPrice(huge, OrderSide.Buy) + 1e-4f;
+                        Expect(inTol == (session.Portfolio.GetHolding(huge).Shares > 0), "1억 주 예약은 살 수 있는 만큼 체결 (시가가 허용 폭 넘게 비싸면 취소)");
+                    }
 
                     // 장 절반 진행 → 장 중 아이템 → 일부 매매 → 나머지
                     Advance(session, session.Settings.ticksPerDay / 2);

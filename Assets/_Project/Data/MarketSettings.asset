@@ -21,6 +21,7 @@ MonoBehaviour:
   normalLimit: 0.12
   highRiskLimit: 0.25
   maxGapRatio: 0.4
+  reservationTolerance: 0.25
   maxTrendRatio: 0.6
   noiseRatio: 0.1
   pullStrength: 0.08

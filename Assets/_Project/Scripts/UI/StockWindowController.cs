@@ -278,8 +278,17 @@ namespace BurningAnt.UI
             Refresh();
         }
 
-        void OnReservationsExecuted(IReadOnlyList<TradeResult> results) =>
-            ShowMessage("시가 체결: " + string.Join(" / ", results.Select(Describe)));
+        void OnReservationsExecuted(IReadOnlyList<TradeResult> results)
+        {
+            var ok = results.Where(r => r.Success).ToList();
+            var gap = results.Where(r => r.Error == TradeError.GapTooLarge).ToList();
+            var other = results.Where(r => !r.Success && r.Error != TradeError.GapTooLarge).ToList();
+            var parts = new List<string>();
+            if (gap.Count > 0) parts.Add("예약 취소! " + string.Join(" / ", gap.Select(Describe)));
+            if (ok.Count > 0) parts.Add("시가 체결: " + string.Join(" / ", ok.Select(Describe)));
+            if (other.Count > 0) parts.Add(string.Join(" / ", other.Select(Describe)));
+            ShowMessage(string.Join("\n", parts));
+        }
 
         void ShowMessage(string text) => messageLabel.text = text;
 
@@ -295,6 +304,7 @@ namespace BurningAnt.UI
                 TradeError.NotEnoughShares => $"{r.Stock.Name}: 보유 수량이 부족해요",
                 TradeError.TooManyHoldings => $"{r.Stock.Name}: 최대 {session.Portfolio.MaxHoldings}종목까지 보유할 수 있어요",
                 TradeError.MarketClosed => "장이 열려 있을 때만 거래할 수 있어요",
+                TradeError.GapTooLarge => $"{r.Stock.Name} {side}: 시가 {Format.Money(r.Price)}가 기준가 {Format.Money(r.Stock.PrevClose)}보다 {Mathf.Abs(r.Price / r.Stock.PrevClose - 1f) * 100f:0.#}% {(r.Side == OrderSide.Buy ? "비싸게" : "싸게")} 열려 체결 안 됨",
                 _ => r.Error.ToString(),
             };
         }
@@ -388,8 +398,9 @@ namespace BurningAnt.UI
             reservationLabel.text = fills.Count == 0
                 ? (session.Reservations.Count > 0 ? "예약한 주문은 현금·보유 수량이 없어 체결되지 않아요" : "")
                 : "예약: " + string.Join(", ", fills.Select(f =>
-                      $"{f.order.Stock.Name} {(f.order.Side == OrderSide.Buy ? "매수" : "매도")} {(f.order.UseMax ? "최대" : f.shares.ToString("N0") + "주")}"))
-                  + "\n장 시작 때 시가로 자동 체결 (전날 종가 기준 예상, 시가에 따라 수량이 조금 달라질 수 있어요)";
+                      $"{f.order.Stock.Name} {(f.order.Side == OrderSide.Buy ? "매수" : "매도")} {(f.order.UseMax ? "최대" : f.shares.ToString("N0") + "주")}" +
+                      $" (시가 {Format.Money(session.ReservationLimitPrice(f.order.Stock, f.order.Side))} {(f.order.Side == OrderSide.Buy ? "이하" : "이상")}면 체결)"))
+                  + "\n기준가는 전날 종가. 시가가 기준가보다 크게 불리하게 열리면 그 예약은 취소돼요";
             bool hasReservation = pre && selected != null && session.Reservations.Any(o => o.Stock == selected);
             if (cancelReservationButton != null)
             {

@@ -20,6 +20,8 @@ namespace BurningAnt.Market
         // 종목별 기본 변동률 구간은 StockDefinition.baseRange (10~50%)에 있다.
         [Header("가격 생성 (종목 기본 구간 대비 비율)")]
         [Range(0f, 1f), Tooltip("시가 갭 최대폭")] public float maxGapRatio = 0.4f;
+        [Range(0f, 1f), Tooltip("예약 허용 폭 (하루 등락 한도 대비). 시가가 전날 종가보다 이만큼 넘게 불리하면 예약 취소 (매수는 비싸게, 매도는 싸게 열릴 때). 0.25 = 한도 ±20% 종목이면 ±5%")]
+        public float reservationTolerance = 0.25f;
         [Range(0f, 1f), Tooltip("하루 추세 최대폭")] public float maxTrendRatio = 0.6f;
         [Range(0f, 1f), Tooltip("틱마다 흔들림 크기")] public float noiseRatio = 0.1f;
         [Range(0f, 1f), Tooltip("추세선으로 당기는 힘")] public float pullStrength = 0.08f;

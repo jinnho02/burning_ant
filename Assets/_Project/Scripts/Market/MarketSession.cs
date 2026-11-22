@@ -126,6 +126,22 @@ namespace BurningAnt.Market
             return list;
         }
 
+        /// <summary>예약 기준가: 예약할 때 보이는 가격 = 전날 종가.</summary>
+        public float ReservationBasePrice(StockState s) => s.PrevClose;
+
+        /// <summary>예약이 체결되는 가격 한계: 매수는 이 값 이하, 매도는 이 값 이상으로 열려야 체결.</summary>
+        public float ReservationLimitPrice(StockState s, OrderSide side)
+        {
+            float tol = settings.reservationTolerance * s.DailyLimit;
+            return s.PrevClose * (side == OrderSide.Buy ? 1f + tol : 1f - tol);
+        }
+
+        bool WithinTolerance(OrderRequest o)
+        {
+            float limit = ReservationLimitPrice(o.Stock, o.Side);
+            return o.Side == OrderSide.Buy ? o.Stock.OpenPrice <= limit + 1e-4f : o.Stock.OpenPrice >= limit - 1e-4f;
+        }
+
         /// <summary>그 종목의 장 전 예약(매수·매도 모두)을 취소한다. 취소한 게 있으면 true.</summary>
         public bool CancelReservations(StockState stock)
         {
@@ -172,6 +188,12 @@ namespace BurningAnt.Market
             var results = new List<TradeResult>();
             foreach (var order in reservations)
             {
+                // 지정가처럼: 시가가 기준가(전날 종가)보다 허용 폭 넘게 불리하면 예약 취소 (유리한 갭은 그대로 체결)
+                if (!WithinTolerance(order))
+                {
+                    results.Add(TradeResult.Fail(order.Stock, order.Side, TradeError.GapTooLarge, order.Stock.OpenPrice));
+                    continue;
+                }
                 // 예약 수량이 시가 기준으로 살 수 있는 수(매수) · 가진 수(매도)를 넘으면 되는 만큼만 체결한다
                 // (예전엔 통째로 실패). 0주면 실패로 알린다.
                 results.Add(ExecuteAndReport(CapToPossible(order, order.Stock.OpenPrice), order.Stock.OpenPrice));

@@ -27,6 +27,7 @@ namespace BurningAnt.Market
         NotEnoughShares,
         TooManyHoldings,
         MarketClosed,
+        GapTooLarge, // 예약: 시가가 기준가(전날 종가)보다 허용 폭 넘게 불리하게 열려 취소
     }
 
     public readonly struct TradeResult
@@ -53,5 +54,8 @@ namespace BurningAnt.Market
 
         public static TradeResult Fail(StockState stock, OrderSide side, TradeError error) =>
             new(stock, side, error, 0, 0f);
+
+        public static TradeResult Fail(StockState stock, OrderSide side, TradeError error, float price) =>
+            new(stock, side, error, 0, price);
     }
 }
