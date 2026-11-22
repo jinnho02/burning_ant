@@ -719,6 +719,11 @@ namespace BurningAnt.Core
                         Say($"{target.Name}: 후속 기사가 이미 나왔어요");
                         return;
                     }
+                    if (news.Foreseen)
+                    {
+                        Say($"{target.Name}: 이미 엠바고로 확인한 뉴스예요");
+                        return;
+                    }
                     news.Foreseen = true;
                     if (!news.HasFollowUp)
                     {

@@ -843,7 +843,7 @@ namespace BurningAnt.UI
             foreach (var stock in Session.Stocks)
             {
                 if (item.TargetsHeldOnly && Session.Portfolio.GetHolding(stock).Shares < 1) continue;
-                if (item.TargetsNewsOnly && !game.TodayNews.Any(n => n.Stock == stock && !n.Revealed)) continue;
+                if (item.TargetsNewsOnly && !game.TodayNews.Any(n => n.Stock == stock && !n.Revealed && !n.Foreseen)) continue; // 이미 엠바고로 본 뉴스는 다시 못 고름 (1억 낭비 방지)
                 var target = stock;
                 var b = new Button(() =>
                 {
