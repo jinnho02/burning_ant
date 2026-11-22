@@ -9,7 +9,7 @@ namespace BurningAnt.UI
     /// <summary>
     /// 브금과 효과음. 브금: 1·2단계 = 아침, 3단계 = 점심, 4·5단계 = 저녁 (계속 반복).
     /// 아이템을 사면 골드, 그 밖의 클릭은 코드로 만든 짧은 클릭음.
-    /// 파일은 Resources/Audio (아침·점심·저녁·골드.mp3). 같은 이름으로 바꿔 넣으면 그대로 쓰인다.
+    /// 파일은 Resources/Audio (title·morning·market·night·골드.mp3). 같은 이름으로 바꿔 넣으면 그대로 쓰인다.
     /// </summary>
     public class GameAudio : MonoBehaviour
     {
@@ -20,7 +20,8 @@ namespace BurningAnt.UI
         AudioClip tickUp, tickDown;
         StockWindowController stockWindow;
 
-        AudioClip morning, noon, evening, gold, click, alarm;
+        AudioClip title, morning, noon, evening, gold, click, alarm;
+        VisualElement[] introScreens;
         int boughtFrame = -1;
 
         public void Init(GameLoop loop, VisualElement root)
@@ -41,9 +42,12 @@ namespace BurningAnt.UI
             stockWindow = GetComponent<StockWindowController>();
             game.Session.Ticked += OnPriceTick;
 
-            morning = Resources.Load<AudioClip>("Audio/아침");
-            noon = Resources.Load<AudioClip>("Audio/점심");
-            evening = Resources.Load<AudioClip>("Audio/저녁");
+            // 브금 4곡: title = 경고창·타이틀·프롤로그·엔딩, morning = 1·2단계, market = 3단계(장), night = 4·5단계
+            title = Resources.Load<AudioClip>("Audio/title");
+            morning = Resources.Load<AudioClip>("Audio/morning");
+            noon = Resources.Load<AudioClip>("Audio/market");
+            evening = Resources.Load<AudioClip>("Audio/night");
+            introScreens = new[] { root.Q("warning-overlay"), root.Q("title-overlay"), root.Q("prologue-overlay") };
             gold = Resources.Load<AudioClip>("Audio/골드");
             click = MakeClick();
             alarm = MakeAlarm();
@@ -134,15 +138,29 @@ namespace BurningAnt.UI
             return clip;
         }
 
-        void OnPhaseChanged()
+        void OnPhaseChanged() => PlayBgmFor(CurrentBgm());
+
+        // 경고창·타이틀·프롤로그가 닫히는 순간 게임 브금으로 바뀌게 매 프레임 확인한다
+        void Update()
         {
-            var clip = game.Phase switch
+            if (game != null && bgm != null) PlayBgmFor(CurrentBgm());
+        }
+
+        AudioClip CurrentBgm()
+        {
+            bool intro = introScreens != null && System.Array.Exists(introScreens, o => o != null && o.resolvedStyle.display != DisplayStyle.None);
+            if (intro) return title;
+            return game.Phase switch
             {
                 GamePhase.News or GamePhase.Prep => morning,
                 GamePhase.Market => noon,
                 GamePhase.Settlement or GamePhase.Shop => evening,
-                _ => bgm.clip, // 엔딩: 하던 브금 그대로
+                _ => title, // 엔딩
             };
+        }
+
+        void PlayBgmFor(AudioClip clip)
+        {
             if (clip == null || (bgm.clip == clip && bgm.isPlaying)) return;
             bgm.clip = clip;
             bgm.Play();
