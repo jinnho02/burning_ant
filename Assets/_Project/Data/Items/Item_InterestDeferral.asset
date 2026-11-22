@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
   kind: 15
   displayName: "\uC774\uC790 \uC720\uC608 \uC2E0\uCCAD\uC11C"
-  price: 4000000
+  price: 5000000
   description: "[\uC7A5 \uC804] \uB2E4\uC74C \uC774\uC790\uB97C \uD558\uB8E8 \uBBF8\uB904\uC694 (\uB2E4\uC74C \uB0A0 \uC774\uC790\uC5D0 \uB354\uD574\uC838\uC694). \uAC8C\uC784\uB2F9 1\uBC88."
   icon: {fileID: 2800000, guid: ab2341611a279274887606e25ec7a6a2, type: 3}
   accuracy: 1
