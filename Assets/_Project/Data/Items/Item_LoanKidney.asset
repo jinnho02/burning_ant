@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Item_LoanKidney
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
   kind: 14
-  displayName: "\uCF69\uB300\uCD9C"
+  displayName: "\uC0AC\uB098\uBA38\uB2C8"
   price: 300000
   description: "[\uC7A5 \uC804\xB7\uC7A5 \uC911] \uC989\uC2DC 1\uC5B5\uC6D0 \uB300\uCD9C. \uD558\uB8E8 \uC774\uC790 20% (\uB2E4\uC74C \uB0A0\uBD80\uD130)."
   icon: {fileID: 2800000, guid: c3a4df1919a7f26489cedf042e7ba38c, type: 3}

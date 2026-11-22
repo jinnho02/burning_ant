@@ -20,7 +20,12 @@ namespace BurningAnt.Loan
         // shortcut: 금액·이자율은 팀 결정 전 제안값.
         [Header("햇살론 = 긴급 대출 (한 판에 1번, 장 마감 정산 후 현금이 0 밑이면 제안. 거절하면 파산)")]
         [Tooltip("모자란 금액에 더 얹어 주는 돈")] public float emergencyLoanBuffer = 10_000_000f;
-        [Tooltip("햇살론 최대 금액 (파산 직전에만 1회). 모자란 돈이 이보다 크면 파산")] public float emergencyLoanMax = 200_000_000f;
+        [Tooltip("햇살론 1번에 빌릴 수 있는 최대 금액")] public float emergencyLoanMax = 200_000_000f;
+        [Tooltip("한 판에 햇살론을 받을 수 있는 횟수")] public int emergencyMaxCount = 2;
+
+        [Header("파산")]
+        [Tooltip("장 마감 정산 뒤 현금이 이보다 낮으면(그리고 햇살론으로 못 메우면) 파산. 그 위의 마이너스는 마이너스 통장처럼 버틸 수 있음")]
+        public float bankruptLine = -500_000_000f;
         [Tooltip("햇살론 하루 이자율 (기본 대출과 따로, 받은 다음 날부터)")] public float emergencyRate = 0.30f;
 
         [Header("승리")]

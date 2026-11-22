@@ -326,13 +326,14 @@ namespace BurningAnt.Core
 
             if (session.Portfolio.Cash < 0f)
             {
-                // 햇살론은 한 판에 1번, 모자란 돈이 한도(1억)를 넘으면 못 받는다 → 파산
-                if (Loan.EmergencyAmount(-session.Portfolio.Cash) <= 0f)
+                // 현금이 마이너스: 햇살론이 남았으면 받을지 고른다 (2억씩, 한 판에 2번).
+                // 햇살론이 없으면 파산선(-5억) 위는 마이너스 통장처럼 버티고, 그 밑이면 파산.
+                if (Loan.EmergencyAmount(-session.Portfolio.Cash) > 0f) NeedsEmergency = true;
+                else if (session.Portfolio.Cash < loanSettings.bankruptLine)
                 {
                     GoBankrupt();
                     return;
                 }
-                NeedsEmergency = true; // 4단계 직전: 햇살론을 받을지 고른다
             }
             SetPhase(GamePhase.Settlement);
             if (!NeedsEmergency) CheckWin(); // 빚이 이미 0원이고 자산이 목표 이상이면 바로 성공
@@ -388,16 +389,37 @@ namespace BurningAnt.Core
             }
             session.Portfolio.Deposit(amount);
             Today.EmergencyLoan += amount;
-            Say($"햇살론 {Money(amount)} (하루 이자 {Loan.Loans[Loan.Loans.Count - 1].Rate * 100f:0}%, 내일부터)");
+            Say($"햇살론 {Money(amount)} (하루 이자 {Loan.Loans[Loan.Loans.Count - 1].Rate * 100f:0}%, 내일부터, 남은 횟수 {Loan.EmergencyLeft})");
+            // 아직 마이너스면: 햇살론이 남았으면 한 번 더 묻고, 없으면 파산선으로 판정
+            if (session.Portfolio.Cash < 0f)
+            {
+                if (Loan.EmergencyAmount(-session.Portfolio.Cash) > 0f) NeedsEmergency = true;
+                else if (session.Portfolio.Cash < loanSettings.bankruptLine)
+                {
+                    GoBankrupt();
+                    return;
+                }
+            }
             Changed?.Invoke();
+            if (!NeedsEmergency) CheckWin();
         }
 
+        /// <summary>햇살론 거절: 파산선(-5억) 밑이면 파산, 위면 마이너스 현금으로 버틴다.</summary>
         public void DeclineEmergencyLoan()
         {
             if (!NeedsEmergency) return;
             NeedsEmergency = false;
-            GoBankrupt();
+            if (session.Portfolio.Cash < loanSettings.bankruptLine)
+            {
+                GoBankrupt();
+                return;
+            }
+            Say($"햇살론 없이 버텨요 (현금 {Money(session.Portfolio.Cash)}, 파산선 {Money(loanSettings.bankruptLine)})");
+            Changed?.Invoke();
         }
+
+        /// <summary>지금 햇살론을 거절하면 파산인지 (창 버튼 문구용).</summary>
+        public bool DeclineMeansBankrupt => session.Portfolio.Cash < loanSettings.bankruptLine;
 
         /// <summary>시연·테스트용 (-autoplay-win / -autoplay-bankrupt): 바로 엔딩으로.</summary>
         public void EndForDemo(bool won)

@@ -1,5 +1,6 @@
 using BurningAnt.Core;
 using BurningAnt.Items;
+using BurningAnt.Market;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -15,7 +16,10 @@ namespace BurningAnt.UI
         const float BgmVolume = 0.5f, ClickVolume = 0.35f, GoldVolume = 0.9f;
 
         GameLoop game;
-        AudioSource bgm, sfx;
+        AudioSource bgm, sfx, tickSfx;
+        AudioClip tickTone;
+        StockWindowController stockWindow;
+
         AudioClip morning, noon, evening, gold, click, alarm;
         int boughtFrame = -1;
 
@@ -30,6 +34,11 @@ namespace BurningAnt.UI
             bgm.volume = BgmVolume;
             sfx = gameObject.AddComponent<AudioSource>();
             sfx.playOnAwake = false;
+            tickSfx = gameObject.AddComponent<AudioSource>(); // 주가 틱 소리 전용 (피치를 바꿔 쓰므로 따로)
+            tickSfx.playOnAwake = false;
+            tickTone = MakeTickTone();
+            stockWindow = GetComponent<StockWindowController>();
+            game.Session.Ticked += OnPriceTick;
 
             morning = Resources.Load<AudioClip>("Audio/아침");
             noon = Resources.Load<AudioClip>("Audio/점심");
@@ -55,6 +64,44 @@ namespace BurningAnt.UI
             game.PhaseChanged -= OnPhaseChanged;
             game.ItemBought -= OnItemBought;
             game.AlarmFired -= OnAlarm;
+            if (game.Session != null) game.Session.Ticked -= OnPriceTick;
+        }
+
+        // 주가 효과음: 보고 있는 종목의 가격이 한 틱 움직일 때마다 짧은 음.
+        // 오르면 높은 음, 내리면 낮은 음 (움직인 만큼 더 높게/낮게), 크게 움직일수록 크게.
+        const float TickMaxVolume = 0.45f, TickMinVolume = 0.04f;
+
+        void OnPriceTick()
+        {
+            var session = game.Session;
+            var stock = stockWindow != null ? stockWindow.Selected : null;
+            if (stock == null || session.Tick < 1) return;
+            float change = stock.PriceAt(session.Tick) / Mathf.Max(0.0001f, stock.PriceAt(session.Tick - 1)) - 1f;
+
+            // 한 틱 변동을 그 종목 하루 변동 구간 대비로 본다 (구간의 6%를 움직이면 최대)
+            float strength = Mathf.Clamp01(Mathf.Abs(change) / Mathf.Max(0.0005f, stock.DailyLimit * 0.06f));
+            float volume = Mathf.Lerp(TickMinVolume, TickMaxVolume, strength);
+            if (strength < 0.03f) return; // 거의 안 움직였으면 조용히
+            // 오르면 1.0~1.8배, 내리면 1.0~0.55배 피치
+            tickSfx.pitch = change >= 0f ? Mathf.Lerp(1.05f, 1.8f, strength) : Mathf.Lerp(0.95f, 0.55f, strength);
+            tickSfx.PlayOneShot(tickTone, volume);
+        }
+
+        /// <summary>주가 틱 소리: 660Hz 사인파 70ms, 부드럽게 사라짐 (피치로 높낮이를 바꿔 쓴다).</summary>
+        static AudioClip MakeTickTone()
+        {
+            const int rate = 44100;
+            int n = rate * 70 / 1000;
+            var data = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                float t = (float)i / n;
+                float attack = Mathf.Clamp01(i / (rate * 0.003f));
+                data[i] = Mathf.Sin(2 * Mathf.PI * 660f * i / rate) * attack * Mathf.Pow(1f - t, 2f) * 0.7f;
+            }
+            var clip = AudioClip.Create("price-tick", n, 1, rate, false);
+            clip.SetData(data, 0);
+            return clip;
         }
 
         void OnPhaseChanged()

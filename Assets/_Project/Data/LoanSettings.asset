@@ -22,3 +22,5 @@ MonoBehaviour:
   emergencyLoanMax: 200000000
   emergencyRate: 0.3
   winAssets: 1000000000
+  emergencyMaxCount: 2
+  bankruptLine: -500000000

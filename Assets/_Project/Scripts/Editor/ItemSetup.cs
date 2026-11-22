@@ -9,7 +9,7 @@ using UnityEngine;
 namespace BurningAnt.Editor
 {
     /// <summary>
-    /// 아이템 28종 (팀 아이템표 23종 + 무대출·콩대출·더 강한 악마의 계약서·모래시계·에너지 드링크)을 만든다/고친다.
+    /// 아이템 28종 (팀 아이템표 23종 + 러시앤러시·사나머니·더 강한 악마의 계약서·모래시계·에너지 드링크)을 만든다/고친다.
     /// 이름 = Art/Item 그림 파일 이름 (그림이 없으면 경고만 하고 그림 없이 만든다).
     /// 설명 맨 앞 [장 전] = 2단계, [장 중] = 3단계, [장 전·장 중] = 둘 다 (ItemDefinition.Timing과 같아야 한다).
     /// DayLoop 씬의 GameLoop 상점 목록도 이 목록으로 바꾼다. 메뉴: BurningAnt > Setup > Items
@@ -42,7 +42,7 @@ namespace BurningAnt.Editor
             // ── 대출·부채 관리형 ──
             ("Item_FeeWaiver", ItemKind.InterestCoupon, "은행 VIP 쿠폰", 900_000f, "[장 전] VIP 우대 금리: 다음에 낼 이자 30% 할인.", 1f, 0, 0, 0, 0, 0, 0),
             ("Item_InterestDeferral", ItemKind.InterestDeferral, "이자 유예 신청서", 400_000f, "[장 전] 다음 이자를 하루 미뤄요 (다음 날 이자에 더해져요). 게임당 1번.", 1f, 0, 0, 0, 0, 0, 0),
-            ("Item_CreditLaunder", ItemKind.CreditLaunder, "신용등급 세탁기", 750_000f, "[장 전] 다음 대출 1회(추가 대출·무대출·콩대출·햇살론)의 이자율을 절반으로. 기본 대출 5%에는 안 돼요.", 1f, 0, 0, 0, 0, 0, 0),
+            ("Item_CreditLaunder", ItemKind.CreditLaunder, "신용등급 세탁기", 750_000f, "[장 전] 다음 대출 1회(추가 대출·러시앤러시·사나머니·햇살론)의 이자율을 절반으로. 기본 대출 5%에는 안 돼요.", 1f, 0, 0, 0, 0, 0, 0),
             ("Item_DebtAdjustment", ItemKind.DebtAdjustment, "채무 조정 신청서", 600_000f, "[장 전] 기본 대출 원금 1% 감면. 게임당 1번.", 1f, 0, 0, 0, 0.01f, 0, 0),
             // ── 고위험·도박형 ──
             ("Item_SoulAllIn", ItemKind.SoulAllIn, "영혼의 풀매수", 1_000_000f, "[장 전·장 중] 다음 매수 1회의 레버리지 3배 → 10배. 이익도 손해도 10배예요.", 1f, 0, 0, 10f, 0, 0, 0),
@@ -51,8 +51,8 @@ namespace BurningAnt.Editor
             ("Item_LoanShark", ItemKind.CashLoan, "사채업자 명함", 0f, "[장 전·장 중] 무료. 즉시 2,000만원을 받고, 대신 기본 대출 원금이 3,000만원 늘어나요.", 1f, 0, 0, 0, 20_000_000f, 30_000_000f, 0),
             ("Item_Lottery", ItemKind.Lottery, "인생역전 복권", 200_000f, "[장 전] 오늘 장 결과 때 10% 확률로 100만원. 실패하면 0원.", 1f, 0, 0, 0, 1_000_000f, 0.1f, 0),
             // ── 기존 아이템 ──
-            ("Item_LoanRadish", ItemKind.CashLoan, "무대출", 200_000f, "[장 전·장 중] 즉시 5,000만원 대출. 하루 이자 20% (다음 날부터).", 1f, 0, 0, 0, 50_000_000f, 50_000_000f, 0.2f),
-            ("Item_LoanKidney", ItemKind.CashLoan, "콩대출", 300_000f, "[장 전·장 중] 즉시 1억원 대출. 하루 이자 20% (다음 날부터).", 1f, 0, 0, 0, 100_000_000f, 100_000_000f, 0.2f),
+            ("Item_LoanRadish", ItemKind.CashLoan, "러시앤러시", 200_000f, "[장 전·장 중] 즉시 5,000만원 대출. 하루 이자 20% (다음 날부터).", 1f, 0, 0, 0, 50_000_000f, 50_000_000f, 0.2f),
+            ("Item_LoanKidney", ItemKind.CashLoan, "사나머니", 300_000f, "[장 전·장 중] 즉시 1억원 대출. 하루 이자 20% (다음 날부터).", 1f, 0, 0, 0, 100_000_000f, 100_000_000f, 0.2f),
             ("Item_StrongDevilContract", ItemKind.CashLoan, "더 강한 악마의 계약서", 200_000f, "[장 전·장 중] 즉시 8,000만원. 대신 기본 대출 원금이 1억 3,000만원 늘어나요.", 1f, 0, 0, 0, 80_000_000f, 130_000_000f, 0),
             ("Item_SlowMotion", ItemKind.SlowMotion, "모래시계(전체 시간 증가)", 700_000f, "[장 중] 남은 장 시간이 1.5배로 늘어나요 (차트가 느려져요).", 1f, 0, 600f, 0.67f, 0, 0, 0),
             ("Item_TimeStop", ItemKind.SlowMotion, "에너지 드링크", 900_000f, "[장 중] 10초 동안 주가가 0.5배속으로 천천히 움직여요.", 1f, 0, 10f, 0.5f, 0, 0, 0),
@@ -62,6 +62,8 @@ namespace BurningAnt.Editor
         static readonly System.Collections.Generic.Dictionary<string, string> IconAlias = new()
         {
             { "엠바고", "증권가 찌라시" },
+            { "러시앤러시", "무대출" },
+            { "사나머니", "콩대출" },
         };
 
         // 더는 안 쓰는 아이템 (햇살론은 아이템이 아니라 파산 직전에만)

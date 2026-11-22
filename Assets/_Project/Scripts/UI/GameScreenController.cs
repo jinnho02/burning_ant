@@ -771,8 +771,11 @@ namespace BurningAnt.UI
             Show(pickerOverlay, true);
         }
 
+        Button emergencyDeclineButton;
+
         void RefreshEmergency()
         {
+            emergencyDeclineButton ??= GetComponent<UIDocument>().rootVisualElement.Q<Button>("emergency-decline-button");
             float shortfall = -Session.Portfolio.Cash;
             var loan = game.Loan;
             var s = game.LoanSettings;
@@ -782,12 +785,16 @@ namespace BurningAnt.UI
             string closed = game.LastClosedStocks.Count > 0 ? $"마이너스 종목({string.Join(", ", game.LastClosedStocks.Select(x => x.Name))}) 정리로 " : "";
             emergencyBody.text =
                 $"{closed}잔고에서 {Format.Money(game.LastSettlementCharge)}이 빠져 현금이 {Format.SignedMoney(-shortfall)}이에요.\n\n" +
-                $"· 대출 금액: {Format.Money(amount)} (모자란 돈 + 여유 {Format.Money(s.emergencyLoanBuffer)}, 최대 {Format.Money(s.emergencyLoanMax)})\n" +
+                $"· 대출 금액: {Format.Money(amount)} (모자란 돈 + 여유 {Format.Money(s.emergencyLoanBuffer)}, 1번에 최대 {Format.Money(s.emergencyLoanMax)})\n" +
                 $"· 대출 후 현금: {Format.Money(amount - shortfall)}\n" +
                 $"· 햇살론 이자: 하루 {rate * 100f:0.#}% (기본 대출과 따로, 내일부터)" + (loan.HalveNextRate ? " · 신용등급 세탁기 적용" : "") + "\n" +
                 $"· 남은 빚: {Format.Money(loan.Debt)} → {Format.Money(debtAfter)}\n" +
                 $"· 햇살론 이자(하루): 약 {Format.Money(amount * rate)}\n\n" +
-                "햇살론은 파산 직전에 한 번만 받을 수 있어요. 안 받으면 파산이에요.";
+                $"햇살론은 한 판에 {s.emergencyMaxCount}번까지 (남은 횟수 {loan.EmergencyLeft}번).\n" +
+                (game.DeclineMeansBankrupt
+                    ? $"안 받으면 파산이에요 (현금이 파산선 {Format.Money(s.bankruptLine)}보다 낮아요)."
+                    : $"안 받아도 파산선 {Format.Money(s.bankruptLine)} 위라 마이너스 현금으로 버틸 수 있어요.");
+            emergencyDeclineButton.text = game.DeclineMeansBankrupt ? "아니요… (파산)" : "아니요, 마이너스로 버틸게요";
         }
 
         // ───────── 오늘의 흐름 (2단계) ─────────

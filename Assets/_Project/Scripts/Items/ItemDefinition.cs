@@ -20,7 +20,7 @@ namespace BurningAnt.Items
         VolatilityRadar, // 변동성 레이더: 오늘 가장 크게 움직일 2종목 (방향은 비밀)
         InterestCoupon, // 은행 VIP 쿠폰: 다음 이자 30% 감면
         LossInsurance,  // 손실 보험 증서: 다음 매도 1회 손실의 일부 보상
-        CashLoan,       // 무대출·콩대출·사채업자 명함·더 강한 악마의 계약서: 지금 현금, 대신 빚
+        CashLoan,       // 러시앤러시·사나머니·사채업자 명함·더 강한 악마의 계약서: 지금 현금, 대신 빚
         InterestDeferral, // 이자 유예 신청서: 다음 이자 하루 연기 (게임당 1회)
         DebtAdjustment, // 채무 조정 신청서: 기본 대출 원금 1% 감면 (게임당 1회)
         SunshineLoan,   // (안 씀: 햇살론은 파산 직전에만)

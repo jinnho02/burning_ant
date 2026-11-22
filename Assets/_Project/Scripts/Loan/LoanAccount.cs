@@ -7,7 +7,7 @@ namespace BurningAnt.Loan
     /// <summary>
     /// 빚 = 대출 여러 개. 대출마다 원금 · 하루 이자율 · 이자가 붙기 시작하는 날이 따로 있다.
     /// 0번 = 기본 대출(5%, 3일차부터). 안 낸 이자 · 사채업자 명함 · 더 강한 악마의 계약서는 기본 대출에 더한다.
-    /// 그 밖: 추가 대출(30%, 다다음 날부터), 무대출·콩대출(20%), 햇살론(30%) (각각 다음 날부터).
+    /// 그 밖: 추가 대출(30%, 다다음 날부터), 러시앤러시·사나머니(20%), 햇살론(30%) (각각 다음 날부터).
     /// 현금 이동은 호출하는 쪽(Portfolio)이 한다.
     /// </summary>
     public class LoanAccount
@@ -31,7 +31,10 @@ namespace BurningAnt.Loan
         /// <summary>기본 대출 이자율.</summary>
         public float InterestRate => Base.Rate;
         public bool ExtraLoanUsed { get; private set; }
-        public bool EmergencyUsed { get; private set; }
+        /// <summary>지금까지 받은 햇살론 횟수 (한 판에 emergencyMaxCount번까지).</summary>
+        public int EmergencyCount { get; private set; }
+        public bool EmergencyUsed => EmergencyCount >= settings.emergencyMaxCount;
+        public int EmergencyLeft => Mathf.Max(0, settings.emergencyMaxCount - EmergencyCount);
         /// <summary>신용등급 세탁기: 다음 대출 1회(기본 대출 제외)의 이자율 절반.</summary>
         public bool HalveNextRate { get; set; }
         /// <summary>지금까지 갚은 금액 합계 (빚 상환 게이지용, 이자 포함).</summary>
@@ -89,19 +92,19 @@ namespace BurningAnt.Loan
             return amount;
         }
 
-        /// <summary>햇살론에 필요한 금액 (모자란 금액 + 여유분, 최대 emergencyLoanMax). 모자란 금액이 한도를 넘으면 0.</summary>
+        /// <summary>햇살론 1번 금액 (모자란 금액 + 여유분, 최대 emergencyLoanMax). 남은 횟수가 없으면 0. 모자란 돈이 한도보다 크면 한도만큼.</summary>
         public float EmergencyAmount(float shortfall)
         {
-            if (EmergencyUsed || shortfall <= 0f || shortfall > settings.emergencyLoanMax) return 0f;
+            if (EmergencyUsed || shortfall <= 0f) return 0f;
             return Mathf.Min(shortfall + settings.emergencyLoanBuffer, settings.emergencyLoanMax);
         }
 
-        /// <summary>햇살론 (한 판에 1번, 파산 직전에만). 다음 날부터 이자. 실패하면 0.</summary>
+        /// <summary>햇살론 (한 판에 emergencyMaxCount번, 파산 직전에만). 다음 날부터 이자. 실패하면 0.</summary>
         public float TakeEmergencyLoan(float shortfall, int day = 0)
         {
             float amount = EmergencyAmount(shortfall);
             if (amount <= 0f) return 0f;
-            EmergencyUsed = true;
+            EmergencyCount++;
             AddLoan("햇살론", amount, settings.emergencyRate, day + 1);
             return amount;
         }

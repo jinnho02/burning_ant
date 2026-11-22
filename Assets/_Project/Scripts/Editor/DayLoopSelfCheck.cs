@@ -116,11 +116,12 @@ namespace BurningAnt.Editor
             Won(adj.MainDebt, 129_000_000f, "사채업자 명함: 기본 대출 원금 증가");
 
             var rescue = new LoanAccount(settings);
-            Expect(rescue.EmergencyAmount(settings.emergencyLoanMax + 1_000_000f) == 0f, "모자란 돈이 햇살론 한도(2억)를 넘으면 못 받음");
+            Won(rescue.EmergencyAmount(settings.emergencyLoanMax + 1_000_000f), settings.emergencyLoanMax, "모자란 돈이 한도보다 크면 1번에 최대 2억");
             Won(rescue.TakeEmergencyLoan(8_000_000f, 4), 8_000_000f + settings.emergencyLoanBuffer, "햇살론 = 모자란 금액 + 여유분");
             Near(rescue.Loans[1].Rate, settings.emergencyRate, "햇살론 이자율 30% (기본 대출과 따로)");
             Expect(rescue.Loans[1].StartDay == 5 && Mathf.Approximately(rescue.InterestRate, settings.baseInterestRate), "햇살론 이자는 다음 날부터, 기본 대출 이자율은 그대로");
-            Expect(rescue.EmergencyUsed && rescue.TakeEmergencyLoan(500f) == 0f, "햇살론은 한 판에 한 번");
+            Expect(!rescue.EmergencyUsed && rescue.EmergencyLeft == 1, "햇살론은 한 판에 2번 (1번 남음)");
+            Expect(rescue.TakeEmergencyLoan(500f) > 0f && rescue.EmergencyUsed && rescue.TakeEmergencyLoan(500f) == 0f, "햇살론 3번째는 안 됨");
             var big = new LoanAccount(settings);
             Won(big.TakeEmergencyLoan(195_000_000f), settings.emergencyLoanMax, "햇살론은 최대 2억");
         }
