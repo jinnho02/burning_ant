@@ -17,15 +17,15 @@
                 <ui:VisualElement class="top-stat"><ui:Label text="현금" class="caption" /><ui:Label name="cash-label" class="status-value" /></ui:VisualElement>
                 <ui:VisualElement class="top-stat"><ui:Label text="주식 평가" class="caption" /><ui:Label name="stock-value-label" class="status-value" /></ui:VisualElement>
                 <ui:VisualElement class="top-stat"><ui:Label text="다음 이자" class="caption" /><ui:Label name="interest-label" class="chip chip--warning" /></ui:VisualElement>
-                <ui:VisualElement class="top-stat"><ui:Label text="추가 대출" class="caption" /><ui:Label name="loan-count-label" class="status-value status-value--small" /><ui:Button name="loan-button" text="받기" class="loan-take" tooltip="추가 대출은 아이템 시간·장 시간에, 한 판에 1번, 최대 2억" /></ui:VisualElement>
+                <ui:VisualElement class="top-stat"><ui:Label text="추가 대출" class="caption" /><ui:Label name="loan-count-label" class="status-value status-value--small" /><ui:Button name="loan-button" text="받기" class="loan-take" tooltip="추가 대출은 아이템 시간·장 시간에, 한 판에 2번, 1번에 2억 고정" /></ui:VisualElement>
                 <ui:VisualElement class="top-stat"><ui:Label text="순자산" class="caption" /><ui:Label name="networth-label" class="status-value status-value--big" /></ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="repay">
                 <ui:VisualElement class="row row--spread">
-                    <ui:Label text="빚 상환" class="caption repay-text" />
-                    <ui:Label name="repay-label" text="0원 / 1억원" class="caption repay-text" />
+                    <ui:Label text="남은 빚" class="caption repay-text" />
+                    <ui:Label name="repay-label" text="1억원" class="caption repay-text" />
                 </ui:VisualElement>
-                <ui:VisualElement class="repay-track">
+                <ui:VisualElement class="repay-track" style="display: none;">
                     <ui:VisualElement name="repay-fill" class="repay-fill" />
                 </ui:VisualElement>
             </ui:VisualElement>

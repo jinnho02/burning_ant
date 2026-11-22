@@ -594,11 +594,8 @@ namespace BurningAnt.UI
             float marketSeconds = now == 2 ? Session.RemainingSeconds : Session.Settings.ticksPerDay * Session.Settings.secondsPerTick;
             steps[2].text = $"장 · {Mathf.CeilToInt(Mathf.Max(0f, marketSeconds))}초";
 
-            // 빚 상환 게이지 = 갚은 돈 / (갚은 돈 + 남은 빚)
-            float repaid = loan.TotalRepaid;
-            float total = repaid + loan.Debt;
-            repayLabel.text = $"{Format.Money(repaid)} / {Format.Money(total)}";
-            repayFill.style.width = Length.Percent(total > 0f ? 100f * repaid / total : 100f);
+            // 오른쪽 위: 지금 남은 빚(모든 대출 원금 합)만. 순자산 계산에 쓰는 빚과 같다 (오늘 안 낸 이자는 상점으로 갈 때 빚에 붙음)
+            repayLabel.text = Format.Money(loan.Debt);
 
             cashLabel.text = Format.Money(Session.Portfolio.Cash);
             stockValueLabel.text = Format.Money(game.StockValue());
