@@ -96,8 +96,10 @@ namespace BurningAnt.UI
             float change = stock.PriceAt(session.Tick) / Mathf.Max(0.0001f, stock.PriceAt(session.Tick - 1)) - 1f;
 
             // 한 틱 변동을 그 종목 하루 변동 구간 대비로 본다 (구간의 6%를 움직이면 최대)
-            float strength = Mathf.Clamp01(Mathf.Abs(change) / Mathf.Max(0.0005f, stock.DailyLimit * 0.06f));
-            float volume = Mathf.Lerp(TickMinVolume, TickMaxVolume, strength);
+            float raw = Mathf.Abs(change) / Mathf.Max(0.0005f, stock.DailyLimit * 0.06f);
+            float strength = Mathf.Clamp01(raw);
+            // 평소(구간의 6%까지)는 그대로, 그보다 크게 튀면(폭등·폭락·특보) 변동률만큼 더 크게 (최대 1)
+            float volume = raw <= 1f ? Mathf.Lerp(TickMinVolume, TickMaxVolume, strength) : Mathf.Min(1f, TickMaxVolume * raw);
             if (strength < 0.12f) return; // 작은 흔들림엔 조용히 (자주 울리지 않게)
             // 오르면 1.0~1.6배, 내리면 1.0~0.6배 피치 (상승·하락 소리 자체도 위·아래로 미끄러짐)
             tickSfx.pitch = change >= 0f ? Mathf.Lerp(1.0f, 1.25f, strength) : Mathf.Lerp(1.0f, 0.89f, strength); // 음역 550~880Hz 안
