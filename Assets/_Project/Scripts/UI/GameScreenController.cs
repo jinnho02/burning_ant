@@ -372,7 +372,7 @@ namespace BurningAnt.UI
             if (prologueOverlay != null)
             {
                 prologueOverlay.RegisterCallback<ClickEvent>(_ => AdvancePrologue());
-                prologueOverlay.RegisterCallback<GeometryChangedEvent>(_ => FitToImage(prologueStage, prologueOverlay, PrologueAspect));
+                prologueOverlay.RegisterCallback<GeometryChangedEvent>(_ => FitToImage(prologueStage, prologueOverlay, PrologueAspect, true));
                 root.Q<Button>("prologue-skip").clicked += EndPrologue;
             }
 
@@ -456,7 +456,7 @@ namespace BurningAnt.UI
         void UpdateIntro()
         {
             if (prologueOverlay == null || prologueOverlay.resolvedStyle.display == DisplayStyle.None) return;
-            FitToImage(prologueStage, prologueOverlay, PrologueAspect);
+            FitToImage(prologueStage, prologueOverlay, PrologueAspect, true);
             if (prologueCutSeconds <= 0f) return;
             prologueTimer -= Time.unscaledDeltaTime;
             if (prologueTimer <= 0f) AdvancePrologue();
@@ -1180,12 +1180,13 @@ namespace BurningAnt.UI
         }
 
         /// <summary>stage를 container 안에서 scale-and-crop으로 그려진 그림 영역과 같은 위치·크기로 맞춘다.</summary>
-        static void FitToImage(VisualElement stage, VisualElement container, float aspect)
+        /// <param name="contain">true면 그림 전체가 화면 안에 들어오게 (남는 곳은 여백), false면 화면을 꽉 채우고 넘치는 곳은 잘림</param>
+        static void FitToImage(VisualElement stage, VisualElement container, float aspect, bool contain = false)
         {
             var rect = container.contentRect;
             if (stage == null || rect.width <= 0f || rect.height <= 0f) return;
             float w = rect.width, h = rect.width / aspect;
-            if (h < rect.height)
+            if (contain ? h > rect.height : h < rect.height)
             {
                 h = rect.height;
                 w = rect.height * aspect;
