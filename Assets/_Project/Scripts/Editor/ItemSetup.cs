@@ -9,7 +9,7 @@ using UnityEngine;
 namespace BurningAnt.Editor
 {
     /// <summary>
-    /// 아이템 21종 (그림이 있는 것만)을 만든다/고친다. 가격은 밸런싱 2차: 전부 10배, 엠바고만 1억 고정.
+    /// 아이템 20종 (그림이 있는 것만)을 만든다/고친다. 가격은 밸런싱 2차: 전부 10배, 엠바고만 1억 고정.
     /// 이름 = Art/Item 그림 파일 이름 (그림이 없으면 경고만 하고 그림 없이 만든다).
     /// 설명 맨 앞 [장 전] = 2단계, [장 중] = 3단계, [장 전·장 중] = 둘 다 (ItemDefinition.Timing과 같아야 한다).
     /// DayLoop 씬의 GameLoop 상점 목록도 이 목록으로 바꾼다. 메뉴: BurningAnt > Setup > Items
@@ -38,7 +38,6 @@ namespace BurningAnt.Editor
             // ── 대출·부채 관리형 ──
             ("Item_FeeWaiver", ItemKind.InterestCoupon, "은행 VIP 쿠폰", 9_000_000f, "[장 전] VIP 우대 금리: 다음에 낼 이자 50% 할인.", 1f, 0, 0, 0, 0.5f, 0, 0),
             ("Item_InterestDeferral", ItemKind.InterestDeferral, "이자 유예 신청서", 4_000_000f, "[장 전] 다음 이자를 하루 미뤄요 (다음 날 이자에 더해져요). 게임당 1번.", 1f, 0, 0, 0, 0, 0, 0),
-            ("Item_DebtAdjustment", ItemKind.DebtAdjustment, "채무 조정 신청서", 6_000_000f, "[장 전] 기본 대출 원금 10% 감면. 게임당 1번.", 1f, 0, 0, 0, 0.1f, 0, 0),
             // ── 고위험·도박형 ──
             ("Item_DevilContract", ItemKind.DevilTrade, "악마의 계약서", 5_000_000f, "[장 전·장 중] 다음 매도 1회의 손익을 1.5배로 정산해요. 이익도 손해도.", 1f, 0, 0, 1.5f, 0, 0, 0),
             ("Item_LossInsurance", ItemKind.LossInsurance, "손실 보험 증서", 7_500_000f, "[장 전·장 중] 다음 매도 1회가 손해면 손실의 30%를 보상해요 (최대 5,000만원).", 1f, 0, 0, 0, 0.3f, 50_000_000f, 0),
@@ -64,7 +63,9 @@ namespace BurningAnt.Editor
             // 그림이 없어 뺀 아이템 (22종으로 정리)
             "Item_InsiderMemo", "Item_BankruptAlarm", "Item_EmergencyExit", "Item_DualMonitor", "Item_CreditLaunder", "Item_LoanShark",
             // 밸런싱: 레버리지 10배 아이템 삭제 (21종)
-            "Item_SoulAllIn" };
+            "Item_SoulAllIn",
+            // 밸런싱: 채무 조정 신청서 삭제 (20종)
+            "Item_DebtAdjustment" };
 
         [MenuItem("BurningAnt/Setup/Items")]
         public static void Run()
