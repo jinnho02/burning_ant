@@ -1,23 +1,24 @@
 using UnityEngine;
+using UnityEngine.TextCore.LowLevel;
 using UnityEngine.TextCore.Text;
 using UnityEngine.UIElements;
 
 namespace BurningAnt.UI
 {
     /// <summary>
-    /// 게임 폰트. 본문·숫자 = Pretendard (굵게는 Pretendard Bold), 제목·버튼·강조 = Gmarket Sans Bold.
+    /// 게임 폰트. 본문·숫자·버튼·작은 제목 = Pretendard (굵게는 Pretendard Bold), 큰 제목 몇 개만 Gmarket Sans Bold.
     /// 폰트 파일은 Resources/Fonts (둘 다 SIL OFL, 라이선스는 Fonts/ 폴더).
     /// 폰트 에셋은 실행할 때 ttf로 만든다 (에셋 파일로 두면 에디터에서 플레이할 때마다 파일이 바뀌어 깃에 잡히므로).
     /// </summary>
     public static class KoreanFont
     {
-        // 이 클래스가 붙은 글자는 Gmarket Sans Bold (제목·강조). 버튼은 전부 Gmarket.
-        static readonly string[] TitleClasses =
-        {
-            "top-day", "news-band-title", "item-bar-title", "side-title", "modal-title", "end-title",
-            "title-start", "report-section-title", "tutorial-title", "pay-box-title", "shop-title",
-            "held-box-title", "telescope-title", "prop-title", "panel-title", "news-paper-date",
-        };
+        // 이 클래스가 붙은 큰 제목만 Gmarket Sans Bold. 작은 글씨·버튼은 Gmarket이 뭉개져 보여서 Pretendard로 둔다.
+        static readonly string[] TitleClasses = { "top-day", "modal-title", "end-title", "title-start", "shop-title" };
+
+        // 한글은 글자 수가 많아서: 샘플 64pt + 2048 아틀라스(한 장에 약 700자) + 다 차면 아틀라스 추가.
+        // 기본값(90pt, 1024 한 장)은 80자 남짓만 들어가 글자가 깨지거나 흐려진다. 힌팅으로 작은 글씨를 또렷하게.
+        static FontAsset Create(Font f) =>
+            FontAsset.CreateFontAsset(f, 64, 8, GlyphRenderMode.SDFAA_HINTED, 2048, 2048, AtlasPopulationMode.Dynamic, true);
 
         const string Marker = "font-title";
         static FontAsset body, title;
@@ -30,15 +31,15 @@ namespace BurningAnt.UI
             var regular = Resources.Load<Font>("Fonts/Pretendard-Regular");
             var bold = Resources.Load<Font>("Fonts/Pretendard-Bold");
             var gmarket = Resources.Load<Font>("Fonts/GmarketSansTTFBold");
-            if (regular != null) body = FontAsset.CreateFontAsset(regular);
+            if (regular != null) body = Create(regular);
             if (body != null && bold != null)
             {
                 // -unity-font-style: bold 글자는 가짜 굵게 대신 진짜 Pretendard Bold로
-                var boldAsset = FontAsset.CreateFontAsset(bold);
+                var boldAsset = Create(bold);
                 if (boldAsset != null && body.fontWeightTable != null && body.fontWeightTable.Length > 7)
                     body.fontWeightTable[7].regularTypeface = boldAsset;
             }
-            if (gmarket != null) title = FontAsset.CreateFontAsset(gmarket);
+            if (gmarket != null) title = Create(gmarket);
 
             // 폰트 파일이 없으면 예전처럼 OS 한글 폰트
             if (body == null)
@@ -54,14 +55,13 @@ namespace BurningAnt.UI
             root.style.unityFontDefinition = new StyleFontDefinition(FontDefinition.FromSDFFont(body));
             if (title == null) return;
             ApplyTitles(root);
-            // 나중에 코드로 만들어지는 제목·버튼(결과 창, 상점 등)도 바꾸도록 주기적으로 훑는다 (가벼움)
+            // 나중에 코드로 만들어지는 제목도 바꾸도록 주기적으로 훑는다 (가벼움)
             root.schedule.Execute(() => ApplyTitles(root)).Every(200);
         }
 
         static void ApplyTitles(VisualElement root)
         {
             foreach (var c in TitleClasses) root.Query(className: c).ForEach(SetTitle);
-            root.Query<Button>().ForEach(SetTitle);
         }
 
         static void SetTitle(VisualElement e)

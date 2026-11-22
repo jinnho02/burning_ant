@@ -983,7 +983,11 @@ namespace BurningAnt.UI
                 // "성공/실패" 대신 팀 문서(업종 및 기사 정리)의 성공 기사·실패 기사 문구 그대로
                 string follow = n.Success ? n.Template.successHeadline : n.Template.failureHeadline;
                 var row = Row(news, false, n.Stock.Name, $"{n.Template.initialHeadline} → {follow}", $"실제 {Format.SignedPercent(change)}");
-                row.ElementAt(2).AddToClassList(hit ? "report-ok" : "report-bad");
+                row.AddToClassList("report-row--news");
+                // 기사 칸은 넓게 왼쪽 정렬, 등락률은 다른 화면처럼 상승 빨강 · 하락 파랑
+                row.ElementAt(1).AddToClassList("report-cell--headline");
+                row.ElementAt(2).AddToClassList(change >= 0f ? "price-up" : "price-down");
+                row.ElementAt(2).AddToClassList("report-cell--change");
             }
 
             // 5. 대출

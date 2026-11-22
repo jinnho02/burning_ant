@@ -340,14 +340,19 @@
 .report-headline { flex-direction: row; align-items: flex-end; margin-bottom: 10px; }
 .report-big { font-size: 34px; -unity-font-style: bold; margin-right: 12px; }
 .report-section { margin-top: 10px; padding: 8px 12px; border-radius: 10px; background-color: var(--gs-panel); }
-.report-section-title { -unity-font-style: bold; font-size: 15px; margin-bottom: 4px; color: var(--gs-muted); }
+.report-section-title { -unity-font-style: bold; font-size: 17px; margin-bottom: 6px; color: var(--gs-text); }
 .report-row { flex-direction: row; align-items: center; padding: 2px 0; }
 .report-row--head { border-bottom-width: 1px; border-color: var(--gs-border); margin-bottom: 2px; }
-.report-cell { font-size: 14px; flex-grow: 1; flex-basis: 0; white-space: normal; }
+.report-cell { font-size: 16px; flex-grow: 1; flex-basis: 0; white-space: normal; }
 .report-cell--name { flex-grow: 1.6; -unity-font-style: bold; }
 .report-cell--num { -unity-text-align: middle-right; }
-.report-cell--head { color: var(--gs-muted); -unity-font-style: bold; font-size: 13px; }
-.report-note { font-size: 13px; color: var(--gs-muted); white-space: normal; }
+.report-cell--head { color: var(--gs-muted); -unity-font-style: bold; font-size: 14px; }
+.report-note { font-size: 15px; color: var(--gs-text); white-space: normal; margin: 1px 0; }
+/* 뉴스 결과 줄: 종목 | 기사(넓게, 왼쪽 정렬) | 실제 등락률 */
+.report-row--news { padding: 4px 0; align-items: flex-start; }
+.report-row--news .report-cell--name { flex-grow: 0; flex-basis: 110px; }
+.report-cell--headline { flex-grow: 1; -unity-text-align: upper-left; margin: 0 12px; }
+.report-cell--change { flex-grow: 0; flex-basis: 110px; -unity-text-align: upper-right; -unity-font-style: bold; }
 .report-ok { color: var(--gs-good); -unity-font-style: bold; }
 .report-bad { color: var(--gs-up); -unity-font-style: bold; }
 
