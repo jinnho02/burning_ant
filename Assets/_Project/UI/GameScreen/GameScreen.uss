@@ -23,7 +23,7 @@
 .price-up { color: var(--gs-up); }
 .price-down { color: var(--gs-down); }
 .card { background-color: var(--gs-card); border-width: 1px; border-color: var(--gs-border); border-radius: 14px; }
-.chip { font-size: 14px; padding: 2px 10px; border-radius: 8px; }
+.chip { font-size: 16px; padding: 2px 10px; border-radius: 8px; }
 .chip--warning { background-color: #FAEEDA; color: #854F0B; }
 
 /* 위 막대: 일차 · 단계 진행 · 빚 상환 */
@@ -63,8 +63,8 @@
     border-radius: 14px;
 }
 .game-screen .stock-list-panel { margin-right: 16px; }
-.stock-group { font-size: 14px; color: var(--gs-muted); -unity-font-style: bold; margin: 10px 4px 4px 4px; }
-.stock-item__badge { font-size: 12px; padding: 1px 7px; margin-left: 6px; border-radius: 7px; }
+.stock-group { font-size: 16px; color: var(--gs-muted); -unity-font-style: bold; margin: 10px 4px 4px 4px; }
+.stock-item__badge { font-size: 14px; padding: 1px 7px; margin-left: 6px; border-radius: 7px; }
 .stock-item__badge--news { background-color: #FAEEDA; color: #854F0B; }
 .stock-item__badge--hint { background-color: #E6F1FB; color: #185FA5; }
 
@@ -95,7 +95,7 @@
 }
 .item-slot--off { opacity: 0.4; }
 .item-slot__name { font-size: 15px; -unity-text-align: middle-center; white-space: normal; }
-.item-slot__meta { font-size: 12px; color: var(--gs-muted); -unity-text-align: middle-center; }
+.item-slot__meta { font-size: 14px; color: var(--gs-muted); -unity-text-align: middle-center; }
 
 /* 오른쪽 열: 오른쪽·아래 여백 없음 → 주인공이 화면 끝까지 */
 .side-col { width: 380px; padding: 16px 0 0 0; margin-right: 24px; }
@@ -108,7 +108,7 @@
 .hint-card { margin-top: 12px; padding: 10px 14px; max-height: 170px; }
 .side-title { -unity-font-style: bold; font-size: 15px; margin-bottom: 4px; }
 .hint-list { flex-grow: 1; }
-.hint-line { font-size: 13px; white-space: normal; margin-bottom: 3px; color: var(--gs-muted); }
+.hint-line { font-size: 15px; white-space: normal; margin-bottom: 3px; color: var(--gs-muted); }
 
 /* 주인공: 버튜버처럼 화면 바닥에 붙음 */
 .character-area { flex-grow: 1; margin-right: -24px; }
@@ -140,7 +140,7 @@
 }
 .mood-box { position: absolute; bottom: 16px; left: -60px; right: 24px; align-items: center; }
 .mood { -unity-font-style: bold; font-size: 16px; padding: 3px 12px; border-radius: 9px; background-color: rgba(255, 255, 255, 0.92); }
-.outfit { font-size: 12px; color: var(--gs-muted); margin-top: 3px; padding: 1px 8px; border-radius: 6px; background-color: rgba(255, 255, 255, 0.85); }
+.outfit { font-size: 14px; color: var(--gs-muted); margin-top: 3px; padding: 1px 8px; border-radius: 6px; background-color: rgba(255, 255, 255, 0.85); }
 
 /* 단계별 창 */
 .overlay {
@@ -171,10 +171,10 @@
 .shop-row { flex-direction: row; align-items: center; padding: 10px 12px; margin-bottom: 6px; border-radius: 8px; background-color: var(--gs-panel); }
 .shop-info { flex-grow: 1; flex-shrink: 1; }
 .shop-name { -unity-font-style: bold; }
-.shop-desc { font-size: 14px; color: var(--gs-muted); white-space: normal; }
-.shop-tag { font-size: 13px; padding: 1px 8px; border-radius: 6px; margin-left: 8px; background-color: rgba(55, 138, 221, 0.12); color: var(--gs-accent); }
+.shop-desc { font-size: 16px; color: var(--gs-muted); white-space: normal; }
+.shop-tag { font-size: 15px; padding: 1px 8px; border-radius: 6px; margin-left: 8px; background-color: rgba(55, 138, 221, 0.12); color: var(--gs-accent); }
 .shop-price { width: 100px; -unity-text-align: middle-right; margin-right: 12px; -unity-font-style: bold; }
-.shop-owned { width: 70px; -unity-text-align: middle-center; color: var(--gs-muted); font-size: 14px; }
+.shop-owned { width: 70px; -unity-text-align: middle-center; color: var(--gs-muted); font-size: 16px; }
 .shop-buy { width: 90px; height: 40px; }
 
 .end-portrait { height: 360px; -unity-background-scale-mode: scale-to-fit; margin-bottom: 8px; }
@@ -274,7 +274,7 @@
 }
 .shop-slot-count {
     position: absolute; right: 4px; bottom: 2px;
-    font-size: 13px; color: #F2C14E; -unity-font-style: bold;
+    font-size: 15px; color: #F2C14E; -unity-font-style: bold;
 }
 .shop-slot-name {
     position: absolute;
@@ -312,13 +312,13 @@
     display: none;
 }
 .shop-tip-name { font-size: 22px; -unity-font-style: bold; color: #FFFFFF; }
-.shop-tip-tag { font-size: 13px; padding: 2px 8px; border-radius: 6px; background-color: rgba(242, 193, 78, 0.2); color: #F2C14E; }
+.shop-tip-tag { font-size: 15px; padding: 2px 8px; border-radius: 6px; background-color: rgba(242, 193, 78, 0.2); color: #F2C14E; }
 .shop-tip-desc { font-size: 16px; color: #E0C9B8; white-space: normal; margin: 10px 0; }
 .shop-tip-price { font-size: 18px; -unity-font-style: bold; color: #F2C14E; }
-.shop-tip-owned { font-size: 14px; color: #E0C9B8; }
+.shop-tip-owned { font-size: 16px; color: #E0C9B8; }
 
 /* 추가 대출 버튼 (2단계에서만 켜짐) */
-.loan-take { height: 26px; font-size: 13px; padding: 0 10px; margin-left: 8px; border-radius: 7px; }
+.loan-take { height: 26px; font-size: 15px; padding: 0 10px; margin-left: 8px; border-radius: 7px; }
 
 /* 긴급 대출 */
 .emergency { border-width: 3px; border-color: var(--gs-up); }
@@ -328,7 +328,7 @@
 /* 오늘의 흐름 (사이드) */
 .flow-card { margin-top: 12px; padding: 10px 14px; }
 .flow-card--focus { border-color: var(--gs-accent); border-width: 2px; }
-.flow-line { font-size: 13px; white-space: normal; margin-bottom: 3px; color: var(--gs-text); }
+.flow-line { font-size: 15px; white-space: normal; margin-bottom: 3px; color: var(--gs-text); }
 .flow-line--done { color: var(--gs-good); }
 .flow-line--todo { color: var(--gs-muted); }
 .flow-line--warn { color: var(--gs-up); }
@@ -346,7 +346,7 @@
 .report-cell { font-size: 16px; flex-grow: 1; flex-basis: 0; white-space: normal; }
 .report-cell--name { flex-grow: 1.6; -unity-font-style: bold; }
 .report-cell--num { -unity-text-align: middle-right; }
-.report-cell--head { color: var(--gs-muted); -unity-font-style: bold; font-size: 14px; }
+.report-cell--head { color: var(--gs-muted); -unity-font-style: bold; font-size: 16px; }
 .report-note { font-size: 15px; color: var(--gs-text); white-space: normal; margin: 1px 0; }
 /* 뉴스 결과 줄: 종목 | 기사(넓게, 왼쪽 정렬) | 실제 등락률 */
 .report-row--news { padding: 4px 0; align-items: flex-start; }
@@ -380,10 +380,10 @@
     border-color: #F2C14E;
     color: #2C2C2A;
 }
-.tutorial-step { font-size: 12px; color: #6B6A65; }
+.tutorial-step { font-size: 14px; color: #6B6A65; }
 .tutorial-title { font-size: 20px; -unity-font-style: bold; margin: 2px 0 6px 0; }
 .tutorial-text { font-size: 16px; white-space: normal; margin-bottom: 12px; }
-.tutorial-skip { font-size: 13px; background-color: rgba(0, 0, 0, 0); border-width: 0; color: #6B6A65; }
+.tutorial-skip { font-size: 15px; background-color: rgba(0, 0, 0, 0); border-width: 0; color: #6B6A65; }
 .tutorial-next { width: 110px; height: 38px; font-size: 16px; -unity-font-style: bold; border-width: 0; border-radius: 8px; background-color: #F2C14E; color: #2A0E16; }
 
 /* ───────── 5영역 배치 (시안: 왼쪽 종목 · 가운데 주식 창+아이템 · 오른쪽 뉴스·힌트+주인공) ───────── */
@@ -391,7 +391,7 @@
 .top-bar { height: 64px; margin: 12px 16px 0 16px; padding: 0 6px; border-width: 0; background-color: rgba(0, 0, 0, 0); }
 .top-day { font-size: 26px; margin-right: 14px; }
 .steps { flex-grow: 0; flex-shrink: 1; width: 470px; }
-.step { height: 34px; font-size: 14px; margin-right: 4px; }
+.step { height: 34px; font-size: 16px; margin-right: 4px; }
 .top-stats { flex-grow: 1; flex-direction: row; justify-content: space-around; align-items: center; margin-left: 12px; }
 .top-stat { flex-direction: row; align-items: center; margin: 0 6px; }
 .top-stat .caption { margin-right: 6px; }
@@ -418,7 +418,7 @@
 .body--areas .side-col { width: 20%; min-width: 300px; flex-shrink: 0; padding: 0; margin-right: 0; }
 .side-top { flex-grow: 1; flex-basis: 0; margin-bottom: 12px; padding: 10px 12px; }
 .side-news-list { margin-bottom: 6px; }
-.side-news-line { font-size: 13px; white-space: normal; margin-bottom: 4px; color: #633806; }
+.side-news-line { font-size: 15px; white-space: normal; margin-bottom: 4px; color: #633806; }
 .side-news-line--revealed { -unity-font-style: bold; }
 .side-section { margin-top: 8px; padding-top: 8px; border-top-width: 1px; border-color: var(--gs-border); }
 .body--areas .flow-card { margin-top: 8px; padding: 8px 0 0 0; border-width: 0; border-top-width: 1px; background-color: rgba(0, 0, 0, 0); }
@@ -428,7 +428,7 @@
 
 /* 주인공 영역: 말풍선(위) · 그림(가운데) · 표정·옷(아래)을 위아래로 나눠 그림 위에 아무것도 겹치지 않게 */
 .body--areas .character-area { flex-grow: 1; flex-basis: 0; margin-right: 0; overflow: hidden; flex-direction: column; padding: 8px; }
-.body--areas .speech { position: relative; top: auto; left: auto; right: auto; max-width: none; font-size: 14px; flex-shrink: 0; align-self: flex-start; }
+.body--areas .speech { position: relative; top: auto; left: auto; right: auto; max-width: none; font-size: 16px; flex-shrink: 0; align-self: flex-start; }
 .body--areas .portrait { position: relative; left: auto; right: auto; top: auto; bottom: auto; flex-grow: 1; min-height: 0; margin: 4px 0; }
 .body--areas .mood-box { position: relative; left: auto; right: auto; bottom: auto; flex-shrink: 0; }
 .body--areas .face { position: relative; bottom: auto; right: auto; flex-grow: 1; }
@@ -649,7 +649,7 @@
     background-color: rgba(255, 250, 240, 0.55);
 }
 .side-news-line {
-    font-size: 14px; padding: 6px 8px; margin-bottom: 6px;
+    font-size: 16px; padding: 6px 8px; margin-bottom: 6px;
     border-width: 1px; border-color: #E2C9A0; border-radius: 8px; background-color: #FFF8EC;
 }
 
@@ -658,7 +658,7 @@
     margin: 0 0 8px 0; padding: 6px 4px 4px 0;
     border-width: 2px; border-color: #378ADD; border-radius: 10px; background-color: rgba(55, 138, 221, 0.06);
 }
-.held-box-title { font-size: 14px; -unity-font-style: bold; color: #185FA5; margin: 0 0 2px 8px; }
+.held-box-title { font-size: 16px; -unity-font-style: bold; color: #185FA5; margin: 0 0 2px 8px; }
 
 /* 오른쪽 위 상자를 아래로 조금 길게. 주인공 그림은 위로 넘쳐도 크기 그대로 */
 .body--areas .side-top { flex-grow: 0.8; }
@@ -688,15 +688,15 @@
 
 /* 아이템 칸: 긴 이름이 칸을 벗어나지 않게 (칸 넓히고 글자 줄이고 줄바꿈) */
 .item-slot { width: 200px; min-height: 64px; height: auto; margin-bottom: 4px; }
-.item-slot__name { font-size: 13px; white-space: normal; -unity-text-align: middle-left; }
-.item-slot__meta { font-size: 11px; -unity-text-align: middle-left; }
+.item-slot__name { font-size: 15px; white-space: normal; -unity-text-align: middle-left; }
+.item-slot__meta { font-size: 13px; -unity-text-align: middle-left; }
 .shop-slot-name { font-size: 15px; white-space: normal; overflow: hidden; }
 
 /* 왼쪽 목록 조금 넓게, 종목 상자 안 글자 조금 작게 (등락률이 잘리지 않게) */
 .left-column { width: 16%; min-width: 215px; }
 .left-column .stock-item { padding: 6px 7px; margin-left: 2px; }
 .left-column .stock-item__name { font-size: 15px; }
-.left-column .stock-item__price, .left-column .stock-item__change { font-size: 13px; }
+.left-column .stock-item__price, .left-column .stock-item__change { font-size: 15px; }
 
 /* 오늘 이미 산 아이템 (하루에 아이템당 1개) */
 .shop-slot--sold { opacity: 0.4; }

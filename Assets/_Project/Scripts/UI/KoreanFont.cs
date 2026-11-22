@@ -16,9 +16,9 @@ namespace BurningAnt.UI
         static readonly string[] TitleClasses = { "top-day", "modal-title", "end-title", "title-start", "shop-title" };
 
         // 한글은 글자 수가 많아서: 샘플 64pt + 2048 아틀라스(한 장에 약 700자) + 다 차면 아틀라스 추가.
-        // 기본값(90pt, 1024 한 장)은 80자 남짓만 들어가 글자가 깨지거나 흐려진다. 힌팅으로 작은 글씨를 또렷하게.
+        // 기본값(90pt, 1024 한 장)은 80자 남짓만 들어가 글자가 깨지거나 흐려진다. 힌팅은 끈다 (실제 빌드 캡처에서 획 두께가 들쭉날쭉해 더 깨져 보였음).
         static FontAsset Create(Font f) =>
-            FontAsset.CreateFontAsset(f, 64, 8, GlyphRenderMode.SDFAA_HINTED, 2048, 2048, AtlasPopulationMode.Dynamic, true);
+            FontAsset.CreateFontAsset(f, 64, 8, GlyphRenderMode.SDFAA, 2048, 2048, AtlasPopulationMode.Dynamic, true);
 
         const string Marker = "font-title";
         static FontAsset body, title;
