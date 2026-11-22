@@ -944,7 +944,7 @@ namespace BurningAnt.Core
                 if (n.Revealed || session.Tick < n.RevealTick) continue;
                 n.Revealed = true;
                 any = true;
-                string line = $"[특보] {n.ResultText} ({Pct(n.Effect)})";
+                string line = $"[특보] {n.ResultText}"; // 변동률은 안 보여 준다 (결과창에서 실제 등락으로 확인)
                 hints.Add(line);
                 Say(line);
                 NewsFlash?.Invoke(n);

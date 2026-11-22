@@ -685,7 +685,7 @@ namespace BurningAnt.UI
             // 특보(결과)가 뜬 뉴스는 특보 줄을 위에 따로, 최초 기사는 그 아래에 그대로
             foreach (var n in lines.Where(x => x.Revealed))
             {
-                var flash = new Label($"[특보] {n.ResultText} ({Format.SignedPercent(n.Effect)})");
+                var flash = new Label($"[특보] {n.ResultText}");
                 flash.AddToClassList("news-band-line");
                 flash.AddToClassList("news-band-line--flash");
                 newsBandList.Add(flash);
@@ -704,7 +704,7 @@ namespace BurningAnt.UI
                 sideNewsList.Clear();
                 foreach (var n in game.TodayNews.Concat(game.Foresights).Where(x => x.Revealed).OrderByDescending(x => x.RevealTick))
                 {
-                    var flash = new Label($"[특보] {n.ResultText} ({Format.SignedPercent(n.Effect)})");
+                    var flash = new Label($"[특보] {n.ResultText}");
                     flash.AddToClassList("side-news-line");
                     flash.AddToClassList("side-news-line--flash");
                     flash.AddToClassList(n.Effect >= 0f ? "side-news-line--up" : "side-news-line--down");
