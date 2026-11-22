@@ -75,7 +75,7 @@ namespace BurningAnt.UI
 
         // 주가 효과음: 보고 있는 종목의 가격이 한 틱 움직일 때마다 짧은 음.
         // 오르면 높은 음, 내리면 낮은 음 (움직인 만큼 더 높게/낮게), 크게 움직일수록 크게.
-        const float TickMaxVolume = 0.24f, TickMinVolume = 0.04f; // 배경에 깔리는 정도로 작게
+        const float TickMaxVolume = 0.4f, TickMinVolume = 0.06f; // 장 브금 위에서도 들리게 (예전 대비 약 3배)
 
         // 클릭음이 나는 요소: 버튼, 상점 칸, 종목 줄, 그리고 클릭해서 넘기는 화면(경고창·타이틀·프롤로그·엔딩).
         // 빈 곳·글자·카드를 누를 때는 소리가 안 난다.
@@ -131,7 +131,7 @@ namespace BurningAnt.UI
                 smooth += (square - smooth) * 0.18f;                       // 간단한 로우패스 (날카로운 고역 줄임)
                 float env = Mathf.Pow(1f - t, 1.5f) * Mathf.Clamp01(i / (rate * 0.004f));
                 env = Mathf.Round(env * 15f) / 15f;                        // 4비트 계단 음량 (전자음 느낌은 유지)
-                data[i] = smooth * env * 0.25f;
+                data[i] = smooth * env * 0.5f;
             }
             var clip = AudioClip.Create(up ? "price-up" : "price-down", n, 1, rate, false);
             clip.SetData(data, 0);
@@ -163,7 +163,19 @@ namespace BurningAnt.UI
         {
             if (clip == null || (bgm.clip == clip && bgm.isPlaying)) return;
             bgm.clip = clip;
+            bgm.volume = BgmVolume * Gain(clip);
             bgm.Play();
+        }
+
+        // 곡마다 원래 음량이 달라서 (실측 RMS: title 0.139, morning 0.109, market 0.080, night 0.199)
+        // 모두 RMS 0.11 기준으로 맞춘다. 곡을 바꿔 넣으면 이 값도 다시 재서 고치기.
+        float Gain(AudioClip clip)
+        {
+            if (clip == title) return 0.11f / 0.139f;
+            if (clip == morning) return 0.11f / 0.109f;
+            if (clip == noon) return 0.11f / 0.080f;
+            if (clip == evening) return 0.11f / 0.199f;
+            return 1f;
         }
 
         void OnItemBought(ItemDefinition item)
