@@ -187,7 +187,9 @@ namespace BurningAnt.UI
         {
             buyButton.clicked += () => Submit(OrderSide.Buy);
             sellButton.clicked += () => Submit(OrderSide.Sell);
-            maxButton.clicked += () => { useMax = !useMax; Refresh(); };
+            // '최대': 지금 현금과 주가로 살 수 있는 최대 주식 수를 수량 칸에 채운다 (칸은 그대로 열려 있어 고칠 수 있음).
+            // 장 전엔 시가를 모르므로 전날 종가 기준 (시가가 다르면 예약 체결 때 모자랄 수 있음)
+            maxButton.clicked += FillMaxQuantity;
             quantityField.RegisterValueChangedCallback(_ => { useMax = false; ShowMessage(""); Refresh(); });
             startButton.clicked += () =>
             {
@@ -195,6 +197,19 @@ namespace BurningAnt.UI
                 if (session.Phase == MarketPhase.PreMarket) session.StartMarket();
                 else if (session.Phase == MarketPhase.Closed) session.NextDay();
             };
+        }
+
+        void FillMaxQuantity()
+        {
+            if (selected == null) return;
+            float price = session.CurrentPrice(selected);
+            int max = session.Portfolio.MaxBuyable(price);
+            useMax = false;
+            quantityField.SetValueWithoutNotify(max); // 알림 없이 (값 변경 콜백이 안내 문구를 지우지 않게)
+            ShowMessage(max > 0
+                ? $"최대 {max:N0}주 ({(session.Phase == MarketPhase.PreMarket ? "전날 종가" : "현재가")} {Format.Money(price)} 기준)"
+                : "현금이 부족해서 살 수 있는 주식이 없어요");
+            Refresh();
         }
 
         void Select(StockState stock)
