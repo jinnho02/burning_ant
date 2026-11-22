@@ -702,3 +702,18 @@
 .shop-slot--sold { opacity: 0.4; }
 /* 장 화면 아이템 띠 설명창 */
 .item-tooltip { width: 420px; }
+
+/* 주인공 모션 (CharacterMotion): 땀방울 · 중얼거림 */
+.sweat-drop { position: absolute; width: 14px; height: 20px; }
+.mumble {
+    position: absolute;
+    padding: 4px 12px;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.92);
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #2C2C2A;
+    font-size: 16px;
+    -unity-font-style: bold;
+    white-space: nowrap;
+}

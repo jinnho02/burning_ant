@@ -72,6 +72,7 @@ namespace BurningAnt.UI
         FloatField repayField;
         PriceChartElement chart;
         VisualElement portrait, characterArea;
+        CharacterMotion characterMotion; // 숨쉬기·들썩임·떨림·땀·중얼거림
         float appliedCharacterScale = -1f;
         string lastMessage = "";
         float hintTimer;
@@ -159,6 +160,7 @@ namespace BurningAnt.UI
             if (game.Inventory == null) return;
             BlinkTitle();
             LayoutCharacter(false);
+            characterMotion?.Update();
             UpdateIntro();
             tutorial?.Update(IntroShowing());
             AutoPlay();
@@ -198,6 +200,7 @@ namespace BurningAnt.UI
 
             portrait = root.Q("portrait");
             characterArea = root.Q("character-area");
+            if (portrait != null && characterArea != null) characterMotion = new CharacterMotion(portrait, characterArea);
             characterArea?.RegisterCallback<GeometryChangedEvent>(_ => LayoutCharacter(true));
             faceLabel = root.Q<Label>("face-label");
             speechLabel = root.Q<Label>("speech-label");
@@ -589,6 +592,7 @@ namespace BurningAnt.UI
             bool beforeMarket = game.Phase is GamePhase.News or GamePhase.Prep;
             var image = beforeMarket && game.Character.prepImage != null ? game.Character.prepImage : game.Character.MoodImage(mood);
             SetImage(portrait, image);
+            characterMotion?.SetMood(mood, beforeMarket);
             faceLabel.text = CharacterSettings.MoodFace(mood);
             faceLabel.style.display = image == null ? DisplayStyle.Flex : DisplayStyle.None;
             speechLabel.text = beforeMarket ? game.Character.prepLine : game.Character.MoodLine(mood);
