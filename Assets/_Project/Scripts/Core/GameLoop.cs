@@ -51,7 +51,8 @@ namespace BurningAnt.Core
 
         bool deferNext, deferralUsed; // 이자 유예 신청서: 다음 이자 하루 연기 (게임당 1회)
         float deferredCarry;           // 연기된 이자 (다음 날 이자에 더해짐)
-        bool vipCoupon;                // 은행 VIP 쿠폰: 다음 이자 30% 감면
+        bool vipCoupon;                // 은행 VIP 쿠폰: 다음 이자 vipRate만큼 감면
+        float vipRate = 0.5f;          // 쿠폰 할인율 (아이템의 amount, 없으면 50%)
         bool debtAdjustUsed;           // 채무 조정 신청서: 게임당 1회
         ItemDefinition insurance;      // 손실 보험 증서: 다음 매도 1회 (날이 바뀌어도 유지)
         ItemDefinition lottery;        // 인생역전 복권: 오늘 장 결과에서 추첨
@@ -364,7 +365,7 @@ namespace BurningAnt.Core
             if (LastInterest > 0f && vipCoupon)
             {
                 vipCoupon = false;
-                float cut = LastInterest * 0.3f;
+                float cut = LastInterest * vipRate;
                 LastInterest -= cut;
                 Say($"은행 VIP 쿠폰: 오늘 이자 {Money(cut)} 감면");
             }
@@ -796,7 +797,8 @@ namespace BurningAnt.Core
                         return;
                     }
                     vipCoupon = true;
-                    result = $"{item.displayName}: 다음 이자 30% 감면";
+                    vipRate = item.amount > 0f ? item.amount : 0.5f;
+                    result = $"{item.displayName}: 다음 이자 {vipRate * 100f:0}% 감면";
                     break;
                 case ItemKind.InterestDeferral:
                     if (deferralUsed)

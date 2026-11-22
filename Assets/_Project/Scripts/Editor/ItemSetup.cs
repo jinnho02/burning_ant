@@ -36,17 +36,17 @@ namespace BurningAnt.Editor
             ("Item_TrailingStop", ItemKind.TrailingStop, "추적 손절권", 4_500_000f, "[장 중] 보유 종목이 최고 손익률에서 15%p 밀리면 전량 자동 매도.", 1f, 0.15f, 0, 0, 0, 0, 0),
             ("Item_TargetBuy", ItemKind.TargetBuy, "목표가 예약권", 3_000_000f, "[장 중] 고른 종목이 지금보다 5% 내리면 현금 전부로 자동 매수.", 1f, 0.05f, 0, 0, 0, 0, 0),
             // ── 대출·부채 관리형 ──
-            ("Item_FeeWaiver", ItemKind.InterestCoupon, "은행 VIP 쿠폰", 9_000_000f, "[장 전] VIP 우대 금리: 다음에 낼 이자 30% 할인.", 1f, 0, 0, 0, 0, 0, 0),
+            ("Item_FeeWaiver", ItemKind.InterestCoupon, "은행 VIP 쿠폰", 9_000_000f, "[장 전] VIP 우대 금리: 다음에 낼 이자 50% 할인.", 1f, 0, 0, 0, 0.5f, 0, 0),
             ("Item_InterestDeferral", ItemKind.InterestDeferral, "이자 유예 신청서", 4_000_000f, "[장 전] 다음 이자를 하루 미뤄요 (다음 날 이자에 더해져요). 게임당 1번.", 1f, 0, 0, 0, 0, 0, 0),
-            ("Item_DebtAdjustment", ItemKind.DebtAdjustment, "채무 조정 신청서", 6_000_000f, "[장 전] 기본 대출 원금 1% 감면. 게임당 1번.", 1f, 0, 0, 0, 0.01f, 0, 0),
+            ("Item_DebtAdjustment", ItemKind.DebtAdjustment, "채무 조정 신청서", 6_000_000f, "[장 전] 기본 대출 원금 10% 감면. 게임당 1번.", 1f, 0, 0, 0, 0.1f, 0, 0),
             // ── 고위험·도박형 ──
             ("Item_DevilContract", ItemKind.DevilTrade, "악마의 계약서", 5_000_000f, "[장 전·장 중] 다음 매도 1회의 손익을 1.5배로 정산해요. 이익도 손해도.", 1f, 0, 0, 1.5f, 0, 0, 0),
-            ("Item_LossInsurance", ItemKind.LossInsurance, "손실 보험 증서", 7_500_000f, "[장 전·장 중] 다음 매도 1회가 손해면 손실의 20%를 보상해요 (최대 400만원).", 1f, 0, 0, 0, 0.2f, 4_000_000f, 0),
-            ("Item_Lottery", ItemKind.Lottery, "인생역전 복권", 2_000_000f, "[장 전] 오늘 장 결과 때 10% 확률로 100만원. 실패하면 0원.", 1f, 0, 0, 0, 1_000_000f, 0.1f, 0),
+            ("Item_LossInsurance", ItemKind.LossInsurance, "손실 보험 증서", 7_500_000f, "[장 전·장 중] 다음 매도 1회가 손해면 손실의 30%를 보상해요 (최대 5,000만원).", 1f, 0, 0, 0, 0.3f, 50_000_000f, 0),
+            ("Item_Lottery", ItemKind.Lottery, "인생역전 복권", 2_000_000f, "[장 전] 오늘 장 결과 때 5% 확률로 5,000만원! 실패하면 0원.", 1f, 0, 0, 0, 50_000_000f, 0.05f, 0),
             // ── 기존 아이템 ──
             ("Item_LoanRadish", ItemKind.CashLoan, "러시앤러시", 2_000_000f, "[장 전·장 중] 즉시 5,000만원 대출. 하루 이자 20% (다음 날부터).", 1f, 0, 0, 0, 50_000_000f, 50_000_000f, 0.2f),
             ("Item_LoanKidney", ItemKind.CashLoan, "사나머니", 3_000_000f, "[장 전·장 중] 즉시 1억원 대출. 하루 이자 20% (다음 날부터).", 1f, 0, 0, 0, 100_000_000f, 100_000_000f, 0.2f),
-            ("Item_StrongDevilContract", ItemKind.CashLoan, "더 강한 악마의 계약서", 2_000_000f, "[장 전·장 중] 즉시 8,000만원. 대신 기본 대출 원금이 1억 3,000만원 늘어나요.", 1f, 0, 0, 0, 80_000_000f, 130_000_000f, 0),
+            ("Item_StrongDevilContract", ItemKind.CashLoan, "더 강한 악마의 계약서", 2_000_000f, "[장 전·장 중] 즉시 8,000만원. 대신 기본 대출 원금이 1억원 늘어나요 (이자는 기본 대출 5%).", 1f, 0, 0, 0, 80_000_000f, 100_000_000f, 0),
             ("Item_SlowMotion", ItemKind.SlowMotion, "모래시계(전체 시간 증가)", 7_000_000f, "[장 중] 남은 장 시간이 1.5배로 늘어나요 (차트가 느려져요).", 1f, 0, 600f, 0.67f, 0, 0, 0),
             ("Item_TimeStop", ItemKind.SlowMotion, "에너지 드링크", 9_000_000f, "[장 중] 10초 동안 주가가 0.5배속으로 천천히 움직여요.", 1f, 0, 10f, 0.5f, 0, 0, 0),
         };
