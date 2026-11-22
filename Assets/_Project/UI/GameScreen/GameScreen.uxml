@@ -125,7 +125,7 @@
                             <ui:FloatField name="repay-field" value="0" class="repay-field" />
                             <ui:Label text="만원" class="caption" />
                             <ui:Button name="repay-button" text="빚 갚기" />
-                            <ui:Button name="repay-all-button" text="현금 전부" />
+                            <ui:Button name="repay-all-button" text="최대" />
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:VisualElement>

@@ -286,7 +286,20 @@ namespace BurningAnt.UI
             root.Q<Button>("news-paper-button").clicked += game.ConfirmNews;
             root.Q<Button>("picker-cancel-button").clicked += () => Show(pickerOverlay, false);
             root.Q<Button>("repay-button").clicked += () => game.Repay(repayField.value * 10000f); // 입력은 만원 단위
-            root.Q<Button>("repay-all-button").clicked += () => game.Repay(Session.Portfolio.Cash);
+            // '최대': 바로 갚지 않고, 지금 갚을 수 있는 최대 금액(현금과 남은 빚+오늘 이자 중 작은 쪽)을 만원 단위로 칸에 채운다.
+            // 만원 단위 올림: 갚을 때 현금·빚을 넘는 만큼은 잘리므로 끝자리 몇 원이 남아 빚 0원이 안 되는 일이 없다
+            root.Q<Button>("repay-all-button").clicked += () =>
+            {
+                float owe = game.Loan.Debt + game.InterestLeft;
+                float max = Mathf.Min(Session.Portfolio.Cash, owe);
+                if (max <= 0f)
+                {
+                    settlementMessage.text = owe <= 0f ? "갚을 빚이 없어요" : "갚을 현금이 없어요";
+                    return;
+                }
+                repayField.SetValueWithoutNotify(Mathf.Ceil(max / 10000f));
+                settlementMessage.text = $"최대 {Format.Money(max)} (현금 {Format.Money(Session.Portfolio.Cash)} · 남은 빚+이자 {Format.Money(owe)}) — '빚 갚기'를 누르면 갚아요";
+            };
             loanButton.clicked += OpenLoan;
             root.Q<Button>("loan-cancel-button").clicked += CloseLoan;
             root.Q<Button>("loan-confirm-button").clicked += () =>
