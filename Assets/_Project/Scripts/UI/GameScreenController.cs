@@ -101,6 +101,7 @@ namespace BurningAnt.UI
         Label titleStart;
         float titleBlinkTimer;
         VisualElement flowCard, flowList, sideNewsList;
+        ScrollView sideTop;
         ScrollView settlementReport;
         TutorialRunner tutorial;
 
@@ -132,6 +133,7 @@ namespace BurningAnt.UI
             game.PhaseChanged += OnPhaseChanged;
             game.Message += OnMessage;
             game.ItemUsed += OnItemUsed;
+            game.NewsFlash += OnNewsFlash;
             gameObject.AddComponent<GameAudio>().Init(game, root);
             telescopePanel = root.Q("telescope-panel");
             telescopeTitle = root.Q<Label>("telescope-title");
@@ -156,6 +158,7 @@ namespace BurningAnt.UI
             game.PhaseChanged -= OnPhaseChanged;
             game.Message -= OnMessage;
             game.ItemUsed -= OnItemUsed;
+            game.NewsFlash -= OnNewsFlash;
             if (game.Inventory != null) game.Inventory.Changed -= RefreshItemBar;
             if (Session != null && Session.Portfolio != null) Session.Portfolio.Changed -= RefreshAll;
             if (stockWindow != null) stockWindow.SelectionChanged -= RefreshNews;
@@ -169,6 +172,7 @@ namespace BurningAnt.UI
             LayoutCharacter(false);
             characterMotion?.Update();
             UpdateUseFx();
+            UpdateFlashBlink();
             UpdateIntro();
             tutorial?.Update(IntroShowing());
             AutoPlay();
@@ -202,6 +206,7 @@ namespace BurningAnt.UI
             hintList = root.Q<ScrollView>("hint-list");
             hintCard = root.Q("hint-card");
             sideNewsList = root.Q("side-news-list");
+            sideTop = root.Q<ScrollView>("side-top");
             flowCard = root.Q("flow-card");
             flowList = root.Q("flow-list");
             settlementReport = root.Q<ScrollView>("settlement-report");
@@ -508,8 +513,8 @@ namespace BurningAnt.UI
 
         void OnMessage(string text)
         {
-            // 장 중 속보·마감 기사는 뉴스 칸에 뜬다. 아이템 칸 오른쪽에는 띄우지 않는다
-            if (text.StartsWith("[속보]") || text.StartsWith("[마감]")) return;
+            // 장 중 특보는 뉴스 칸에 뜬다. 아이템 칸 오른쪽에는 띄우지 않는다
+            if (text.StartsWith("[특보]")) return;
             lastMessage = text;
             if (game.Phase == GamePhase.Settlement) settlementMessage.text = text;
             if (game.Phase == GamePhase.Shop) shopMessage.text = text;
@@ -633,8 +638,35 @@ namespace BurningAnt.UI
             }
         }
 
+        // 특보가 뜬 시각 (깜빡임용) · 지금 깜빡이는 특보 줄
+        readonly System.Collections.Generic.Dictionary<NewsItem, float> flashTimes = new();
+        readonly System.Collections.Generic.List<(VisualElement el, float at)> freshFlashes = new();
+        const float FlashBlinkSeconds = 3f;
+
+        void OnNewsFlash(NewsItem n)
+        {
+            flashTimes[n] = Time.unscaledTime;
+            RefreshNews();
+            // 오른쪽 위 영역이 스크롤돼 있어도 새 특보가 보이게 맨 위로
+            if (sideTop != null) sideTop.scrollOffset = Vector2.zero;
+        }
+
+        void UpdateFlashBlink()
+        {
+            if (freshFlashes.Count == 0) return;
+            bool on = Mathf.Repeat(Time.unscaledTime, 0.5f) < 0.25f;
+            for (int i = freshFlashes.Count - 1; i >= 0; i--)
+            {
+                var (f, at) = freshFlashes[i];
+                bool alive = f.panel != null && Time.unscaledTime - at < FlashBlinkSeconds;
+                f.EnableInClassList("side-news-line--blink", alive && on);
+                if (!alive) freshFlashes.RemoveAt(i);
+            }
+        }
+
         void RefreshNews()
         {
+            freshFlashes.Clear();
             if (stockWindow != null)
                 foreach (var item in stockWindow.ListItems)
                 {
@@ -650,25 +682,39 @@ namespace BurningAnt.UI
                 : game.TodayNews.Concat(game.Foresights).Where(n => n.Stock == selected).ToList();
 
             newsBandList.Clear();
+            // 특보(결과)가 뜬 뉴스는 특보 줄을 위에 따로, 최초 기사는 그 아래에 그대로
+            foreach (var n in lines.Where(x => x.Revealed))
+            {
+                var flash = new Label($"[특보] {n.ResultText} ({Format.SignedPercent(n.Effect)})");
+                flash.AddToClassList("news-band-line");
+                flash.AddToClassList("news-band-line--flash");
+                newsBandList.Add(flash);
+            }
             foreach (var n in lines)
             {
-                // 결과가 뜨기 전엔 최초 기사만, 뜬 뒤엔 결과 기사와 변동률
-                var line = new Label("· " + (n.Revealed ? $"{n.ResultText} ({Format.SignedPercent(n.Effect)})" : n.Text));
+                var line = new Label("· " + n.Text);
                 line.AddToClassList("news-band-line");
-                line.EnableInClassList("news-band-line--chain", n.Revealed);
                 newsBandList.Add(line);
             }
             newsBandTitle.text = newsPhase ? $"{game.Day}일차 아침 뉴스" : "이 종목 오늘의 뉴스";
 
-            // 오른쪽 위 영역: 오늘 뉴스 전체 (결과가 뜬 뉴스는 결과 기사와 변동률)
+            // 오른쪽 위 영역: 맨 위에 특보(최근 것부터, 갓 뜬 특보는 몇 초 깜빡임), 그 아래 아침 최초 기사 전체
             if (sideNewsList != null)
             {
                 sideNewsList.Clear();
+                foreach (var n in game.TodayNews.Concat(game.Foresights).Where(x => x.Revealed).OrderByDescending(x => x.RevealTick))
+                {
+                    var flash = new Label($"[특보] {n.ResultText} ({Format.SignedPercent(n.Effect)})");
+                    flash.AddToClassList("side-news-line");
+                    flash.AddToClassList("side-news-line--flash");
+                    flash.AddToClassList(n.Effect >= 0f ? "side-news-line--up" : "side-news-line--down");
+                    if (flashTimes.TryGetValue(n, out float at) && Time.unscaledTime - at < FlashBlinkSeconds) freshFlashes.Add((flash, at));
+                    sideNewsList.Add(flash);
+                }
                 foreach (var n in game.TodayNews)
                 {
-                    var side = new Label("· " + (n.Revealed ? $"{n.ResultText} ({Format.SignedPercent(n.Effect)})" : n.Text));
+                    var side = new Label("· " + n.Text);
                     side.AddToClassList("side-news-line");
-                    side.EnableInClassList("side-news-line--revealed", n.Revealed);
                     sideNewsList.Add(side);
                 }
                 if (game.TodayNews.Count == 0) sideNewsList.Add(new Label("오늘은 뉴스가 없어요.") { name = "side-news-empty" });

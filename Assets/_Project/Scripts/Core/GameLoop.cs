@@ -81,7 +81,7 @@ namespace BurningAnt.Core
         public GamePhase Phase { get; private set; } = GamePhase.News;
         public int Day => session.Day;
         public IReadOnlyList<NewsItem> TodayNews => todayNews;
-        /// <summary>뉴스 없던 종목을 예지해서 생긴 템플릿 (플레이어만 앎, 결과 시점에 속보로 공개).</summary>
+        /// <summary>뉴스 없던 종목을 예지해서 생긴 템플릿 (플레이어만 앎, 결과 시점에 특보로 공개).</summary>
         public IReadOnlyList<NewsItem> Foresights => foresights;
         readonly List<NewsItem> foresights = new();
         public IReadOnlyList<string> Hints => hints;
@@ -121,6 +121,8 @@ namespace BurningAnt.Core
         public event Action<ItemDefinition> ItemBought;
         /// <summary>아이템을 실제로 썼을 때 (아이템, 결과 문구). 사용 연출·효과음용.</summary>
         public event Action<ItemDefinition, string> ItemUsed;
+        /// <summary>장 중 특보(뉴스 결과)가 뜬 순간. 곧이어(1초 뒤) 그 종목이 움직이기 시작한다.</summary>
+        public event Action<NewsItem> NewsFlash;
 
         void Awake()
         {
@@ -942,9 +944,10 @@ namespace BurningAnt.Core
                 if (n.Revealed || session.Tick < n.RevealTick) continue;
                 n.Revealed = true;
                 any = true;
-                string line = $"{(n.RevealAtClose ? "[마감]" : "[속보]")} {n.ResultText} ({Pct(n.Effect)})";
+                string line = $"[특보] {n.ResultText} ({Pct(n.Effect)})";
                 hints.Add(line);
                 Say(line);
+                NewsFlash?.Invoke(n);
             }
             if (any) Changed?.Invoke();
         }

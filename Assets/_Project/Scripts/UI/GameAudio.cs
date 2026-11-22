@@ -20,7 +20,7 @@ namespace BurningAnt.UI
         AudioClip tickUp, tickDown;
         StockWindowController stockWindow;
 
-        AudioClip title, morning, evening, gold, click, alarm, useSound;
+        AudioClip title, morning, evening, gold, click, alarm, useSound, flashSound;
         VisualElement[] introScreens;
         int boughtFrame = -1;
 
@@ -54,6 +54,8 @@ namespace BurningAnt.UI
             game.PhaseChanged += OnPhaseChanged;
             game.ItemBought += OnItemBought;
             game.ItemUsed += OnItemUsed;
+            game.NewsFlash += OnNewsFlash;
+            flashSound = MakeFlashSound();
             useSound = MakeUseSound();
             game.AlarmFired += OnAlarm;
             // 버블 단계(대상 처리 뒤)에서 듣는다: 같은 클릭으로 아이템을 샀으면 클릭음 대신 골드만
@@ -71,6 +73,7 @@ namespace BurningAnt.UI
             game.PhaseChanged -= OnPhaseChanged;
             game.ItemBought -= OnItemBought;
             game.ItemUsed -= OnItemUsed;
+            game.NewsFlash -= OnNewsFlash;
             game.AlarmFired -= OnAlarm;
             if (game.Session != null) game.Session.Ticked -= OnPriceTick;
         }
@@ -189,6 +192,29 @@ namespace BurningAnt.UI
         {
             boughtFrame = Time.frameCount;
             if (gold != null) sfx.PlayOneShot(gold, GoldVolume);
+        }
+
+        void OnNewsFlash(BurningAnt.News.NewsItem n) => sfx.PlayOneShot(flashSound, 0.8f);
+
+        /// <summary>특보 알림음: "띵-동-띵" 뉴스 차임 (1568·1175·1568Hz 사인파, 0.45초).</summary>
+        static AudioClip MakeFlashSound()
+        {
+            const int rate = 44100;
+            float[] notes = { 1568f, 1175f, 1568f };
+            int noteLen = rate * 15 / 100, n = noteLen * notes.Length;
+            var data = new float[n];
+            double phase = 0;
+            for (int i = 0; i < n; i++)
+            {
+                int k = i / noteLen;
+                float t = (i % noteLen) / (float)noteLen;
+                phase += 2 * System.Math.PI * notes[k] / rate;
+                float env = Mathf.Clamp01((i % noteLen) / (rate * 0.003f)) * Mathf.Pow(1f - t, 1.6f);
+                data[i] = (float)System.Math.Sin(phase) * env * 0.6f;
+            }
+            var clip = AudioClip.Create("news-flash", n, 1, rate, false);
+            clip.SetData(data, 0);
+            return clip;
         }
 
         void OnItemUsed(ItemDefinition item, string result) => sfx.PlayOneShot(useSound, 0.7f);

@@ -736,3 +736,10 @@
 .item-use-fx__text { flex-shrink: 1; }
 .item-use-fx__name { font-size: 26px; -unity-font-style: bold; color: #F2C14E; }
 .item-use-fx__desc { font-size: 17px; color: #FFFFFF; white-space: normal; margin-top: 4px; }
+
+/* 장 중 특보: 오른쪽 위 '오늘의 뉴스' 맨 위 · 선택 종목 뉴스 띠 맨 위 (갓 뜬 특보는 3초 깜빡임) */
+.side-news-line--flash { -unity-font-style: bold; color: #FFFFFF; padding: 4px 8px; border-radius: 6px; margin-bottom: 6px; }
+.side-news-line--up { background-color: var(--gs-up); }
+.side-news-line--down { background-color: var(--gs-down); }
+.side-news-line--blink { background-color: #F2C14E; color: #2A0E16; }
+.news-band-line--flash { -unity-font-style: bold; color: var(--gs-up); }

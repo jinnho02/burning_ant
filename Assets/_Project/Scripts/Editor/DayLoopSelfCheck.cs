@@ -149,7 +149,7 @@ namespace BurningAnt.Editor
                     Expect(Mathf.Abs(n.Effect) > n.Stock.DailyLimit, "떡상·떡락은 기본 구간보다 큼");
                     Expect(n.Success ? n.Effect > 0f : n.Effect < 0f, "성공은 상승, 실패는 하락");
                     Expect(n.RevealTick >= early && n.RevealTick <= ticks, "결과 시점은 장 전체 (첫 틱~마감)");
-                    Expect(n.RevealAtClose == (n.RevealTick == ticks), "마지막 틱이면 마감 발표");
+                    Expect(!n.RevealAtClose && n.RevealTick < ticks, "결과는 모두 장 중 특보");
                     if (!n.RevealAtClose) sawIntraday = true;
                     total++;
                     if (n.RevealTick <= (early + ticks) / 2) firstHalf++;
@@ -165,9 +165,12 @@ namespace BurningAnt.Editor
                         Expect(s.Path[i] >= s.LowerLimit - 1e-3f && s.Path[i] <= s.UpperLimit + 1e-3f, "평소엔 기본 구간 안 (전날 종가 기준)");
                     if (n != null)
                     {
-                        Expect(n.SettleTick >= n.RevealTick && n.SettleTick <= ticks, "결과 값에 닿는 시점은 속보 뒤, 장 마감 전");
+                        Expect(n.MoveTick == n.RevealTick + NewsGenerator.FlashLeadTicks && n.MoveTick <= ticks, "특보가 뜬 직후(2틱 뒤)부터 움직임");
+                        Expect(n.SettleTick >= n.MoveTick && n.SettleTick <= ticks, "결과 값에 닿는 시점은 움직임 시작 뒤, 장 마감 전");
+                        for (int i = 0; i < n.MoveTick; i++)
+                            Expect(s.Path[i] >= s.LowerLimit - 1e-3f && s.Path[i] <= s.UpperLimit + 1e-3f, "특보 전·특보 직후 1초는 아직 기본 구간 안");
                         Near(s.Path[n.SettleTick] / s.PrevClose - 1f, n.Effect, "결과 값에 다 닿는 틱에 템플릿 값으로 고정");
-                        if (n.Steps == 1) Expect(n.SettleTick == n.RevealTick, "한 번에 뛰는 경우는 속보 틱에 바로");
+                        if (n.Steps == 1) Expect(n.SettleTick == n.MoveTick, "한 번에 뛰는 경우는 움직임 시작 틱에 바로");
                         else if (n.Steps >= 2) sawSteps = true;
                         else sawGradual = true;
                     }

@@ -67,7 +67,7 @@ namespace BurningAnt.Market
                 }
                 else
                 {
-                    // 계단식: steps번 크게 뛰고, 사이에는 그 높이 근처에서 흔들림. 첫 계단은 속보가 뜨는 틱, 마지막은 settleTick
+                    // 계단식: steps번 크게 뛰고, 사이에는 그 높이 근처에서 흔들림. 첫 계단은 움직이기 시작하는 틱, 마지막은 settleTick
                     var cut = new float[steps];
                     float sum = 0f;
                     for (int k = 0; k < steps; k++) { cut[k] = 0.5f + (float)rng.NextDouble(); sum += cut[k]; }

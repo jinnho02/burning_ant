@@ -18,8 +18,10 @@ namespace BurningAnt.News
         public NewsKind Kind;
         public NewsTemplate Template;
         public bool Success;
-        /// <summary>결과 기사(속보)가 뜨고 주가가 움직이기 시작하는 틱 (장 마감 = 틱 수).</summary>
+        /// <summary>결과 기사(특보)가 뜨는 틱. 주가는 이 뒤 MoveTick부터 움직인다.</summary>
         public int RevealTick;
+        /// <summary>특보가 뜬 직후 주가가 움직이기 시작하는 틱 (= RevealTick + 특보 뒤 간격).</summary>
+        public int MoveTick;
         /// <summary>주가가 결과 값(Effect)에 다 닿는 틱. RevealTick과 같으면 한 번에 뛴다.</summary>
         public int SettleTick;
         /// <summary>움직이는 방식: 1 = 한 번에, 2~4 = 그 횟수만큼 계단식, 0 = 여러 틱에 걸쳐 차근차근.</summary>
@@ -40,6 +42,9 @@ namespace BurningAnt.News
     /// </summary>
     public class NewsGenerator
     {
+        /// <summary>특보가 뜬 뒤 주가가 움직이기 시작할 때까지 틱 수 (2틱 = 1초). 특보를 읽을 틈.</summary>
+        public const int FlashLeadTicks = 2;
+
         readonly NewsSettings settings;
         readonly System.Random rng;
         readonly HashSet<NewsTemplate> usedToday = new();
@@ -71,7 +76,7 @@ namespace BurningAnt.News
             {
                 var item = news.FirstOrDefault(n => n.Stock == stock);
                 stock.PrepareDay(item != null
-                    ? PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.RevealTick, item.Effect, market, rng, item.SettleTick, item.Steps)
+                    ? PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps)
                     : PricePathGenerator.Generate(stock.PrevClose, stock.DailyLimit, market, rng));
             }
         }
@@ -82,7 +87,7 @@ namespace BurningAnt.News
             var item = Create(stock, NewsKind.Foresight, market.ticksPerDay);
             if (item == null) return null;
             item.Foreseen = true;
-            stock.PrepareDay(PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.RevealTick, item.Effect, market, rng, item.SettleTick, item.Steps));
+            stock.PrepareDay(PricePathGenerator.GenerateWithReveal(stock.PrevClose, stock.DailyLimit, item.MoveTick, item.Effect, market, rng, item.SettleTick, item.Steps));
             return item;
         }
 
@@ -115,24 +120,27 @@ namespace BurningAnt.News
             var template = candidates[rng.Next(candidates.Count)];
             usedToday.Add(template);
             bool success = rng.NextDouble() < settings.successChance;
-            // 결과(폭등·폭락) 시점: 장 진행 earliestReveal~latestReveal(0~100%) 구간에서 균등하게 무작위.
-            // 마지막 틱에 걸리면 장 마감 발표로 표시한다 (예전 '50%는 장 마감' 규칙은 없앰)
-            int earliest = Mathf.Clamp(Mathf.RoundToInt(ticksPerDay * settings.earliestReveal), 1, ticksPerDay);
-            int latest = Mathf.Clamp(Mathf.RoundToInt(ticksPerDay * settings.latestReveal), earliest, ticksPerDay);
+            // 특보 시점: 장 진행 earliestReveal~latestReveal(0~100%) 구간에서 균등하게 무작위.
+            // 특보가 먼저 뜨고 FlashLeadTicks 뒤부터 주가가 움직인다 (마지막 틱에도 움직일 수 있게 특보는 그만큼 앞까지)
+            int lead = Mathf.Max(0, FlashLeadTicks);
+            int lastReveal = Mathf.Max(1, ticksPerDay - lead);
+            int earliest = Mathf.Clamp(Mathf.RoundToInt(ticksPerDay * settings.earliestReveal), 1, lastReveal);
+            int latest = Mathf.Clamp(Mathf.RoundToInt(ticksPerDay * settings.latestReveal), earliest, lastReveal);
             int revealTick = rng.Next(earliest, latest + 1);
-            bool atClose = revealTick >= ticksPerDay;
+            int moveTick = Mathf.Min(ticksPerDay, revealTick + lead);
+            bool atClose = false; // 결과는 모두 장 중 특보로 뜬다
 
             // 움직이는 방식: 한 번에 40% · 계단식(2~4번) 30% · 차근차근 30%. 길이는 장 길이의 8~35%,
             // 장 마감 전에 다 닿도록 남은 시간에 맞춘다 (남은 시간이 짧으면 자연히 한 번에)
-            int steps = 1, settleTick = revealTick;
-            int room = ticksPerDay - revealTick;
+            int steps = 1, settleTick = moveTick;
+            int room = ticksPerDay - moveTick;
             double roll = rng.NextDouble();
             if (roll >= 0.4 && room >= 4)
             {
                 int span = Mathf.Max(3, Mathf.RoundToInt(ticksPerDay * (0.08f + (float)rng.NextDouble() * 0.27f)));
-                settleTick = revealTick + Mathf.Min(span, room);
+                settleTick = moveTick + Mathf.Min(span, room);
                 steps = roll < 0.7 ? rng.Next(2, 5) : 0;
-                if (steps > settleTick - revealTick + 1) steps = settleTick - revealTick + 1;
+                if (steps > settleTick - moveTick + 1) steps = settleTick - moveTick + 1;
             }
             return new NewsItem
             {
@@ -142,6 +150,7 @@ namespace BurningAnt.News
                 Success = success,
                 RevealAtClose = atClose,
                 RevealTick = revealTick,
+                MoveTick = moveTick,
                 SettleTick = settleTick,
                 Steps = steps,
                 Effect = TargetChange(stock, template, success),
