@@ -9,7 +9,7 @@ namespace BurningAnt.UI
     /// <summary>
     /// 브금과 효과음. 브금: 1·2단계 = 아침, 3단계(장) = 없음, 4·5단계 = 저녁 (계속 반복).
     /// 아이템을 사면 골드, 그 밖의 클릭은 코드로 만든 짧은 클릭음.
-    /// 파일은 Resources/Audio (title·morning·night·골드.mp3). 같은 이름으로 바꿔 넣으면 그대로 쓰인다.
+    /// 파일은 Resources/Audio (title·morning·night·happyending·badending·골드.mp3). 같은 이름으로 바꿔 넣으면 그대로 쓰인다.
     /// </summary>
     public class GameAudio : MonoBehaviour
     {
@@ -20,7 +20,7 @@ namespace BurningAnt.UI
         AudioClip tickUp, tickDown;
         StockWindowController stockWindow;
 
-        AudioClip title, morning, evening, gold, click, alarm, useSound, flashSound;
+        AudioClip title, morning, evening, happyEnding, badEnding, gold, click, alarm, useSound, flashSound;
         VisualElement[] introScreens;
         int boughtFrame = -1;
 
@@ -42,10 +42,12 @@ namespace BurningAnt.UI
             stockWindow = GetComponent<StockWindowController>();
             game.Session.Ticked += OnPriceTick;
 
-            // 브금 3곡: title = 경고창·타이틀·프롤로그·엔딩, morning = 1·2단계, night = 4·5단계. 3단계(장)는 브금 없이 주가 효과음만
+            // 브금: title = 경고창·타이틀·프롤로그, morning = 1·2단계, night = 4·5단계, 엔딩 = happyending(성공)·badending(파산). 3단계(장)는 브금 없이 주가 효과음만
             title = Resources.Load<AudioClip>("Audio/title");
             morning = Resources.Load<AudioClip>("Audio/morning");
             evening = Resources.Load<AudioClip>("Audio/night");
+            happyEnding = Resources.Load<AudioClip>("Audio/happyending"); // 성공 엔딩
+            badEnding = Resources.Load<AudioClip>("Audio/badending");     // 파산 엔딩
             introScreens = new[] { root.Q("warning-overlay"), root.Q("title-overlay"), root.Q("prologue-overlay") };
             gold = Resources.Load<AudioClip>("Audio/골드");
             click = MakeClick();
@@ -160,7 +162,7 @@ namespace BurningAnt.UI
                 GamePhase.News or GamePhase.Prep => morning,
                 GamePhase.Market => null, // 장 중엔 브금 없음
                 GamePhase.Settlement or GamePhase.Shop => evening,
-                _ => title, // 엔딩
+                _ => game.Won ? (happyEnding ?? title) : (badEnding ?? title), // 엔딩: 성공 = 해피엔딩, 파산 = 배드엔딩
             };
         }
 
@@ -178,13 +180,15 @@ namespace BurningAnt.UI
             bgm.Play();
         }
 
-        // 곡마다 원래 음량이 달라서 (실측 RMS: title 0.139, morning 0.109, night 0.199)
+        // 곡마다 원래 음량이 달라서 (실측 RMS: title 0.139, morning 0.109, night 0.199, happyending 0.227, badending 0.175)
         // 모두 RMS 0.11 기준으로 맞춘다. 곡을 바꿔 넣으면 이 값도 다시 재서 고치기.
         float Gain(AudioClip clip)
         {
             if (clip == title) return 0.11f / 0.139f;
             if (clip == morning) return 0.11f / 0.109f;
             if (clip == evening) return 0.11f / 0.199f;
+            if (clip == happyEnding) return 0.11f / 0.227f;
+            if (clip == badEnding) return 0.11f / 0.175f;
             return 1f;
         }
 
