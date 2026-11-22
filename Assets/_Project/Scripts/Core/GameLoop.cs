@@ -182,6 +182,32 @@ namespace BurningAnt.Core
         /// <summary>그날 수익률 (표정 기준). 뉴스 단계 시점 총자산 대비.</summary>
         public float TodayReturn() => DayStartAssets > 0f ? TotalAssets() / DayStartAssets - 1f : 0f;
 
+        /// <summary>보유 종목 전체의 수익률 (평가손익 합 / 넣은 돈 합, 레버리지 포함). 보유가 없으면 null.</summary>
+        public float? HoldingsReturn()
+        {
+            float cost = 0f, pnl = 0f;
+            foreach (var s in session.Portfolio.HeldStocks)
+            {
+                var h = session.Portfolio.GetHolding(s);
+                cost += h.Cost;
+                pnl += h.ProfitLoss(session.CurrentPrice(s));
+            }
+            return cost > 0f ? pnl / cost : null;
+        }
+
+        /// <summary>
+        /// 주인공 표정 기준: 오늘 전체 수익률과 보유 종목 수익률 중 더 극단적인 쪽.
+        /// 자산 일부만 넣은 종목이 폭락해도 전체로는 -6%라 '보합'으로 남던 문제 → 보유 종목이 폭락하면 표정도 폭락.
+        /// 보유하지 않은 종목의 변동은 반영하지 않는다.
+        /// </summary>
+        public float MoodReturn(out bool fromHoldings)
+        {
+            float today = TodayReturn();
+            var held = HoldingsReturn();
+            fromHoldings = held.HasValue && Mathf.Abs(held.Value) > Mathf.Abs(today);
+            return fromHoldings ? held.Value : today;
+        }
+
         // ───────── 단계 전환 ─────────
 
         void BeginDay()

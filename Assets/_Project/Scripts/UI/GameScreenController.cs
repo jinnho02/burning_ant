@@ -588,7 +588,8 @@ namespace BurningAnt.UI
 
             // 주인공
             float today = game.TodayReturn();
-            var mood = game.Character.GetMood(today);
+            float moodReturn = game.MoodReturn(out bool fromHoldings); // 보유 종목이 더 크게 움직였으면 그쪽 기준
+            var mood = game.Character.GetMood(moodReturn);
             bool beforeMarket = game.Phase is GamePhase.News or GamePhase.Prep;
             var image = beforeMarket && game.Character.prepImage != null ? game.Character.prepImage : game.Character.MoodImage(mood);
             SetImage(portrait, image);
@@ -596,8 +597,10 @@ namespace BurningAnt.UI
             faceLabel.text = CharacterSettings.MoodFace(mood);
             faceLabel.style.display = image == null ? DisplayStyle.Flex : DisplayStyle.None;
             speechLabel.text = beforeMarket ? game.Character.prepLine : game.Character.MoodLine(mood);
-            moodLabel.text = $"{CharacterSettings.MoodName(mood)} · 오늘 {Format.SignedPercent(today)}";
-            Format.SetTrendClass(moodLabel, today);
+            moodLabel.text = fromHoldings
+                ? $"{CharacterSettings.MoodName(mood)} · 보유 종목 {Format.SignedPercent(moodReturn)}"
+                : $"{CharacterSettings.MoodName(mood)} · 오늘 {Format.SignedPercent(today)}";
+            Format.SetTrendClass(moodLabel, moodReturn);
 
             // 뉴스를 확인하기 전(1단계)에는 예약·장 시작을 막는다 (예전엔 뉴스 팝업이 화면을 가렸다)
             bool newsPhase = game.Phase == GamePhase.News;
