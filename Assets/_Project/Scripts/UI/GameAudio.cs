@@ -74,7 +74,7 @@ namespace BurningAnt.UI
 
         // 주가 효과음: 보고 있는 종목의 가격이 한 틱 움직일 때마다 짧은 음.
         // 오르면 높은 음, 내리면 낮은 음 (움직인 만큼 더 높게/낮게), 크게 움직일수록 크게.
-        const float TickMaxVolume = 0.24f, TickMinVolume = 0.04f; // 장 중엔 브금이 없어서 이 정도로 (클립 진폭 0.5 기준, 처음 대비 약 2배)
+        const float TickMaxVolume = 0.48f, TickMinVolume = 0.08f, TickCapVolume = 1.6f; // 클립 진폭 0.5 기준, 처음 대비 약 4배
 
         // 클릭음이 나는 요소: 버튼, 상점 칸, 종목 줄, 그리고 클릭해서 넘기는 화면(경고창·타이틀·프롤로그·엔딩).
         // 빈 곳·글자·카드를 누를 때는 소리가 안 난다.
@@ -101,8 +101,8 @@ namespace BurningAnt.UI
             // 한 틱 변동을 그 종목 하루 변동 구간 대비로 본다 (구간의 6%를 움직이면 최대)
             float raw = Mathf.Abs(change) / Mathf.Max(0.0005f, stock.DailyLimit * 0.06f);
             float strength = Mathf.Clamp01(raw);
-            // 평소(구간의 6%까지)는 그대로, 그보다 크게 튀면(폭등·폭락·특보) 변동률만큼 더 크게 (최대 1)
-            float volume = raw <= 1f ? Mathf.Lerp(TickMinVolume, TickMaxVolume, strength) : Mathf.Min(1f, TickMaxVolume * raw);
+            // 평소(구간의 6%까지)는 그대로, 그보다 크게 튀면(폭등·폭락·특보) 변동률만큼 더 크게 (최대 TickCapVolume)
+            float volume = raw <= 1f ? Mathf.Lerp(TickMinVolume, TickMaxVolume, strength) : Mathf.Min(TickCapVolume, TickMaxVolume * raw);
             if (strength < 0.12f) return; // 작은 흔들림엔 조용히 (자주 울리지 않게)
             // 오르면 1.0~1.6배, 내리면 1.0~0.6배 피치 (상승·하락 소리 자체도 위·아래로 미끄러짐)
             tickSfx.pitch = change >= 0f ? Mathf.Lerp(1.0f, 1.1f, strength) : Mathf.Lerp(1.0f, 0.92f, strength); // 상승 740~880Hz, 하락 552~660Hz (겹치지 않게)
