@@ -893,7 +893,7 @@ namespace BurningAnt.UI
                 AddFlow(res.Count == 0
                     ? "○ 예약 주문 없음"
                     : "● 예약 " + res.Count + "건: " + string.Join(", ", res.Select(o =>
-                        $"{o.Stock.Name} {(o.Side == OrderSide.Buy ? "매수" : "매도")} {(o.UseMax ? "최대" : o.Quantity + "주")}")),
+                        $"{o.Stock.Name} {(o.Side == OrderSide.Buy ? "매수" : "매도")} {(o.UseMax ? "최대" : o.Quantity.ToString("N0") + "주")}")),
                     res.Count == 0 ? "todo" : "done");
             }
             else

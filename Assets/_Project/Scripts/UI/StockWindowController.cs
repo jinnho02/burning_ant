@@ -30,6 +30,7 @@ namespace BurningAnt.UI
         Label holdingCountLabel, nameLabel, typeBadge, phaseBadge, priceLabel, changeLabel, gapLabel;
         Label upperLabel, lowerLabel, chartHint, sharesLabel, averageLabel, profitLabel, returnLabel;
         Label cashLabel, reservationLabel, messageLabel;
+        Button cancelReservationButton;
         VisualElement listContainer, progressFill;
         PriceChartElement chart;
         IntegerField quantityField;
@@ -93,6 +94,7 @@ namespace BurningAnt.UI
             sellButton = root.Q<Button>("sell-button");
             startButton = root.Q<Button>("start-button");
             reservationLabel = root.Q<Label>("reservations");
+            cancelReservationButton = root.Q<Button>("cancel-reservation-button");
             messageLabel = root.Q<Label>("message");
         }
 
@@ -190,6 +192,12 @@ namespace BurningAnt.UI
             // '최대': 지금 현금과 주가로 살 수 있는 최대 주식 수를 수량 칸에 채운다 (칸은 그대로 열려 있어 고칠 수 있음).
             // 장 전엔 시가를 모르므로 전날 종가 기준 (시가가 다르면 예약 체결 때 모자랄 수 있음)
             maxButton.clicked += FillMaxQuantity;
+            if (cancelReservationButton != null)
+                cancelReservationButton.clicked += () =>
+                {
+                    if (selected != null && session.CancelReservations(selected)) ShowMessage($"{selected.Name} 예약을 취소했어요");
+                    Refresh();
+                };
             quantityField.RegisterValueChangedCallback(_ => { useMax = false; ShowMessage(""); Refresh(); });
             startButton.clicked += () =>
             {
@@ -348,8 +356,14 @@ namespace BurningAnt.UI
             reservationLabel.text = session.Reservations.Count == 0
                 ? ""
                 : "예약: " + string.Join(", ", session.Reservations.Select(o =>
-                      $"{o.Stock.Name} {(o.Side == OrderSide.Buy ? "매수" : "매도")} {(o.UseMax ? "최대" : o.Quantity + "주")}"))
-                  + " — 장 시작 시 시가로 자동 체결";
+                      $"{o.Stock.Name} {(o.Side == OrderSide.Buy ? "매수" : "매도")} {(o.UseMax ? "최대" : o.Quantity.ToString("N0") + "주")}"))
+                  + "\n장 시작 때 시가로 자동 체결 (현금·보유 수량을 넘으면 되는 만큼만)";
+            bool hasReservation = pre && selected != null && session.Reservations.Any(o => o.Stock == selected);
+            if (cancelReservationButton != null)
+            {
+                cancelReservationButton.style.display = hasReservation ? DisplayStyle.Flex : DisplayStyle.None;
+                if (selected != null) cancelReservationButton.text = $"{selected.Name} 예약 취소";
+            }
         }
     }
 }

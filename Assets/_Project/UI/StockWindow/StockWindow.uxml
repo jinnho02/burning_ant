@@ -81,7 +81,8 @@
                 <ui:Button name="start-button" text="장 시작" class="action-button start-button" />
             </ui:VisualElement>
 
-            <ui:Label name="reservations" class="caption" />
+            <ui:Label name="reservations" class="caption reservations" />
+            <ui:Button name="cancel-reservation-button" text="예약 취소" class="cancel-reservation-button" />
             <ui:Label name="message" class="caption message" />
         </ui:VisualElement>
     </ui:VisualElement>

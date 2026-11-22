@@ -73,12 +73,32 @@ namespace BurningAnt.Market
         public float CurrentPrice(StockState stock) =>
             Phase == MarketPhase.PreMarket ? stock.PrevClose : stock.PriceAt(Tick);
 
+        /// <summary>
+        /// 장 전 예약. 같은 종목·같은 방향 예약이 이미 있으면 줄을 늘리지 않고 수량을 더한다 (둘 중 하나라도 '최대'면 최대).
+        /// </summary>
         public bool Reserve(OrderRequest order)
         {
             if (Phase != MarketPhase.PreMarket) return false;
-            reservations.Add(order);
+            int i = reservations.FindIndex(o => o.Stock == order.Stock && o.Side == order.Side);
+            if (i >= 0)
+            {
+                var old = reservations[i];
+                bool max = old.UseMax || order.UseMax;
+                long sum = (long)old.Quantity + order.Quantity;
+                reservations[i] = new OrderRequest(order.Stock, order.Side, (int)System.Math.Min(int.MaxValue, sum), max);
+            }
+            else reservations.Add(order);
             ReservationsChanged?.Invoke();
             return true;
+        }
+
+        /// <summary>그 종목의 장 전 예약(매수·매도 모두)을 취소한다. 취소한 게 있으면 true.</summary>
+        public bool CancelReservations(StockState stock)
+        {
+            if (Phase != MarketPhase.PreMarket) return false;
+            int removed = reservations.RemoveAll(o => o.Stock == stock);
+            if (removed > 0) ReservationsChanged?.Invoke();
+            return removed > 0;
         }
 
         public TradeResult Trade(OrderRequest order)
@@ -105,7 +125,17 @@ namespace BurningAnt.Market
 
             var results = new List<TradeResult>();
             foreach (var order in reservations)
-                results.Add(ExecuteAndReport(order, order.Stock.OpenPrice));
+            {
+                // 예약 수량이 시가 기준으로 살 수 있는 수(매수) · 가진 수(매도)를 넘으면 되는 만큼만 체결한다
+                // (예전엔 통째로 실패). 0주면 실패로 알린다.
+                var o = order;
+                if (!o.UseMax)
+                {
+                    int cap = o.Side == OrderSide.Buy ? Portfolio.MaxBuyable(o.Stock.OpenPrice) : Portfolio.GetHolding(o.Stock).Shares;
+                    if (o.Quantity > cap && cap >= 1) o = new OrderRequest(o.Stock, o.Side, cap, false);
+                }
+                results.Add(ExecuteAndReport(o, o.Stock.OpenPrice));
+            }
             reservations.Clear();
             ReservationsChanged?.Invoke();
             if (results.Count > 0) ReservationsExecuted?.Invoke(results);

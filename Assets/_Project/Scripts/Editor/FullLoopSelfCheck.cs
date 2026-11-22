@@ -82,11 +82,29 @@ namespace BurningAnt.Editor
                     }
                     if (days == 2 && loop.Loan.CanTakeExtraLoan) loop.TakeExtraLoan();
 
+                    // 예약 합치기 · 취소 확인 (1일차, 승리 경로 제외)
+                    if (days == 1 && !forceWin)
+                    {
+                        var x = session.Stocks[0];
+                        session.Reserve(new OrderRequest(x, OrderSide.Buy, 10, false));
+                        session.Reserve(new OrderRequest(x, OrderSide.Buy, 10, false));
+                        Expect(session.Reservations.Count == 1 && session.Reservations[0].Quantity == 20, "같은 종목·방향 예약은 수량을 더해 한 줄 (10주 + 10주 = 20주)");
+                        Expect(session.CancelReservations(x) && session.Reservations.Count == 0, "종목 예약 취소");
+                    }
+
                     // 예약: 무작위 2종목 매수
                     foreach (var s in session.Stocks.OrderBy(_ => rng.Next()).Take(2))
                         session.Reserve(new OrderRequest(s, OrderSide.Buy, Math.Max(1, (int)(session.Portfolio.Cash / 4f / Math.Max(1f, s.PrevClose))), false));
+                    // 살 수 없을 만큼 큰 예약은 되는 만큼만 체결 (예전엔 통째로 실패)
+                    StockState huge = null;
+                    if (days == 1 && !forceWin)
+                    {
+                        huge = session.Stocks.First(s => session.Portfolio.GetHolding(s).Shares == 0 && !session.Reservations.Any(o => o.Stock == s));
+                        session.Reserve(new OrderRequest(huge, OrderSide.Buy, 100_000_000, false));
+                    }
                     session.StartMarket();
                     Expect(loop.Phase == GamePhase.Market, "장 시작 → 3단계");
+                    if (huge != null) Expect(session.Portfolio.GetHolding(huge).Shares > 0, "1억 주 예약은 현금으로 살 수 있는 만큼만 체결");
 
                     // 장 절반 진행 → 장 중 아이템 → 일부 매매 → 나머지
                     Advance(session, session.Settings.ticksPerDay / 2);

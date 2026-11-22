@@ -104,3 +104,7 @@
 .buy-button { background-color: rgba(226, 75, 74, 0.12); color: var(--color-up); border-color: var(--color-up); }
 .sell-button { background-color: rgba(55, 138, 221, 0.12); color: var(--color-down); border-color: var(--color-down); }
 .message { min-height: 22px; }
+
+/* 예약 목록: 길어지면 줄바꿈 (패널 밖으로 넘치지 않게) */
+.reservations { white-space: normal; flex-shrink: 1; }
+.cancel-reservation-button { align-self: flex-start; height: 30px; font-size: 14px; margin-top: 4px; display: none; }
