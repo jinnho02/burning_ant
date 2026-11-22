@@ -128,8 +128,13 @@ namespace BurningAnt.Editor
                     }
                     if (loop.Today.Interest > 0f)
                     {
+                        float cash0 = session.Portfolio.Cash, debt0 = loop.Loan.Debt, net0 = loop.NetWorth(), left0 = loop.InterestLeft;
                         loop.PayInterest();
+                        float paid = left0 - loop.InterestLeft;
                         Expect(loop.InterestLeft <= 0.5f || session.Portfolio.Cash <= 0.5f, "이자 갚기");
+                        Expect(Mathf.Abs((cash0 - session.Portfolio.Cash) - paid) < 1000f, $"이자 갚기: 낸 만큼 현금이 준다 (낸 {paid}, 현금 {cash0}→{session.Portfolio.Cash})");
+                        Expect(Mathf.Abs(loop.Loan.Debt - debt0) < 1000f, "이자 갚기: 원금(빚)은 그대로");
+                        Expect(Mathf.Abs((net0 - loop.NetWorth()) - paid) < 1000f, "이자 갚기: 순자산은 낸 만큼 준다 (현금이 줄었으니)");
                     }
                     else Expect(days < 3 || loop.Today.InterestDeferred || loop.Loan.InterestDue(loop.Day) <= 0.5f, "3일차부터 매일 이자 (이자가 붙는 대출이 있으면)"); // 기본 대출을 다 갚고 남은 대출이 아직 유예 기간이면 0원일 수 있다
                     if (session.Portfolio.Cash > 30_000_000f) loop.Repay(session.Portfolio.Cash * 0.3f);

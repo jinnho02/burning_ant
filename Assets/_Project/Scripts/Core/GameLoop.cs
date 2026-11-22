@@ -357,10 +357,12 @@ namespace BurningAnt.Core
                 Say("이자를 낼 현금이 없어요");
                 return;
             }
+            float cashBefore = session.Portfolio.Cash;
             session.Portfolio.Withdraw(pay);
             Loan.RecordInterestPaid(pay);
             Today.InterestPaid += pay;
-            Say($"이자 {Money(pay)} 냈어요");
+            // 이자는 원금(빚)을 줄이지 않는 비용이라 현금과 순자산이 같이 준다는 걸 바로 보이게
+            Say($"이자 {Money(pay)} 냈어요 · 현금 {Money(cashBefore)} → {Money(session.Portfolio.Cash)} (이자는 빚 원금을 줄이지 않아요)");
             if (CheckWin()) return;
             Changed?.Invoke();
         }
