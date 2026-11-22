@@ -717,3 +717,22 @@
     -unity-font-style: bold;
     white-space: nowrap;
 }
+
+/* 아이템 사용 연출 (GameScreenController.OnItemUsed): 화면 위쪽 가운데, 클릭을 막지 않음 */
+.item-use-fx {
+    position: absolute;
+    left: 50%; top: 14%;
+    translate: -50% 0;
+    flex-direction: row;
+    align-items: center;
+    max-width: 760px;
+    padding: 14px 24px 14px 16px;
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: #F2C14E;
+    background-color: rgba(20, 8, 14, 0.88);
+}
+.item-use-fx__icon { width: 96px; height: 96px; flex-shrink: 0; margin-right: 16px; -unity-background-scale-mode: scale-to-fit; }
+.item-use-fx__text { flex-shrink: 1; }
+.item-use-fx__name { font-size: 26px; -unity-font-style: bold; color: #F2C14E; }
+.item-use-fx__desc { font-size: 17px; color: #FFFFFF; white-space: normal; margin-top: 4px; }

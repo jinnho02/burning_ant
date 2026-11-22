@@ -20,7 +20,7 @@ namespace BurningAnt.UI
         AudioClip tickUp, tickDown;
         StockWindowController stockWindow;
 
-        AudioClip title, morning, evening, gold, click, alarm;
+        AudioClip title, morning, evening, gold, click, alarm, useSound;
         VisualElement[] introScreens;
         int boughtFrame = -1;
 
@@ -53,6 +53,8 @@ namespace BurningAnt.UI
 
             game.PhaseChanged += OnPhaseChanged;
             game.ItemBought += OnItemBought;
+            game.ItemUsed += OnItemUsed;
+            useSound = MakeUseSound();
             game.AlarmFired += OnAlarm;
             // 버블 단계(대상 처리 뒤)에서 듣는다: 같은 클릭으로 아이템을 샀으면 클릭음 대신 골드만
             root.RegisterCallback<ClickEvent>(e =>
@@ -68,6 +70,7 @@ namespace BurningAnt.UI
             if (game == null) return;
             game.PhaseChanged -= OnPhaseChanged;
             game.ItemBought -= OnItemBought;
+            game.ItemUsed -= OnItemUsed;
             game.AlarmFired -= OnAlarm;
             if (game.Session != null) game.Session.Ticked -= OnPriceTick;
         }
@@ -186,6 +189,33 @@ namespace BurningAnt.UI
         {
             boughtFrame = Time.frameCount;
             if (gold != null) sfx.PlayOneShot(gold, GoldVolume);
+        }
+
+        void OnItemUsed(ItemDefinition item, string result) => sfx.PlayOneShot(useSound, 0.7f);
+
+        /// <summary>아이템 사용음: 칩튠 "띠리링" (C6·E6·G6·C7 빠른 상승 아르페지오, 약 0.3초).</summary>
+        static AudioClip MakeUseSound()
+        {
+            const int rate = 44100;
+            float[] notes = { 1046.5f, 1318.5f, 1568f, 2093f };
+            int noteLen = rate * 6 / 100, n = noteLen * notes.Length + rate * 8 / 100;
+            int tailStart = noteLen * (notes.Length - 1);
+            var data = new float[n];
+            double phase = 0;
+            float smooth = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                int k = Mathf.Min(i / noteLen, notes.Length - 1);
+                phase += notes[k] / rate;
+                float sq = (phase % 1.0) < 0.5 ? 1f : -1f;
+                smooth += (sq - smooth) * 0.25f;
+                float env = i < tailStart ? 1f : Mathf.Clamp01(1f - (i - tailStart) / (float)(n - tailStart));
+                env *= Mathf.Clamp01(i / (rate * 0.003f));
+                data[i] = smooth * env * 0.35f;
+            }
+            var clip = AudioClip.Create("item-use", n, 1, rate, false);
+            clip.SetData(data, 0);
+            return clip;
         }
 
         void OnAlarm() => sfx.PlayOneShot(alarm, 0.8f);

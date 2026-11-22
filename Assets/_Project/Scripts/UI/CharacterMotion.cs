@@ -55,6 +55,20 @@ namespace BurningAnt.UI
             calm = beforeMarket;
         }
 
+        /// <summary>아이템을 쓴 순간: 통 튀고 머리 위에 한마디.</summary>
+        public void React(string line)
+        {
+            popStart = Time.unscaledTime;
+            var box = portrait.layout;
+            mumble.text = line;
+            mumble.style.left = box.x + box.width * 0.08f;
+            mumble.style.top = box.y + box.height * 0.04f;
+            mumble.style.display = DisplayStyle.Flex;
+            mumble.BringToFront();
+            mumbleUntil = Time.unscaledTime + 1.8f;
+            nextMumble = Mathf.Max(nextMumble, Time.unscaledTime + 4f);
+        }
+
         public void Update()
         {
             if (portrait.panel == null || portrait.resolvedStyle.display == DisplayStyle.None) return;

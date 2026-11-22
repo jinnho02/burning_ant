@@ -73,6 +73,11 @@ namespace BurningAnt.UI
         PriceChartElement chart;
         VisualElement portrait, characterArea;
         CharacterMotion characterMotion; // 숨쉬기·들썩임·떨림·땀·중얼거림
+        // 아이템 사용 연출: 화면 위쪽 가운데에 그림·이름·효과가 1.8초 동안 통 떴다 사라진다 (클릭·시간 진행을 막지 않음)
+        VisualElement useFx, useFxIcon;
+        Label useFxName, useFxText;
+        float useFxStart = -10f;
+        const float UseFxDuration = 1.8f;
         float appliedCharacterScale = -1f;
         string lastMessage = "";
         float hintTimer;
@@ -126,6 +131,7 @@ namespace BurningAnt.UI
             game.Changed += RefreshAll;
             game.PhaseChanged += OnPhaseChanged;
             game.Message += OnMessage;
+            game.ItemUsed += OnItemUsed;
             gameObject.AddComponent<GameAudio>().Init(game, root);
             telescopePanel = root.Q("telescope-panel");
             telescopeTitle = root.Q<Label>("telescope-title");
@@ -149,6 +155,7 @@ namespace BurningAnt.UI
             game.Changed -= RefreshAll;
             game.PhaseChanged -= OnPhaseChanged;
             game.Message -= OnMessage;
+            game.ItemUsed -= OnItemUsed;
             if (game.Inventory != null) game.Inventory.Changed -= RefreshItemBar;
             if (Session != null && Session.Portfolio != null) Session.Portfolio.Changed -= RefreshAll;
             if (stockWindow != null) stockWindow.SelectionChanged -= RefreshNews;
@@ -161,6 +168,7 @@ namespace BurningAnt.UI
             BlinkTitle();
             LayoutCharacter(false);
             characterMotion?.Update();
+            UpdateUseFx();
             UpdateIntro();
             tutorial?.Update(IntroShowing());
             AutoPlay();
@@ -245,6 +253,7 @@ namespace BurningAnt.UI
             shopTipOwned = root.Q<Label>("shop-tip-owned");
             shopOverlay.RegisterCallback<GeometryChangedEvent>(_ => FitToImage(shopStage, shopOverlay, StoreAspect));
             BuildBarTip(root);
+            BuildUseFx(root);
             shopCash = root.Q<Label>("shop-cash");
             shopMessage = root.Q<Label>("shop-message");
 
@@ -1218,6 +1227,58 @@ namespace BurningAnt.UI
             if (y + h > area.height) y = pointer.y - area.y - TooltipOffset - h;
             tip.style.left = Mathf.Clamp(x, 0f, Mathf.Max(0f, area.width - w));
             tip.style.top = Mathf.Clamp(y, 0f, Mathf.Max(0f, area.height - h));
+        }
+
+        void BuildUseFx(VisualElement root)
+        {
+            useFx = new VisualElement { name = "item-use-fx", pickingMode = PickingMode.Ignore };
+            useFx.AddToClassList("item-use-fx");
+            useFxIcon = new VisualElement { pickingMode = PickingMode.Ignore };
+            useFxIcon.AddToClassList("item-use-fx__icon");
+            var col = new VisualElement { pickingMode = PickingMode.Ignore };
+            col.AddToClassList("item-use-fx__text");
+            useFxName = new Label { pickingMode = PickingMode.Ignore };
+            useFxName.AddToClassList("item-use-fx__name");
+            useFxText = new Label { pickingMode = PickingMode.Ignore };
+            useFxText.AddToClassList("item-use-fx__desc");
+            col.Add(useFxName);
+            col.Add(useFxText);
+            useFx.Add(useFxIcon);
+            useFx.Add(col);
+            useFx.style.display = DisplayStyle.None;
+            root.Add(useFx);
+        }
+
+        void OnItemUsed(ItemDefinition item, string result)
+        {
+            if (useFx == null) return;
+            if (item.icon != null) useFxIcon.style.backgroundImage = new StyleBackground(item.icon);
+            useFxIcon.style.display = item.icon != null ? DisplayStyle.Flex : DisplayStyle.None;
+            useFxName.text = $"{item.displayName} 사용!";
+            // 결과 문구 앞의 "아이템 이름: "은 위에 이름이 있으니 뺀다
+            string prefix = item.displayName + ": ";
+            useFxText.text = result.StartsWith(prefix) ? result.Substring(prefix.Length) : result;
+            useFxStart = Time.unscaledTime;
+            useFx.style.display = DisplayStyle.Flex;
+            useFx.BringToFront();
+            characterMotion?.React($"{item.displayName}, 간다!");
+        }
+
+        void UpdateUseFx()
+        {
+            if (useFx == null || useFx.style.display == DisplayStyle.None) return;
+            float t = Time.unscaledTime - useFxStart;
+            if (t >= UseFxDuration)
+            {
+                useFx.style.display = DisplayStyle.None;
+                return;
+            }
+            // 0~0.18초: 작게서 크게 통 (살짝 넘쳤다 돌아옴), 마지막 0.35초: 위로 떠오르며 사라짐
+            float scale = t < 0.18f ? Mathf.Lerp(0.6f, 1.08f, t / 0.18f) : t < 0.28f ? Mathf.Lerp(1.08f, 1f, (t - 0.18f) / 0.1f) : 1f;
+            float fadeT = Mathf.Clamp01((t - (UseFxDuration - 0.35f)) / 0.35f);
+            useFx.style.scale = new Scale(new Vector2(scale, scale));
+            useFx.style.opacity = (t < 0.1f ? t / 0.1f : 1f) * (1f - fadeT);
+            useFx.style.translate = new Translate(Length.Percent(-50), -24f * fadeT);
         }
 
         void BuildBarTip(VisualElement root)

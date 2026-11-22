@@ -119,6 +119,8 @@ namespace BurningAnt.Core
         public event Action AlarmFired;
         /// <summary>상점에서 아이템을 산 순간 (골드 효과음).</summary>
         public event Action<ItemDefinition> ItemBought;
+        /// <summary>아이템을 실제로 썼을 때 (아이템, 결과 문구). 사용 연출·효과음용.</summary>
+        public event Action<ItemDefinition, string> ItemUsed;
 
         void Awake()
         {
@@ -870,6 +872,7 @@ namespace BurningAnt.Core
                 HintRevealedTomorrow = revealTomorrow,
             });
             Say(result);
+            ItemUsed?.Invoke(item, result);
             Changed?.Invoke();
         }
 
