@@ -1230,7 +1230,7 @@ namespace BurningAnt.UI
                 }
 
                 if (item.icon != null) icon.style.backgroundImage = new StyleBackground(item.icon);
-                bool poor = Session.Portfolio.Cash < item.price;
+                bool poor = Session.Portfolio.Cash < game.PriceOf(item);
                 slot.EnableInClassList("shop-slot--poor", poor);
                 slot.EnableInClassList("shop-slot--sold", soldToday); // 하루에 아이템당 1개
                 int owned = game.Inventory.Count(item);
@@ -1265,7 +1265,10 @@ namespace BurningAnt.UI
             shopTipName.text = item.displayName;
             shopTipTag.text = item.Timing switch { ItemTiming.Prep => "아이템 시간용", ItemTiming.Market => "장 시간용", _ => "아이템·장 시간 둘 다" };
             shopTipDesc.text = string.IsNullOrEmpty(item.description) ? "(설명 없음)" : item.description;
-            shopTipPrice.text = Format.Money(item.price) + (game.BoughtToday(item) ? " · 오늘 구매 완료 (하루 1개)" : Session.Portfolio.Cash < item.price ? " · 현금 부족" : " · 클릭하면 구매");
+            float price = game.PriceOf(item);
+            int times = game.TimesBought(item);
+            string raised = times > 0 && price > item.price ? $" (처음 {Format.Money(item.price)} · {times}번 사서 올랐어요)" : "";
+            shopTipPrice.text = Format.Money(price) + raised + (game.BoughtToday(item) ? " · 오늘 구매 완료 (하루 1개)" : Session.Portfolio.Cash < price ? " · 현금 부족" : " · 클릭하면 구매");
             shopTipOwned.text = $"보유 {game.Inventory.Count(item)}개";
             shopTooltip.BringToFront();
             Show(shopTooltip, true);

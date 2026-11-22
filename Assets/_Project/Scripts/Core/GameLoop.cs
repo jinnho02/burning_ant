@@ -73,6 +73,22 @@ namespace BurningAnt.Core
         /// <summary>오늘 상점에 진열된 아이템 (상점 단계에 들어갈 때 새로 뽑는다).</summary>
         public IReadOnlyList<ItemDefinition> TodayShop => todayShop;
         readonly HashSet<ItemDefinition> boughtToday = new(); // 상점에서는 하루에 아이템당 1개만
+        readonly Dictionary<ItemDefinition, int> boughtCount = new(); // 한 판 동안 아이템별 구매 횟수 (재구매 가격 인상)
+
+        /// <summary>
+        /// 지금 상점 가격: 같은 아이템을 살 때마다 처음 가격의 50%씩 더해진다 (100 → 150 → 200 → 250).
+        /// 엠바고는 항상 1억 고정 (인상 없음).
+        /// </summary>
+        public float PriceOf(ItemDefinition item)
+        {
+            if (item == null) return 0f;
+            if (item.kind == ItemKind.Rumor) return item.price;
+            boughtCount.TryGetValue(item, out int n);
+            return item.price * (1f + 0.5f * n);
+        }
+
+        /// <summary>이 판에서 이 아이템을 산 횟수.</summary>
+        public int TimesBought(ItemDefinition item) => item != null && boughtCount.TryGetValue(item, out int n) ? n : 0;
         public bool BoughtToday(ItemDefinition item) => boughtToday.Contains(item);
         public int ShopSlots => shopSlots;
         public LoanAccount Loan { get; private set; }
@@ -121,7 +137,7 @@ namespace BurningAnt.Core
         public event Action<ItemDefinition> ItemBought;
         /// <summary>아이템을 실제로 썼을 때 (아이템, 결과 문구). 사용 연출·효과음용.</summary>
         public event Action<ItemDefinition, string> ItemUsed;
-        /// <summary>장 중 특보(뉴스 결과)가 뜬 순간. 곧이어(1초 뒤) 그 종목이 움직이기 시작한다.</summary>
+        /// <summary>장 중 특보(뉴스 결과)가 뜬 순간. 그 종목도 같은 순간부터 움직인다.</summary>
         public event Action<NewsItem> NewsFlash;
 
         void Awake()
@@ -585,13 +601,15 @@ namespace BurningAnt.Core
                 Say($"{item.displayName}은(는) 오늘 이미 샀어요 (하루에 아이템당 1개)");
                 return;
             }
-            if (item.price > 0f && !session.Portfolio.Withdraw(item.price)) // 사채업자 명함은 무료
+            float price = PriceOf(item);
+            if (price > 0f && !session.Portfolio.Withdraw(price)) // 가격 0원 아이템은 무료
             {
                 Say("현금이 부족해요");
                 return;
             }
             Inventory.Add(item);
             boughtToday.Add(item);
+            boughtCount[item] = TimesBought(item) + 1;
             ItemBought?.Invoke(item);
             Say($"{item.displayName} 구매");
             Changed?.Invoke();

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: BurningAnt::BurningAnt.Items.ItemDefinition
   kind: 12
   displayName: "\uC740\uD589 VIP \uCFE0\uD3F0"
-  price: 900000
+  price: 9000000
   description: "[\uC7A5 \uC804] VIP \uC6B0\uB300 \uAE08\uB9AC: \uB2E4\uC74C\uC5D0 \uB0BC \uC774\uC790 30% \uD560\uC778."
   icon: {fileID: 2800000, guid: e96d216d772ac324d8bcaf5f5ae51850, type: 3}
   accuracy: 1
