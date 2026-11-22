@@ -8,10 +8,11 @@
 
 ## 게임 실행하기
 
-저장소에는 실행 파일(빌드)이 들어 있지 않습니다. 둘 중 하나로 실행하세요.
+실행 파일(빌드)은 저장소 코드가 아니라 **GitHub Release**에 올라가 있습니다 (zip이 143MB라 일반 파일로는 못 올림). 둘 중 하나로 실행하세요.
 
-**1. 배포된 빌드 zip으로 (Windows)**
-1. 팀이 따로 공유한 `BurningAnt_Windows.zip`을 받아 압축을 풉니다.
+**1. 빌드 zip으로 (Windows, 가장 쉬움)**
+1. [Releases](https://github.com/jinnho02/burning_ant/releases/latest) 페이지에서 `BurningAnt_Windows.zip`을 내려받아 압축을 풉니다.
+   (바로 받기: https://github.com/jinnho02/burning_ant/releases/latest/download/BurningAnt_Windows.zip)
 2. `BurningAnt/BurningAnt.exe`를 실행합니다. 같은 폴더의 `BurningAnt_Data` 등 다른 파일과 함께 있어야 합니다.
 3. "Windows의 PC 보호" 창이 뜨면 **추가 정보 → 실행**을 누릅니다 (서명 없는 게임잼 빌드라 뜹니다).
 4. 전체 화면으로 시작합니다. Alt+Enter로 창 모드, Alt+F4로 종료. 권장 1920×1080 이상, Windows 10/11 64비트.
