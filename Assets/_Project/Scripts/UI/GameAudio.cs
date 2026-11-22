@@ -71,7 +71,7 @@ namespace BurningAnt.UI
 
         // 주가 효과음: 보고 있는 종목의 가격이 한 틱 움직일 때마다 짧은 음.
         // 오르면 높은 음, 내리면 낮은 음 (움직인 만큼 더 높게/낮게), 크게 움직일수록 크게.
-        const float TickMaxVolume = 0.12f, TickMinVolume = 0.02f; // 배경에 깔리는 정도로 작게
+        const float TickMaxVolume = 0.24f, TickMinVolume = 0.04f; // 배경에 깔리는 정도로 작게
 
         // 클릭음이 나는 요소: 버튼, 상점 칸, 종목 줄, 그리고 클릭해서 넘기는 화면(경고창·타이틀·프롤로그·엔딩).
         // 빈 곳·글자·카드를 누를 때는 소리가 안 난다.
@@ -100,7 +100,7 @@ namespace BurningAnt.UI
             float volume = Mathf.Lerp(TickMinVolume, TickMaxVolume, strength);
             if (strength < 0.12f) return; // 작은 흔들림엔 조용히 (자주 울리지 않게)
             // 오르면 1.0~1.6배, 내리면 1.0~0.6배 피치 (상승·하락 소리 자체도 위·아래로 미끄러짐)
-            tickSfx.pitch = change >= 0f ? Mathf.Lerp(1.0f, 1.25f, strength) : Mathf.Lerp(1.0f, 0.8f, strength);
+            tickSfx.pitch = change >= 0f ? Mathf.Lerp(1.0f, 1.25f, strength) : Mathf.Lerp(1.0f, 0.89f, strength); // 음역 550~880Hz 안
             tickSfx.PlayOneShot(change >= 0f ? tickUp : tickDown, volume);
         }
 
@@ -119,7 +119,7 @@ namespace BurningAnt.UI
             for (int i = 0; i < n; i++)
             {
                 float t = (float)i / n;
-                float freq = up ? Mathf.Lerp(440f, 560f, t) : Mathf.Lerp(440f, 350f, t);
+                float freq = up ? Mathf.Lerp(620f, 700f, t) : Mathf.Lerp(700f, 620f, t); // 피치 배율과 합쳐 상승 620~875Hz, 하락 551~700Hz
                 phase += freq / rate;
                 float square = (phase % 1.0) < 0.5 ? 1f : -1f;
                 smooth += (square - smooth) * 0.18f;                       // 간단한 로우패스 (날카로운 고역 줄임)
