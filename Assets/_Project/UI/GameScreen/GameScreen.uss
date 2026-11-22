@@ -684,3 +684,8 @@
 .left-column .stock-item { padding: 6px 7px; margin-left: 2px; }
 .left-column .stock-item__name { font-size: 15px; }
 .left-column .stock-item__price, .left-column .stock-item__change { font-size: 13px; }
+
+/* 오늘 이미 산 아이템 (하루에 아이템당 1개) */
+.shop-slot--sold { opacity: 0.4; }
+/* 장 화면 아이템 띠 설명창 */
+.item-tooltip { width: 420px; }

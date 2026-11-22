@@ -85,6 +85,10 @@ namespace BurningAnt.UI
         VisualElement shopStage, shopGrid, shopTooltip;
         Label shopTipName, shopTipTag, shopTipDesc, shopTipPrice, shopTipOwned;
         ItemDefinition hoveredShopItem;
+        // 장 화면 아이템 띠의 설명창 (상점 설명창과 같은 모양, 코드로 만든다)
+        VisualElement barTip;
+        Label barTipName, barTipTag, barTipDesc, barTipMeta;
+        ItemDefinition hoveredBarItem;
         VisualElement newsOverlay;
         ScrollView newsPaperList;
         Label newsPaperDate;
@@ -233,6 +237,7 @@ namespace BurningAnt.UI
             shopTipPrice = root.Q<Label>("shop-tip-price");
             shopTipOwned = root.Q<Label>("shop-tip-owned");
             shopOverlay.RegisterCallback<GeometryChangedEvent>(_ => FitToImage(shopStage, shopOverlay, StoreAspect));
+            BuildBarTip(root);
             shopCash = root.Q<Label>("shop-cash");
             shopMessage = root.Q<Label>("shop-message");
 
@@ -687,7 +692,9 @@ namespace BurningAnt.UI
                 slot.EnableInClassList("item-slot--off", !game.CanUseNow(item));
                 bool usedToday = game.Today != null && game.Today.ItemUses.Any(u => u.Item == item);
                 slot.EnableInClassList("item-slot--used", usedToday);
-                slot.tooltip = item.description;
+                slot.RegisterCallback<PointerEnterEvent>(e => { ShowBarTip(item); MoveTip(barTip, barTip.parent.worldBound, e.position); });
+                slot.RegisterCallback<PointerMoveEvent>(e => MoveTip(barTip, barTip.parent.worldBound, e.position));
+                slot.RegisterCallback<PointerLeaveEvent>(_ => HideBarTip(item));
                 string key = i < 9 ? $"[{i + 1}] " : "";
                 var name = new Label($"{key}{item.displayName} x{count}");
                 name.AddToClassList("item-slot__name");
@@ -715,6 +722,10 @@ namespace BurningAnt.UI
             };
             itemBarHint.text = string.IsNullOrEmpty(lastMessage) ? guide : lastMessage;
             Show(itemBarHint, HasItems());
+
+            // 띠를 다시 그렸으니 보던 아이템이 아직 있으면 내용만 새로, 없으면 닫기
+            if (hoveredBarItem != null && HasItems() && owned.Any(o => o.Item1 == hoveredBarItem)) ShowBarTip(hoveredBarItem);
+            else HideBarTip(null);
         }
 
         /// <summary>숫자 1~9 = 아이템 칸 순서대로 사용 (입력 중이거나 창이 떠 있으면 무시).</summary>
@@ -1116,7 +1127,8 @@ namespace BurningAnt.UI
 
                 // 이름: 칸 앞쪽(아래) 변 바로 밑, 그 변 폭만큼
                 bool ownedNow = item != null && game.Inventory.Count(item) > 0;
-                var name = new Label(item == null ? "" : ownedNow ? $"{item.displayName} (보유중)" : item.displayName);
+                bool soldToday = item != null && game.BoughtToday(item);
+                var name = new Label(item == null ? "" : soldToday ? $"{item.displayName} (오늘 구매 완료)" : ownedNow ? $"{item.displayName} (보유중)" : item.displayName);
                 name.AddToClassList("shop-slot-name");
                 name.pickingMode = PickingMode.Ignore;
                 SetPercentRect(name, bl.x, bl.y + ShopNameGap, br.x - bl.x, ShopNameHeight);
@@ -1135,6 +1147,7 @@ namespace BurningAnt.UI
                 if (item.icon != null) icon.style.backgroundImage = new StyleBackground(item.icon);
                 bool poor = Session.Portfolio.Cash < item.price;
                 slot.EnableInClassList("shop-slot--poor", poor);
+                slot.EnableInClassList("shop-slot--sold", soldToday); // 하루에 아이템당 1개
                 int owned = game.Inventory.Count(item);
                 if (owned > 0)
                 {
@@ -1167,7 +1180,7 @@ namespace BurningAnt.UI
             shopTipName.text = item.displayName;
             shopTipTag.text = item.Timing switch { ItemTiming.Prep => "아이템 시간용", ItemTiming.Market => "장 시간용", _ => "아이템·장 시간 둘 다" };
             shopTipDesc.text = string.IsNullOrEmpty(item.description) ? "(설명 없음)" : item.description;
-            shopTipPrice.text = Format.Money(item.price) + (Session.Portfolio.Cash < item.price ? " · 현금 부족" : " · 클릭하면 구매");
+            shopTipPrice.text = Format.Money(item.price) + (game.BoughtToday(item) ? " · 오늘 구매 완료 (하루 1개)" : Session.Portfolio.Cash < item.price ? " · 현금 부족" : " · 클릭하면 구매");
             shopTipOwned.text = $"보유 {game.Inventory.Count(item)}개";
             shopTooltip.BringToFront();
             Show(shopTooltip, true);
@@ -1176,10 +1189,11 @@ namespace BurningAnt.UI
         const float TooltipOffset = 18f;
 
         /// <summary>설명창을 포인터 오른쪽 아래에 두고, 화면 밖으로 나가면 포인터 반대쪽으로 넘긴다.</summary>
-        void MoveShopTooltip(Vector2 pointer)
+        void MoveShopTooltip(Vector2 pointer) => MoveTip(shopTooltip, shopOverlay.worldBound, pointer);
+
+        static void MoveTip(VisualElement tip, Rect area, Vector2 pointer)
         {
-            var area = shopOverlay.worldBound;
-            float w = shopTooltip.resolvedStyle.width, h = shopTooltip.resolvedStyle.height;
+            float w = tip.resolvedStyle.width, h = tip.resolvedStyle.height;
             if (float.IsNaN(w) || w <= 0f) w = 420f;
             if (float.IsNaN(h) || h <= 0f) h = 160f;
 
@@ -1187,8 +1201,43 @@ namespace BurningAnt.UI
             float y = pointer.y - area.y + TooltipOffset;
             if (x + w > area.width) x = pointer.x - area.x - TooltipOffset - w;
             if (y + h > area.height) y = pointer.y - area.y - TooltipOffset - h;
-            shopTooltip.style.left = Mathf.Clamp(x, 0f, Mathf.Max(0f, area.width - w));
-            shopTooltip.style.top = Mathf.Clamp(y, 0f, Mathf.Max(0f, area.height - h));
+            tip.style.left = Mathf.Clamp(x, 0f, Mathf.Max(0f, area.width - w));
+            tip.style.top = Mathf.Clamp(y, 0f, Mathf.Max(0f, area.height - h));
+        }
+
+        void BuildBarTip(VisualElement root)
+        {
+            Label L(string cls) { var l = new Label { pickingMode = PickingMode.Ignore }; l.AddToClassList(cls); return l; }
+            barTip = new VisualElement { pickingMode = PickingMode.Ignore };
+            barTip.AddToClassList("shop-tooltip");
+            barTip.AddToClassList("item-tooltip");
+            var top = new VisualElement { pickingMode = PickingMode.Ignore };
+            top.AddToClassList("row");
+            top.AddToClassList("row--spread");
+            top.Add(barTipName = L("shop-tip-name"));
+            top.Add(barTipTag = L("shop-tip-tag"));
+            barTip.Add(top);
+            barTip.Add(barTipDesc = L("shop-tip-desc"));
+            barTip.Add(barTipMeta = L("shop-tip-owned"));
+            root.Add(barTip);
+        }
+
+        void ShowBarTip(ItemDefinition item)
+        {
+            hoveredBarItem = item;
+            barTipName.text = item.displayName;
+            barTipTag.text = item.Timing switch { ItemTiming.Prep => "아이템 시간용", ItemTiming.Market => "장 시간용", _ => "아이템·장 시간 둘 다" };
+            barTipDesc.text = string.IsNullOrEmpty(item.description) ? "(설명 없음)" : item.description;
+            barTipMeta.text = $"보유 {game.Inventory.Count(item)}개 · " + (game.CanUseNow(item) ? "클릭하면 사용" : "지금은 못 써요");
+            barTip.BringToFront();
+            Show(barTip, true);
+        }
+
+        void HideBarTip(ItemDefinition item)
+        {
+            if (barTip == null || (item != null && item != hoveredBarItem)) return;
+            hoveredBarItem = null;
+            Show(barTip, false);
         }
 
         /// <summary>item이 지금 보이는 설명의 아이템일 때만 닫는다 (칸 사이를 옮겨 다닐 때 깜빡임 방지). null이면 무조건 닫는다.</summary>

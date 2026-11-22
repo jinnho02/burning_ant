@@ -72,6 +72,8 @@ namespace BurningAnt.Core
         readonly List<ItemDefinition> todayShop = new();
         /// <summary>오늘 상점에 진열된 아이템 (상점 단계에 들어갈 때 새로 뽑는다).</summary>
         public IReadOnlyList<ItemDefinition> TodayShop => todayShop;
+        readonly HashSet<ItemDefinition> boughtToday = new(); // 상점에서는 하루에 아이템당 1개만
+        public bool BoughtToday(ItemDefinition item) => boughtToday.Contains(item);
         public int ShopSlots => shopSlots;
         public LoanAccount Loan { get; private set; }
         public LoanSettings LoanSettings => loanSettings;
@@ -523,6 +525,7 @@ namespace BurningAnt.Core
         void RollShop()
         {
             todayShop.Clear();
+            boughtToday.Clear();
             var pool = new List<ItemDefinition>();
             foreach (var item in shopItems)
                 if (item != null) pool.Add(item);
@@ -538,12 +541,18 @@ namespace BurningAnt.Core
         public void Buy(ItemDefinition item)
         {
             if (Phase != GamePhase.Shop || !todayShop.Contains(item)) return;
+            if (boughtToday.Contains(item))
+            {
+                Say($"{item.displayName}은(는) 오늘 이미 샀어요 (하루에 아이템당 1개)");
+                return;
+            }
             if (item.price > 0f && !session.Portfolio.Withdraw(item.price)) // 사채업자 명함은 무료
             {
                 Say("현금이 부족해요");
                 return;
             }
             Inventory.Add(item);
+            boughtToday.Add(item);
             ItemBought?.Invoke(item);
             Say($"{item.displayName} 구매");
             Changed?.Invoke();
