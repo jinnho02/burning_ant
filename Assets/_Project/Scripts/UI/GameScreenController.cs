@@ -965,7 +965,9 @@ namespace BurningAnt.UI
                 if (n.Stock == null) continue;
                 float change = n.Stock.PriceAt(Session.Tick) / n.Stock.PrevClose - 1f;
                 bool hit = (n.Effect >= 0f) == (change >= 0f);
-                var row = Row(news, false, n.Stock.Name, $"{n.Text} → {(n.Success ? "성공" : "실패")}", $"실제 {Format.SignedPercent(change)}");
+                // "성공/실패" 대신 팀 문서(업종 및 기사 정리)의 성공 기사·실패 기사 문구 그대로
+                string follow = n.Success ? n.Template.successHeadline : n.Template.failureHeadline;
+                var row = Row(news, false, n.Stock.Name, $"{n.Template.initialHeadline} → {follow}", $"실제 {Format.SignedPercent(change)}");
                 row.ElementAt(2).AddToClassList(hit ? "report-ok" : "report-bad");
             }
 
